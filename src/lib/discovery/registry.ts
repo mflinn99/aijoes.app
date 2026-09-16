@@ -1,0 +1,68 @@
+/**
+ * Connector registry — Directive §4 and §23.
+ *
+ * Every connector the platform expects to support is declared, including the
+ * ones not yet implemented. That is what lets §23 answer "connect accounting →
+ * +21% understanding" honestly rather than inventing the list at render time.
+ */
+
+import type { CompanyDataConnector, ConnectorCategory } from './connector';
+import { WebsiteConnector } from './website-connector';
+import { CompaniesHouseConnector } from './companies-house-connector';
+
+export interface PlannedConnector {
+  id: string;
+  name: string;
+  category: ConnectorCategory;
+  authType: 'none' | 'api-key' | 'oauth2';
+  understandingUplift: number;
+  implemented: boolean;
+  /** What this connection unlocks, in the user's language. */
+  unlocks: string;
+}
+
+/**
+ * Uplift figures are the sum of the FIELD_WEIGHTS this connector can populate,
+ * expressed as a percentage of the total twin weight. They are estimates, and
+ * the UI labels them as such.
+ */
+export const CONNECTOR_CATALOGUE: PlannedConnector[] = [
+  { id: 'website', name: 'Company website', category: 'public-web', authType: 'none', understandingUplift: 32, implemented: true, unlocks: 'Proposition, services, sectors, technology indicators' },
+  { id: 'companies-house', name: 'Companies House', category: 'registry', authType: 'api-key', understandingUplift: 14, implemented: true, unlocks: 'Legal identity, SIC codes, filing history, officers' },
+  { id: 'microsoft-365', name: 'Microsoft 365', category: 'productivity', authType: 'oauth2', understandingUplift: 11, implemented: false, unlocks: 'Licence counts and waste, user population, actual tenant configuration' },
+  { id: 'accounting', name: 'Accounting (Xero / Sage / QuickBooks)', category: 'accounting', authType: 'oauth2', understandingUplift: 21, implemented: false, unlocks: 'Real turnover, margin, supplier spend — promotes savings hypotheses to quantified opportunities' },
+  { id: 'crm', name: 'CRM', category: 'crm', authType: 'oauth2', understandingUplift: 18, implemented: false, unlocks: 'Pipeline, dormant accounts, conversion rates, customer concentration' },
+  { id: 'psa', name: 'PSA', category: 'psa', authType: 'api-key', understandingUplift: 17, implemented: false, unlocks: 'Current MSP services, contract values, ticket themes' },
+  { id: 'rmm', name: 'RMM', category: 'rmm', authType: 'api-key', understandingUplift: 12, implemented: false, unlocks: 'Device estate, patch posture, endpoint counts' },
+  { id: 'banking', name: 'Bank transaction feed', category: 'banking', authType: 'oauth2', understandingUplift: 15, implemented: false, unlocks: 'Actual supplier payments, maverick spend, duplicate subscriptions' },
+  { id: 'procurement', name: 'Procurement system', category: 'procurement', authType: 'api-key', understandingUplift: 9, implemented: false, unlocks: 'Contract register, renewal dates, procurement compliance' },
+  { id: 'licence-portal', name: 'Licence portals', category: 'licensing', authType: 'api-key', understandingUplift: 8, implemented: false, unlocks: 'Licence assignment vs. consumption, unused seats' },
+  { id: 'azure', name: 'Microsoft Azure', category: 'cloud', authType: 'oauth2', understandingUplift: 10, implemented: false, unlocks: 'Cloud spend, idle resources, reservation opportunities' },
+  { id: 'aws', name: 'AWS', category: 'cloud', authType: 'api-key', understandingUplift: 10, implemented: false, unlocks: 'Cloud spend, idle resources, savings plans' },
+  { id: 'telecoms', name: 'Telecoms', category: 'telecoms', authType: 'api-key', understandingUplift: 5, implemented: false, unlocks: 'Line and mobile inventory, unused connections' },
+  { id: 'hr', name: 'HR system', category: 'hr', authType: 'oauth2', understandingUplift: 7, implemented: false, unlocks: 'Headcount, departments, joiners and leavers driving licence waste' },
+  { id: 'support', name: 'Customer support', category: 'support', authType: 'oauth2', understandingUplift: 6, implemented: false, unlocks: 'Service themes, churn risk, automation candidates' },
+  { id: 'erp', name: 'ERP', category: 'erp', authType: 'api-key', understandingUplift: 13, implemented: false, unlocks: 'Operational process data, inventory, order flow' },
+  { id: 'supplier-portal', name: 'Supplier portals', category: 'supplier', authType: 'api-key', understandingUplift: 6, implemented: false, unlocks: 'Contract terms and pricing directly from suppliers' },
+];
+
+const implemented: CompanyDataConnector[] = [new WebsiteConnector(), new CompaniesHouseConnector()];
+
+export function activeConnectors(): CompanyDataConnector[] {
+  return implemented;
+}
+
+export function getConnector(id: string): CompanyDataConnector | undefined {
+  return implemented.find((c) => c.id === id);
+}
+
+/**
+ * Directive §23: the ranked "connect this next" list. Connectors already
+ * contributing are excluded, and the list is ordered by the understanding each
+ * would add.
+ */
+export function recommendedConnections(alreadyConnected: string[]): PlannedConnector[] {
+  return CONNECTOR_CATALOGUE.filter((c) => !alreadyConnected.includes(c.id)).sort(
+    (a, b) => b.understandingUplift - a.understandingUplift,
+  );
+}
