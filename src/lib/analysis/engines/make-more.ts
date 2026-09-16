@@ -70,11 +70,34 @@ const dormantReactivation: Rule = (ctx) => {
   };
 };
 
+/**
+ * Larger deals convert at lower rates and land later. Applying a flat 20% win
+ * rate to a business whose average contract is six figures produces a growth
+ * figure that would nearly double the company in a year — arithmetically
+ * derivable and commercially absurd. This scales the benchmark by deal size.
+ */
+function winRateForDealSize(averageCustomerValue: number): { rate: number; note: string } {
+  if (averageCustomerValue < 25_000) {
+    return { rate: BENCHMARKS.meetingToWinRate.value, note: BENCHMARKS.meetingToWinRate.note };
+  }
+  if (averageCustomerValue < 75_000) {
+    return { rate: 0.12, note: 'Mid-size deals (£25k–£75k) convert below the B2B average and take longer.' };
+  }
+  if (averageCustomerValue < 200_000) {
+    return { rate: 0.07, note: 'Large deals (£75k–£200k) involve procurement and multiple stakeholders; conversion falls accordingly.' };
+  }
+  return { rate: 0.04, note: 'Contracts above £200k are typically tendered. Conversion from a single meeting is low.' };
+}
+
+/** Deals land through the year, so the first year yields roughly half a year of revenue each. */
+const FIRST_YEAR_RAMP = 0.5;
+
 const pipelineGeneration: Rule = (ctx) => {
   const customerValue = ctx.turnover.value * BENCHMARKS.averageCustomerValueRatio.value;
   const meetings = BENCHMARKS.outboundMeetingsPerRepPerMonth.value * 12;
-  const wins = meetings * BENCHMARKS.meetingToWinRate.value;
-  const value = wins * customerValue;
+  const winRate = winRateForDealSize(customerValue);
+  const wins = meetings * winRate.rate;
+  const value = wins * customerValue * FIRST_YEAR_RAMP;
   if (value < 10_000) return null;
 
   const hasOutbound =
@@ -92,12 +115,13 @@ const pipelineGeneration: Rule = (ctx) => {
     lines: [
       { label: 'Qualified meetings per month', value: BENCHMARKS.outboundMeetingsPerRepPerMonth.value, unit: 'count', basis: 'benchmark', note: BENCHMARKS.outboundMeetingsPerRepPerMonth.note },
       { label: 'Meetings per year', value: meetings, unit: 'count', basis: 'benchmark', note: 'Monthly target × 12.' },
-      { label: 'Meeting to win rate', value: BENCHMARKS.meetingToWinRate.value * 100, unit: 'percent', basis: 'benchmark', note: BENCHMARKS.meetingToWinRate.note },
+      { label: 'Meeting to win rate', value: Math.round(winRate.rate * 1000) / 10, unit: 'percent', basis: 'benchmark', note: winRate.note },
       { label: 'New customers per year', value: Math.round(wins), unit: 'count', basis: 'benchmark', note: 'Meetings × win rate.' },
       { label: 'Average annual customer value', value: Math.round(customerValue), unit: 'GBP', basis: ctx.turnover.basis, note: ctx.turnover.note },
-      { label: 'New annual revenue', value: Math.round(value), unit: 'GBP', basis: 'benchmark', note: 'New customers × average customer value.' },
+      { label: 'First-year revenue ramp', value: FIRST_YEAR_RAMP * 100, unit: 'percent', basis: 'assumption', note: 'Deals land across the year, so year one yields roughly half of each contract\u2019s annual value.' },
+      { label: 'New revenue in year one', value: Math.round(value), unit: 'GBP', basis: 'benchmark', note: 'New customers × average customer value × first-year ramp.' },
     ],
-    formula: 'meetings_per_month × 12 × win_rate × average_customer_value',
+    formula: 'meetings_per_month × 12 × win_rate × average_customer_value × first_year_ramp',
     pointEstimate: value,
     implementationCost: Math.min(30_000, Math.max(8_000, value * 0.12)),
     confidence: 0.58,
@@ -106,7 +130,7 @@ const pipelineGeneration: Rule = (ctx) => {
     timeToValue: 90,
     evidence: [
       evidenceFromField(ctx, `Sectors identified: ${ctx.sectors.join(', ') || 'not determined'}`, 'sectors'),
-      benchmarkEvidence(BENCHMARKS.meetingToWinRate.note, 0.55),
+      benchmarkEvidence(winRate.note, 0.55),
       benchmarkEvidence('First revenue typically lands 60–120 days after outreach begins, given B2B sales cycles.', 0.6),
     ],
     assumptions: [

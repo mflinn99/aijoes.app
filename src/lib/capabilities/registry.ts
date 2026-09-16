@@ -19,14 +19,21 @@ function action(
   description: string,
   opts: Partial<CapabilityAction> = {},
 ): CapabilityAction {
+  const external = opts.external ?? false;
+  const declared = opts.requiredInputs ?? ['companyId'];
+  // An action that reaches outside the platform cannot be invoked without an
+  // approval id. Enforcing it here rather than per-action means a new external
+  // action cannot be added without the gate (§11).
+  const requiredInputs = external && !declared.includes('approvalId') ? [...declared, 'approvalId'] : declared;
+
   return {
     id,
     name,
     description,
-    external: opts.external ?? false,
+    external,
     risk: opts.risk ?? 'low',
     unitCostGbp: opts.unitCostGbp ?? 0.5,
-    requiredInputs: opts.requiredInputs ?? ['companyId'],
+    requiredInputs,
     outputs: opts.outputs ?? ['result'],
   };
 }

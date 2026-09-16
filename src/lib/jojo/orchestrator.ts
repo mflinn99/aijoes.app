@@ -78,7 +78,21 @@ export function parseObjective(raw: string): ParsedObjective {
   let measurableOutcome = 'No measurable outcome could be derived from this objective.';
   let categoryFilter: OpportunityCategory | null = null;
 
-  if (/\bstart\b/.test(lower) && /opportunit/.test(lower)) {
+  // An explicit "analyse <company>" wins over any keyword inside the same
+  // sentence. The directive's own example — "analyse Claritas Solutions and
+  // tell me the best ways to increase turnover and cut cost" — mentions both
+  // growth and cost, and asking for one category there would drop half of what
+  // was asked for.
+  if (/\banalys[ei]/.test(lower)) {
+    kind = 'analyse-company';
+    const wantsGrowth = /turnover|revenue|grow|make more/.test(lower);
+    const wantsCost = /cost|saving|spend less/.test(lower);
+    if (wantsGrowth && !wantsCost) categoryFilter = 'MAKE_MORE';
+    else if (wantsCost && !wantsGrowth) categoryFilter = 'SPEND_LESS';
+    measurableOutcome = companyHint
+      ? `Produce a ranked opportunity plan for ${companyHint}.`
+      : 'Produce a ranked opportunity plan for the named company.';
+  } else if (/\bstart\b/.test(lower) && /opportunit/.test(lower)) {
     kind = 'start-opportunities';
     measurableOutcome = `Create and authorise execution plans for the top ${limit ?? 3}${riskFilter ? ' low-risk' : ''} opportunities.`;
   } else if (/\bsaving|\bcut cost|\breduce cost|spend less\b/.test(lower)) {
@@ -97,12 +111,12 @@ export function parseObjective(raw: string): ParsedObjective {
   } else if (/next best action|best action|what should/.test(lower)) {
     kind = 'portfolio-next-action';
     measurableOutcome = 'Identify the single highest-value practical action across the MSP estate.';
-  } else if (/analys|increase turnover|grow revenue|make more/.test(lower)) {
+  } else if (/increase turnover|grow revenue|make more/.test(lower)) {
     kind = 'analyse-company';
-    if (/turnover|revenue|grow/.test(lower) && !/cost|saving/.test(lower)) categoryFilter = 'MAKE_MORE';
+    categoryFilter = 'MAKE_MORE';
     measurableOutcome = companyHint
-      ? `Produce a ranked opportunity plan for ${companyHint}.`
-      : 'Produce a ranked opportunity plan for the named company.';
+      ? `Produce a ranked growth plan for ${companyHint}.`
+      : 'Produce a ranked growth plan for the named company.';
   }
 
   return { kind, measurableOutcome, financialTarget, countTarget, companyHint, categoryFilter, riskFilter, limit, raw: text };

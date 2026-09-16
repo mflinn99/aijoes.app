@@ -95,8 +95,11 @@ export function planExecution(db: TenantDb, input: PlanInput): ExecutionPreview 
       const unitCost = actionDef?.unitCostGbp ?? 1;
       estimatedCostGbp += unitCost;
 
-      // Step 7 — identify approvals. A task is gated if the playbook says so,
-      // or the capability action touches the outside world, or autonomy is short.
+      // Step 7 — identify approvals. A task is gated when the playbook demands
+      // it, or when it reaches outside the platform without the autonomy to do
+      // so. Internal preparation runs on the plan's own authorisation: §12's
+      // PREPARE level exists precisely so the work gets done and the human
+      // approves the step that leaves the building, not every step before it.
       const external = actionDef?.external ?? false;
       const decision = resolveAutonomy(
         {
@@ -127,11 +130,14 @@ export function planExecution(db: TenantDb, input: PlanInput): ExecutionPreview 
           companyId: opportunity.companyId,
           tenantId: db.ctx.tenantId,
           objective: opportunity.title,
-          financialTarget: opportunity.estimatedAnnualValue * (playbook.financialModel.targetRealisationRate / playbook.tasks.length),
+          // The whole plan target, not a per-task slice: only the terminal tasks
+          // carry a value fraction, so dividing here would discount the result
+          // twice and contradict what the task's own evidence reports.
+          financialTarget: Math.round(opportunity.estimatedAnnualValue * playbook.financialModel.targetRealisationRate),
         },
         expectedOutputs: pt.expectedOutputs,
         preconditions: pt.preconditions,
-        approvalRequired: pt.approvalRequired || external || decision.requiresApproval,
+        approvalRequired: pt.approvalRequired || (external && !decision.mayExecute),
         approvalId: null,
         status: 'PENDING',
         startedAt: null,

@@ -316,13 +316,24 @@ function companyNameFrom(signals: PageSignals, domain: string): { value: string;
 }
 
 function servicesFrom(pages: PagePayload[]): string[] {
-  const servicePage = pages.find((p) => /service|solution|what-we-do|product|capabilit/i.test(p.url));
+  // Match the path, never the whole URL: a host like "crosbygroupservices.co.uk"
+  // contains "services" and would otherwise make the homepage look like the
+  // services page, so nav headings get reported as service lines.
+  const servicePage = pages.find((p) => {
+    try {
+      return /service|solution|what-we-do|product|capabilit/i.test(new URL(p.url).pathname);
+    } catch {
+      return false;
+    }
+  });
   const source = servicePage ?? pages[0];
   if (!source) return [];
   const candidates = source.signals.headings
     .map((h) => h.trim())
     .filter((h) => h.length >= 4 && h.length <= 70)
-    .filter((h) => !/^(home|contact|about|menu|search|cookie|privacy|copyright)/i.test(h));
+    .filter((h) => !/^(home|contact|about|menu|search|cookie|privacy|copyright)/i.test(h))
+    // Section headers and slogans are not service lines.
+    .filter((h) => !/^(why|who|how|what we|our |sectors? we|meet the|latest|news|insights|testimonial|get in touch|find out)/i.test(h));
   return [...new Set(candidates)].slice(0, 12);
 }
 

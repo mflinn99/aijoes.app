@@ -136,6 +136,8 @@ export interface AnalyseOptions {
   seedRecords?: SourceRecord[];
   /** Facts the user supplied directly, e.g. a known headcount. */
   userSupplied?: Partial<Record<TwinFieldKey, unknown>>;
+  /** Continue an already-created run, so a caller can poll it while this works. */
+  runId?: string;
 }
 
 export async function analyseCompany(
@@ -143,7 +145,8 @@ export async function analyseCompany(
   input: string,
   options: AnalyseOptions = {},
 ): Promise<AnalysisResult> {
-  const run = createRun(db, input);
+  const existingRun = options.runId ? getRun(db, options.runId) : null;
+  const run = existingRun ?? createRun(db, input);
   const startedAt = Date.now();
 
   const mark = (id: StageId, status: StageStatus, detail: string) => {
