@@ -45,12 +45,25 @@ Treat 100% as "nothing is missing", not as "the screen is right".
 
 ## Content in the app that is not from the source document
 
-Inferred by the build, reasonable for a demo, but not written by the author:
+Inferred by the build, reasonable for a demo, but not written by the author.
+All of it now carries a "Derived" badge on screen, with this legend in the
+footer of every page: "Items marked Derived are inferred for demonstration
+purposes and are not stated in the source data."
 
-- Per-deal MEDDIC traffic-light ratings (Green / Amber / Red).
+- Per-deal MEDDIC traffic-light ratings (Green / Amber / Red) — badged on the
+  Salesman pipeline column, the Manager heatmap and the Executive watchlist.
 - Deal gaps: "No Economic Buyer" (Morrison), "Metrics unclear" (Asda),
   "Champion not tested" (United Utilities).
 - "Confidence Score: Medium" on the manager view.
+
+Two things are deliberately NOT badged, and should stay that way:
+
+- "Economic Buyer engagement weak on TFL" is from the source document and is
+  one of the 264 tracked assertions. A Derived badge on it would be a false
+  disclaimer on the author's own words.
+- Total Weighted Commitment, Revenue Gap and Pipeline Coverage Ratio are
+  arithmetic on the document's own figures, not inference. Badging them would
+  undersell the forecast.
 
 Everything else on screen traces to the document. Earlier drafts also contained
 outright fabrications — invented Today's Priorities on all three dashboards, a
