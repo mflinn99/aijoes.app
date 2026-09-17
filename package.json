@@ -13,7 +13,8 @@
     "seed": "tsx scripts/seed.ts",
     "db:reset": "rm -f .data/metamsp.db && npm run seed",
     "salesonic:check": "tsx scripts/salesonic-check-repl.ts",
-    "salesonic:verify": "vitest run tests/salesonic-narrative-coverage.test.ts"
+    "salesonic:verify": "vitest run tests/salesonic-narrative-coverage.test.ts",
+    "salesonic:prompt": "tsx scripts/salesonic-build-agent-prompt.ts"
   },
   "dependencies": {
     "better-sqlite3": "^11.5.0",

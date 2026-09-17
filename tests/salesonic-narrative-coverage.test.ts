@@ -76,6 +76,17 @@ describe('SaleSonic narrative coverage', () => {
     expect(dataset.diagnosticSignalsShortForm).toHaveLength(6);
   });
 
+  it('keeps the Replit Agent prompt carrying the full narrative', () => {
+    // The prompt is what actually builds the Repl. A prompt missing a sentence
+    // builds an app missing that sentence, so it is held to the same bar.
+    const prompt = readFileSync(resolve(__dirname, '../docs/salesonic/REPLIT-AGENT-PROMPT.md'), 'utf-8');
+    const report = checkCoverage(prompt);
+    if (report.missing.length > 0) {
+      throw new Error(`\n${formatReport(report, 'Replit Agent prompt')}\n`);
+    }
+    expect(report.coveragePct).toBe(100);
+  });
+
   it('tracks a meaningful number of required phrases', () => {
     expect(narrativePhraseCount).toBeGreaterThanOrEqual(250);
   });
