@@ -9,6 +9,7 @@ import { listPlans } from '@/lib/execution/engine';
 import { understandingScore, type Signal } from '@/lib/core/company-twin';
 import { valueOf } from '@/lib/core/provenance';
 import { buildContext } from '@/lib/analysis/context';
+import { getFacts } from '@/lib/db/repositories/facts';
 import { recommendedConnections } from '@/lib/discovery/registry';
 import { listBenefits, summariseLedger } from '@/lib/benefits/ledger';
 import { PageHead } from '@/components/Shell';
@@ -29,7 +30,7 @@ export default async function CompanyOverview({ params }: { params: Promise<{ id
 
   const opportunities = listOpportunities(database, id);
   const customer = listCustomers(database).find((c) => c.domain === (valueOf(twin.domain) as string | null));
-  const ctx = buildContext(twin);
+  const ctx = buildContext(twin, getFacts(database, id));
   const understanding = understandingScore(twin);
   const plans = listPlans(database, id);
   const ledger = summariseLedger(listBenefits(database, id));

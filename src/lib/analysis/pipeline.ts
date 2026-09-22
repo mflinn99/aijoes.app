@@ -11,7 +11,9 @@ import { randomUUID } from 'node:crypto';
 import type { TenantDb } from '../db/tenant';
 import { createEmptyTwin, understandingScore, type CompanyTwin, type TwinFieldKey } from '../core/company-twin';
 import { addClaim, claim, type ProvenancedField } from '../core/provenance';
-import { activeConnectors, recommendedConnections } from '../discovery/registry';
+import { connectorsFor, recommendedConnections } from '../discovery/registry';
+import { computeLicenceFacts } from '../discovery/microsoft365-connector';
+import { getFacts, putFacts } from '../db/repositories/facts';
 import { normaliseDomain, looksLikeDomain } from '../discovery/http';
 import type { CompanyIdentity, SourceRecord } from '../discovery/connector';
 import { buildContext } from './context';
@@ -185,8 +187,10 @@ export async function analyseCompany(
     const allRecords: SourceRecord[] = [...(options.seedRecords ?? [])];
     const contributingConnectors = new Set<string>(allRecords.map((r) => r.connectorId));
 
+    const connectors = connectorsFor(db);
+
     if (!options.offline) {
-      for (const connector of activeConnectors()) {
+      for (const connector of connectors) {
         const discovery = await connector.discover();
         if (discovery.status !== 'available') continue;
         try {
@@ -202,7 +206,7 @@ export async function analyseCompany(
     }
 
     // Normalise every record into claims and fold them into the twin.
-    for (const connector of activeConnectors()) {
+    for (const connector of connectors) {
       const mine = allRecords.filter((r) => r.connectorId === connector.id);
       if (mine.length === 0) continue;
       const normalised = await connector.normalise(mine);
@@ -243,8 +247,23 @@ export async function analyseCompany(
         : 'No public information could be retrieved. Understanding stays low rather than being filled in with assumptions.',
     );
 
+    // Counted figures from connected systems are stored separately from the
+    // twin's claims, because an engine consumes the whole structure rather than
+    // a single value with a confidence.
+    const m365Users = allRecords.find((r) => r.locator === 'graph:/users');
+    const m365Skus = allRecords.find((r) => r.locator === 'graph:/subscribedSkus');
+    if (m365Users && m365Skus) {
+      putFacts(
+        db,
+        twin.id,
+        'licence',
+        'microsoft-365',
+        computeLicenceFacts(m365Users.payload as never, m365Skus.payload as never),
+      );
+    }
+
     // ---- Stages 3–5: market, customers, competitors ------------------------
-    const ctx = buildContext(twin);
+    const ctx = buildContext(twin, getFacts(db, twin.id));
 
     mark('market', 'done', ctx.sectors.length > 0
       ? `Sectors identified: ${ctx.sectors.join(', ')}.`

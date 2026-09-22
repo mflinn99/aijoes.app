@@ -9,6 +9,7 @@ import { valueOf, confidenceOf } from '../core/provenance';
 import type { TechnologyItem } from '../core/company-twin';
 import { BENCHMARKS, sectorMultiplier } from './benchmarks';
 import type { FinancialLine } from '../core/opportunity';
+import type { ConnectedFacts } from '../db/repositories/facts';
 
 export interface AnalysisContext {
   twin: CompanyTwin;
@@ -24,31 +25,44 @@ export interface AnalysisContext {
   hasCrmData: boolean;
   hasLicenceData: boolean;
   itSpendEstimate: number;
+  /**
+   * Counted figures from connected systems. When these are present an engine
+   * uses them in place of its benchmark, which is what turns a hypothesis into
+   * an inferred fact without any rule needing to know about promotion.
+   */
+  facts: ConnectedFacts;
 }
 
 const FINANCIAL_CONNECTORS = ['accounting', 'banking', 'erp'];
 const CRM_CONNECTORS = ['crm', 'psa'];
 const LICENCE_CONNECTORS = ['microsoft-365', 'licence-portal'];
 
-export function buildContext(twin: CompanyTwin): AnalysisContext {
+export function buildContext(twin: CompanyTwin, facts: ConnectedFacts = {}): AnalysisContext {
   const sectors = (valueOf(twin.sectors) as string[] | null) ?? [];
   const segments = (valueOf(twin.customerSegments) as string[] | null) ?? [];
   const technology = (valueOf(twin.technologyEstate) as TechnologyItem[] | null) ?? [];
   const connectedSources = twin.dataSources;
   const mult = sectorMultiplier(sectors);
 
-  const observedEmployees = valueOf(twin.employeesEstimate) as number | null;
-  const observedTurnover = valueOf(twin.turnoverEstimate) as number | null;
+  const observedEmployees = facts.licence?.enabledUsers ?? (valueOf(twin.employeesEstimate) as number | null);
+  const observedTurnover = facts.financial?.turnover ?? (valueOf(twin.turnoverEstimate) as number | null);
 
   // Employees: observed, else inferred from turnover, else a stated default.
   let employees: AnalysisContext['employees'];
   if (observedEmployees && observedEmployees > 0) {
-    employees = {
-      value: observedEmployees,
-      confidence: confidenceOf(twin.employeesEstimate),
-      basis: 'observed',
-      note: 'Headcount from company data.',
-    };
+    employees = facts.licence
+      ? {
+          value: facts.licence.enabledUsers,
+          confidence: 0.96,
+          basis: 'connected',
+          note: `Counted from the connected Microsoft 365 tenant: ${facts.licence.enabledUsers} enabled account(s).`,
+        }
+      : {
+          value: observedEmployees,
+          confidence: confidenceOf(twin.employeesEstimate),
+          basis: 'observed',
+          note: 'Headcount from company data.',
+        };
   } else if (observedTurnover && observedTurnover > 0) {
     const perHead = BENCHMARKS.turnoverPerEmployee.value * mult.turnoverPerEmployee;
     employees = {
@@ -69,12 +83,19 @@ export function buildContext(twin: CompanyTwin): AnalysisContext {
   // Turnover: observed, else inferred from headcount.
   let turnover: AnalysisContext['turnover'];
   if (observedTurnover && observedTurnover > 0) {
-    turnover = {
-      value: observedTurnover,
-      confidence: confidenceOf(twin.turnoverEstimate),
-      basis: 'observed',
-      note: 'Turnover from company data or filings.',
-    };
+    turnover = facts.financial
+      ? {
+          value: facts.financial.turnover,
+          confidence: 0.95,
+          basis: 'connected',
+          note: `Counted from connected accounting data for ${facts.financial.periodStart} to ${facts.financial.periodEnd}.`,
+        }
+      : {
+          value: observedTurnover,
+          confidence: confidenceOf(twin.turnoverEstimate),
+          basis: 'observed',
+          note: 'Turnover from company data or filings.',
+        };
   } else {
     const perHead = BENCHMARKS.turnoverPerEmployee.value * mult.turnoverPerEmployee;
     turnover = {
@@ -95,10 +116,11 @@ export function buildContext(twin: CompanyTwin): AnalysisContext {
     segments,
     technology,
     connectedSources,
-    hasFinancialData: connectedSources.some((s) => FINANCIAL_CONNECTORS.includes(s)),
+    hasFinancialData: Boolean(facts.financial) || connectedSources.some((s) => FINANCIAL_CONNECTORS.includes(s)),
     hasCrmData: connectedSources.some((s) => CRM_CONNECTORS.includes(s)),
-    hasLicenceData: connectedSources.some((s) => LICENCE_CONNECTORS.includes(s)),
+    hasLicenceData: Boolean(facts.licence) || connectedSources.some((s) => LICENCE_CONNECTORS.includes(s)),
     itSpendEstimate,
+    facts,
   };
 }
 

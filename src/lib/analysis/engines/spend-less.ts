@@ -28,7 +28,93 @@ function confidenceFor(ctx: AnalysisContext, connected: number, benchmarked: num
   return ctx.hasFinancialData ? connected : benchmarked;
 }
 
+
+/**
+ * The same opportunity, built from a connected tenant.
+ *
+ * Every line is `connected`, so the derived epistemics become inferred-fact and
+ * the confidence ceiling lifts. The numbers are seats, not estimates: unassigned
+ * licences, leavers who still hold one, and accounts that have not signed in.
+ */
+function microsoftLicencesFromFacts(ctx: AnalysisContext, licence: NonNullable<AnalysisContext['facts']['licence']>): DraftInput | null {
+  if (licence.recoverableAnnualGbp < 250) return null;
+
+  const unassignedAnnual = licence.skus.reduce((sum, s) => sum + s.unassignedAnnualCostGbp, 0);
+  const unassignedSeats = licence.skus.reduce((sum, s) => sum + s.unassigned, 0);
+  const staleSeats = licence.licensedDisabledUsers + licence.dormantLicensedUsers;
+
+  const lines: FinancialLine[] = [
+    { label: 'Licensed users', value: licence.licensedUsers, unit: 'count', basis: 'connected', note: `Counted from the tenant on ${licence.retrievedAt.slice(0, 10)}.` },
+    { label: 'Annual licence cost', value: licence.annualLicenceCostGbp, unit: 'GBP', basis: 'connected', note: 'Assigned seats × published unit price × 12.' },
+    { label: 'Unassigned seats', value: unassignedSeats, unit: 'count', basis: 'connected', note: 'Purchased but assigned to nobody.' },
+    { label: 'Cost of unassigned seats', value: unassignedAnnual, unit: 'GBP', basis: 'connected', note: 'Paid for and unused.' },
+    { label: 'Disabled accounts still licensed', value: licence.licensedDisabledUsers, unit: 'count', basis: 'connected', note: 'Leavers whose licence was never reclaimed.' },
+    { label: `Licensed accounts dormant 60+ days`, value: licence.dormantLicensedUsers, unit: 'count', basis: 'connected', note: 'Enabled and licensed, but not signing in.' },
+    { label: 'Recoverable annual spend', value: licence.recoverableAnnualGbp, unit: 'GBP', basis: 'connected', note: 'Unassigned seats plus leaver and dormant seats at the average seat price.' },
+  ];
+
+  const skuSummary = licence.skus
+    .filter((s) => s.purchased > 0)
+    .map((s) => `${s.name}: ${s.assigned}/${s.purchased}`)
+    .join(', ');
+
+  return {
+    category: 'SPEND_LESS',
+    subcategory: 'Microsoft licences',
+    title: 'Microsoft 365 licence optimisation',
+    summary:
+      `${money(licence.recoverableAnnualGbp)} a year is recoverable from the connected tenant: ` +
+      `${unassignedSeats} unassigned seat(s), ${licence.licensedDisabledUsers} leaver(s) still licensed and ` +
+      `${licence.dormantLicensedUsers} dormant account(s).`,
+    problem:
+      'Licence spend grows with joiners and never shrinks with leavers. None of it appears on an invoice as waste — ' +
+      'it appears as a slightly larger bill every month.',
+    lines,
+    formula: 'unassigned_seats × unit_price × 12 + (leavers + dormant) × average_seat_cost',
+    pointEstimate: licence.recoverableAnnualGbp,
+    band: 0.1,
+    implementationCost: 1_800,
+    confidence: 0.92,
+    effort: 0.2,
+    risk: 'low',
+    timeToValue: 30,
+    evidence: [
+      {
+        statement: `Tenant reports ${licence.totalUsers} account(s), ${licence.enabledUsers} enabled, ${licence.licensedUsers} licensed. ${skuSummary}`,
+        epistemics: 'fact',
+        confidence: 0.97,
+        sources: [{ connectorId: 'microsoft-365', label: 'Microsoft Graph', locator: 'graph:/users', retrievedAt: licence.retrievedAt }],
+      },
+      {
+        statement: `${staleSeats} seat(s) are assigned to accounts that are disabled or have not signed in for 60 days.`,
+        epistemics: 'fact',
+        confidence: 0.95,
+        sources: [{ connectorId: 'microsoft-365', label: 'Microsoft Graph', locator: 'graph:/users', retrievedAt: licence.retrievedAt }],
+      },
+    ],
+    assumptions: [
+      'Unit prices are published UK list prices; a tenant on a negotiated agreement will differ, and the saving moves with it.',
+      'Dormancy is measured on sign-in activity, which requires the tenant to report it.',
+    ],
+    reasoningSummary:
+      'Counted directly from the connected tenant rather than modelled. The reclaim requires no negotiation and no ' +
+      'supplier change, and the saving appears on the next billing cycle.',
+    dependencies: [],
+    capabilities: ['buyonic'],
+    requiredIntegrations: ['microsoft-365'],
+    playbookId: 'microsoft-licence-optimisation',
+    executionReadiness: 0.95,
+    approvalRequirements: ['Confirm each seat removal with the customer before applying'],
+  };
+}
+
 const microsoftLicences: Rule = (ctx) => {
+  // With a connected tenant every figure below is counted rather than modelled,
+  // which is what lifts this opportunity out of hypothesis. The rule does not
+  // decide that — deriveEpistemics reads the line bases and concludes it.
+  const licence = ctx.facts.licence;
+  if (licence) return microsoftLicencesFromFacts(ctx, licence);
+
   const users = ctx.employees.value;
   const annualCost = users * BENCHMARKS.m365CostPerUserPerMonth.value * 12;
   const value = annualCost * BENCHMARKS.m365WastePct.value;

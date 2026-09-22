@@ -1,21 +1,27 @@
 /** Integrations — Directive §4 and §23. */
 
-import { db, requirePermission } from '@/lib/session';
-import { CONNECTOR_CATALOGUE, activeConnectors } from '@/lib/discovery/registry';
+import { requirePermission } from '@/lib/session';
+import { CONNECTOR_CATALOGUE, connectorsFor, SECRET_REFS } from '@/lib/discovery/registry';
 import { listConnectorConfigs } from '@/lib/db/repositories/tenant-data';
+import { hasSecret, vaultConfigured } from '@/lib/secrets/vault';
+import { can } from '@/lib/auth/rbac';
 import { PageHead } from '@/components/Shell';
+import { ConnectMicrosoft } from '@/components/ConnectMicrosoft';
+import { TenantDb } from '@/lib/db/tenant';
+import { getDb } from '@/lib/db/client';
 
 export const dynamic = 'force-dynamic';
 
 export default async function IntegrationsPage() {
-  await requirePermission('read');
-  const database = await db();
-  const configs = listConnectorConfigs(database);
-  const live = activeConnectors();
+  const session = await requirePermission('read');
+  const database = new TenantDb(session.context, getDb());
 
-  const discovery = await Promise.all(
-    live.map(async (c) => ({ id: c.id, result: await c.discover() })),
-  );
+  const configs = listConnectorConfigs(database);
+  const live = connectorsFor(database);
+
+  const discovery = await Promise.all(live.map(async (c) => ({ id: c.id, result: await c.discover() })));
+  const m365Connected = hasSecret(database, SECRET_REFS.microsoft365);
+  const mayAdminister = can(session.context.role, 'administer');
 
   return (
     <>
@@ -24,7 +30,17 @@ export default async function IntegrationsPage() {
         sub="The platform becomes more valuable as connections increase — and cost hypotheses become counted facts."
       />
 
-      <div className="card">
+      {!vaultConfigured() ? (
+        <div className="note danger">
+          <b>No credential vault key is configured.</b> Credentials cannot be stored, so credentialled connectors are
+          unavailable. Set <span className="mono">METAMSP_SECRET_KEY</span> to a 32-byte key (base64 or hex) and
+          restart. The platform refuses to store a credential in plaintext rather than degrading quietly.
+        </div>
+      ) : null}
+
+      {mayAdminister ? <ConnectMicrosoft connected={m365Connected} vaultReady={vaultConfigured()} /> : null}
+
+      <div className="card" style={{ marginTop: 14 }}>
         <div className="card-title">Connectors</div>
         <table className="table">
           <thead>
@@ -48,7 +64,7 @@ export default async function IntegrationsPage() {
                   <td className="faint">{c.category}</td>
                   <td className="faint tiny">{c.authType}</td>
                   <td>
-                    <span className={`badge ${status === 'available' ? 'ok' : status === 'planned' ? 'muted' : 'warn'}`}>
+                    <span className={`badge ${status === 'available' ? 'ok' : status === 'planned' ? 'muted' : status === 'error' ? 'danger' : 'warn'}`}>
                       {status}
                     </span>
                     {disc?.result.detail ? <div className="tiny faint">{disc.result.detail}</div> : null}
@@ -64,7 +80,7 @@ export default async function IntegrationsPage() {
       </div>
 
       <div className="note" style={{ marginTop: 14 }}>
-        Uplift figures are estimates derived from the Company Twin field weights each connector can populate. Two
+        Uplift figures are estimates derived from the Company Twin field weights each connector can populate. Three
         connectors are implemented; the rest declare the interface so the ingestion contract is fixed now and adapters
         can be added without changing the Company Twin or any analysis engine.
       </div>

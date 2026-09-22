@@ -319,3 +319,36 @@ CREATE TABLE IF NOT EXISTS jobs (
 );
 CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, run_after);
 CREATE INDEX IF NOT EXISTS idx_jobs_tenant ON jobs(tenant_id, created_at DESC);
+
+-- --------------------------------------------------------------- secrets ----
+-- Per-tenant third-party credentials, encrypted at rest. The platform master
+-- key never lives here; it comes from the environment or a KMS.
+
+CREATE TABLE IF NOT EXISTS secrets (
+  id            TEXT PRIMARY KEY,
+  tenant_id     TEXT NOT NULL,
+  ref           TEXT NOT NULL,
+  ciphertext    TEXT NOT NULL,
+  iv            TEXT NOT NULL,
+  auth_tag      TEXT NOT NULL,
+  key_id        TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL,
+  UNIQUE (tenant_id, ref)
+);
+
+-- -------------------------------------------------------- connected facts ---
+-- Measured figures from a connected system, kept separately from the twin's
+-- provenanced claims because they are structured payloads an engine consumes
+-- directly rather than single values with confidence.
+
+CREATE TABLE IF NOT EXISTS connected_facts (
+  id           TEXT PRIMARY KEY,
+  tenant_id    TEXT NOT NULL,
+  company_id   TEXT NOT NULL,
+  kind         TEXT NOT NULL,
+  connector_id TEXT NOT NULL,
+  facts_json   TEXT NOT NULL,
+  retrieved_at TEXT NOT NULL,
+  UNIQUE (tenant_id, company_id, kind)
+);

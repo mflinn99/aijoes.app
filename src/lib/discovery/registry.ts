@@ -9,6 +9,10 @@
 import type { CompanyDataConnector, ConnectorCategory } from './connector';
 import { WebsiteConnector } from './website-connector';
 import { CompaniesHouseConnector } from './companies-house-connector';
+import { Microsoft365Connector } from './microsoft365-connector';
+import type { GraphCredentials } from './graph-client';
+import type { TenantDb } from '../db/tenant';
+import { getSecret } from '../secrets/vault';
 
 export interface PlannedConnector {
   id: string;
@@ -29,7 +33,7 @@ export interface PlannedConnector {
 export const CONNECTOR_CATALOGUE: PlannedConnector[] = [
   { id: 'website', name: 'Company website', category: 'public-web', authType: 'none', understandingUplift: 32, implemented: true, unlocks: 'Proposition, services, sectors, technology indicators' },
   { id: 'companies-house', name: 'Companies House', category: 'registry', authType: 'api-key', understandingUplift: 14, implemented: true, unlocks: 'Legal identity, SIC codes, filing history, officers' },
-  { id: 'microsoft-365', name: 'Microsoft 365', category: 'productivity', authType: 'oauth2', understandingUplift: 11, implemented: false, unlocks: 'Licence counts and waste, user population, actual tenant configuration' },
+  { id: 'microsoft-365', name: 'Microsoft 365', category: 'productivity', authType: 'oauth2', understandingUplift: 11, implemented: true, unlocks: 'Counted licence seats and waste, real user population, actual tenant configuration' },
   { id: 'accounting', name: 'Accounting (Xero / Sage / QuickBooks)', category: 'accounting', authType: 'oauth2', understandingUplift: 21, implemented: false, unlocks: 'Real turnover, margin, supplier spend — promotes savings hypotheses to quantified opportunities' },
   { id: 'crm', name: 'CRM', category: 'crm', authType: 'oauth2', understandingUplift: 18, implemented: false, unlocks: 'Pipeline, dormant accounts, conversion rates, customer concentration' },
   { id: 'psa', name: 'PSA', category: 'psa', authType: 'api-key', understandingUplift: 17, implemented: false, unlocks: 'Current MSP services, contract values, ticket themes' },
@@ -46,14 +50,35 @@ export const CONNECTOR_CATALOGUE: PlannedConnector[] = [
   { id: 'supplier-portal', name: 'Supplier portals', category: 'supplier', authType: 'api-key', understandingUplift: 6, implemented: false, unlocks: 'Contract terms and pricing directly from suppliers' },
 ];
 
-const implemented: CompanyDataConnector[] = [new WebsiteConnector(), new CompaniesHouseConnector()];
+/** Connectors that need no per-tenant credential. */
+const GLOBAL: CompanyDataConnector[] = [new WebsiteConnector(), new CompaniesHouseConnector()];
 
+export const SECRET_REFS = {
+  microsoft365: 'connector:microsoft-365',
+} as const;
+
+/**
+ * Connectors available to one tenant. Credentialled connectors are constructed
+ * from the vault, so a tenant that has not connected Microsoft 365 simply does
+ * not get one — rather than getting one that quietly reads someone else's
+ * credentials from the environment.
+ */
+export function connectorsFor(db: TenantDb): CompanyDataConnector[] {
+  const out: CompanyDataConnector[] = [...GLOBAL];
+
+  const graph = getSecret<GraphCredentials>(db, SECRET_REFS.microsoft365);
+  if (graph) out.push(new Microsoft365Connector(graph));
+
+  return out;
+}
+
+/** Connectors with no tenant context — used where only the interface matters. */
 export function activeConnectors(): CompanyDataConnector[] {
-  return implemented;
+  return GLOBAL;
 }
 
 export function getConnector(id: string): CompanyDataConnector | undefined {
-  return implemented.find((c) => c.id === id);
+  return GLOBAL.find((c) => c.id === id);
 }
 
 /**

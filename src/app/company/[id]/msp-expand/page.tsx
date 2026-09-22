@@ -5,6 +5,7 @@ import { getTwin, listOpportunities } from '@/lib/db/repositories/company';
 import { listCustomers } from '@/lib/db/repositories/tenant-data';
 import { valueOf } from '@/lib/core/provenance';
 import { buildContext } from '@/lib/analysis/context';
+import { getFacts } from '@/lib/db/repositories/facts';
 import { mspExpansionSummary } from '@/lib/analysis/engines/msp-expand';
 import { PageHead } from '@/components/Shell';
 import { CompanyTabs } from '@/components/CompanyTabs';
@@ -21,7 +22,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (!twin) notFound();
 
   const opportunities = listOpportunities(database, id).filter((o) => o.category === 'MSP_EXPAND');
-  const ctx = buildContext(twin);
+  const ctx = buildContext(twin, getFacts(database, id));
   const domain = valueOf(twin.domain) as string | null;
   const customer = listCustomers(database).find((c) => c.domain === domain);
   const summary = mspExpansionSummary(opportunities, customer?.currentMrr ?? 0);
