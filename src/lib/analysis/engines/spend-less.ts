@@ -16,6 +16,7 @@ import { BENCHMARKS, sectorMultiplier } from '../benchmarks';
 import type { AnalysisContext } from '../context';
 import { benchmarkEvidence, evidenceFromField, makeOpportunity, money, type DraftInput } from './shared';
 import type { FinancialLine } from '../../core/opportunity';
+import { aggregateByCategory } from '../../discovery/xero-connector';
 
 type Rule = (ctx: AnalysisContext) => DraftInput | null;
 
@@ -166,7 +167,78 @@ const microsoftLicences: Rule = (ctx) => {
   };
 };
 
+/**
+ * The same opportunity from counted invoices. Duplication is no longer a
+ * benchmark share: it is the subscriptions the ledger shows being paid for.
+ */
+function saasFromFacts(ctx: AnalysisContext): DraftInput | null {
+  const financial = ctx.facts.financial;
+  if (!financial || financial.softwareSubscriptions.length === 0) return null;
+
+  const spend = financial.softwareSubscriptions.reduce((sum, s) => sum + s.annualSpend, 0);
+  if (spend < 1_000) return null;
+
+  // A subscription not charged in six months is either cancelled or annual and
+  // due; either way it belongs in the review rather than in the saving.
+  const staleBefore = new Date(Date.now() - 180 * 86_400_000).toISOString().slice(0, 10);
+  const stale = financial.softwareSubscriptions.filter((s) => s.lastCharged < staleBefore);
+  const value = Math.round(spend * BENCHMARKS.saasDuplicationPct.value);
+
+  const top = [...financial.softwareSubscriptions].sort((a, b) => b.annualSpend - a.annualSpend).slice(0, 6);
+
+  return {
+    category: 'SPEND_LESS',
+    subcategory: 'SaaS',
+    title: 'SaaS rationalisation',
+    summary:
+      `${financial.softwareSubscriptions.length} software supplier(s) totalling ${money(spend)} a year in the ledger. ` +
+      `${stale.length} have not been charged in six months.`,
+    problem:
+      'Departments buy their own tools on cards. Nobody holds the full register, so overlapping products are paid for ' +
+      'in parallel and licences for leavers renew silently.',
+    lines: [
+      { label: 'Software suppliers in the ledger', value: financial.softwareSubscriptions.length, unit: 'count', basis: 'connected', note: top.map((t) => t.supplier).join(', ') },
+      { label: 'Counted annual software spend', value: spend, unit: 'GBP', basis: 'connected', note: `From accounts payable, ${financial.periodStart} to ${financial.periodEnd}.` },
+      { label: 'Suppliers not charged in 6 months', value: stale.length, unit: 'count', basis: 'connected', note: 'Cancelled, or annual and due for review.' },
+      { label: 'Duplicated or unused share', value: BENCHMARKS.saasDuplicationPct.value * 100, unit: 'percent', basis: 'benchmark', note: BENCHMARKS.saasDuplicationPct.note },
+      { label: 'Recoverable annual spend', value: value, unit: 'GBP', basis: 'connected', note: 'Counted spend × duplication rate.' },
+    ],
+    formula: 'counted_software_spend × duplication_rate',
+    pointEstimate: value,
+    band: 0.25,
+    implementationCost: 3_500,
+    confidence: 0.82,
+    effort: 0.35,
+    risk: 'low',
+    timeToValue: 60,
+    evidence: [
+      {
+        statement: `Top software suppliers by spend: ${top.map((t) => `${t.supplier} (${money(t.annualSpend)})`).join(', ')}.`,
+        epistemics: 'fact',
+        confidence: 0.96,
+        sources: [{ connectorId: 'accounting', label: 'Xero accounts payable', locator: 'xero:/Invoices/ACCPAY', retrievedAt: financial.retrievedAt }],
+      },
+      benchmarkEvidence(BENCHMARKS.saasDuplicationPct.note, 0.6),
+    ],
+    assumptions: [
+      'Which tools overlap is established during the review; the duplication rate is the only modelled figure left here.',
+    ],
+    reasoningSummary:
+      'The register is counted from the ledger rather than estimated from headcount. Most of the value comes from ' +
+      'cancelling what nobody uses rather than renegotiating what they do.',
+    dependencies: [],
+    capabilities: ['buyonic', 'sourcingai'],
+    requiredIntegrations: [],
+    playbookId: 'saas-rationalisation',
+    executionReadiness: 0.9,
+    approvalRequirements: ['Confirm each cancellation with the business owner of the tool'],
+  };
+}
+
 const saasRationalisation: Rule = (ctx) => {
+  const fromFacts = saasFromFacts(ctx);
+  if (fromFacts) return fromFacts;
+
   const spend = ctx.employees.value * BENCHMARKS.saasSpendPerEmployeePerYear.value;
   const value = spend * BENCHMARKS.saasDuplicationPct.value;
   if (value < 1_500) return null;
@@ -345,7 +417,68 @@ const processAutomation: Rule = (ctx) => {
   };
 };
 
+/** Fragmentation counted from the ledger: real suppliers in one real category. */
+function supplierConsolidationFromFacts(ctx: AnalysisContext): DraftInput | null {
+  const financial = ctx.facts.financial;
+  if (!financial || financial.supplierSpend.length === 0) return null;
+
+  const categories = aggregateByCategory(financial.supplierSpend).filter((c) => c.supplierCount >= 2 && c.category !== 'Other suppliers');
+  if (categories.length === 0) return null;
+
+  const fragmented = categories[0]!;
+  const value = Math.round(fragmented.annualSpend * BENCHMARKS.supplierFragmentationSavingPct.value);
+  if (value < 1_000) return null;
+
+  const suppliers = financial.supplierSpend.filter((s) => s.category === fragmented.category);
+
+  return {
+    category: 'SPEND_LESS',
+    subcategory: 'Supplier consolidation',
+    title: `Consolidate ${fragmented.supplierCount} suppliers in ${fragmented.category.toLowerCase()}`,
+    summary: `${money(fragmented.annualSpend)} a year is split across ${fragmented.supplierCount} suppliers in one category. Consolidating typically returns ${BENCHMARKS.supplierFragmentationSavingPct.value * 100}%.`,
+    problem:
+      'Buying the same category from several suppliers loses volume leverage and multiplies administration, invoices ' +
+      'and renewal dates.',
+    lines: [
+      { label: `Suppliers in ${fragmented.category.toLowerCase()}`, value: fragmented.supplierCount, unit: 'count', basis: 'connected', note: suppliers.slice(0, 6).map((s) => s.supplier).join(', ') },
+      { label: 'Counted category spend', value: fragmented.annualSpend, unit: 'GBP', basis: 'connected', note: `From accounts payable, ${financial.periodStart} to ${financial.periodEnd}.` },
+      { label: 'Consolidation saving', value: BENCHMARKS.supplierFragmentationSavingPct.value * 100, unit: 'percent', basis: 'benchmark', note: BENCHMARKS.supplierFragmentationSavingPct.note },
+      { label: 'Recoverable annual spend', value, unit: 'GBP', basis: 'connected', note: 'Counted category spend × consolidation saving.' },
+    ],
+    formula: 'counted_category_spend × consolidation_saving_rate',
+    pointEstimate: value,
+    band: 0.3,
+    implementationCost: Math.max(6_000, value * 0.15),
+    confidence: 0.8,
+    effort: 0.55,
+    risk: 'medium',
+    timeToValue: 120,
+    evidence: [
+      {
+        statement: `${fragmented.supplierCount} suppliers invoice this company for ${fragmented.category.toLowerCase()}: ${suppliers.slice(0, 5).map((s) => `${s.supplier} (${money(s.annualSpend)})`).join(', ')}.`,
+        epistemics: 'fact',
+        confidence: 0.96,
+        sources: [{ connectorId: 'accounting', label: 'Xero accounts payable', locator: 'xero:/Invoices/ACCPAY', retrievedAt: financial.retrievedAt }],
+      },
+      benchmarkEvidence(BENCHMARKS.supplierFragmentationSavingPct.note, 0.5),
+    ],
+    assumptions: ['The suppliers in this category are genuinely substitutable — confirmed during the review.'],
+    reasoningSummary:
+      'Counted from the ledger, so this can be taken to a supplier conversation immediately rather than needing spend ' +
+      'data gathered first.',
+    dependencies: ['Contract register'],
+    capabilities: ['buyonic', 'sourcingai'],
+    requiredIntegrations: [],
+    playbookId: 'supplier-consolidation',
+    executionReadiness: 0.85,
+    approvalRequirements: ['Customer approval before contacting any supplier'],
+  };
+}
+
 const supplierConsolidation: Rule = (ctx) => {
+  const fromFacts = supplierConsolidationFromFacts(ctx);
+  if (fromFacts) return fromFacts;
+
   const addressable = ctx.itSpendEstimate * 1.8;
   const value = addressable * BENCHMARKS.supplierFragmentationSavingPct.value;
   if (value < 4_000) return null;

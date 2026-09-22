@@ -2,7 +2,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { harness, seedCustomer } from './helpers';
-import { createBenefit, advance, listBenefits, summariseLedger, getBenefitByOpportunity, BenefitStageError, STAGE_ORDER } from '@/lib/benefits/ledger';
+import { createBenefit, advance, advanceAtLeast, listBenefits, summariseLedger, getBenefitByOpportunity, BenefitStageError, STAGE_ORDER } from '@/lib/benefits/ledger';
 import { analyseCompany } from '@/lib/analysis/pipeline';
 import { SYNTHETIC_COMPANIES } from '@/lib/fixtures/synthetic';
 
@@ -98,6 +98,25 @@ describe('benefits ledger', () => {
     expect(summary.realised).toBe(60_000);
     expect(summary.verified).toBe(0);
     expect(summary.byCapability[0]).toEqual({ capabilityId: 'buyonic', value: 60_000 });
+  });
+
+  it('advanceAtLeast moves a benefit forward but never backwards, and never throws', async () => {
+    const { h, result } = await withCompany();
+    const id = result.opportunities[0]!.id;
+
+    // Forward: it advances.
+    expect(advanceAtLeast(h.db, getBenefitByOpportunity(h.db, id)!, 'APPROVED').stage).toBe('APPROVED');
+
+    advance(h.db, getBenefitByOpportunity(h.db, id)!, 'REALISED', { realisedValue: 1_000 });
+
+    // Already further on: it is a no-op rather than an error, because
+    // re-authorising a plan for a previously executed opportunity is ordinary.
+    const unchanged = advanceAtLeast(h.db, getBenefitByOpportunity(h.db, id)!, 'APPROVED');
+    expect(unchanged.stage).toBe('REALISED');
+    expect(unchanged.realisedValue).toBe(1_000);
+
+    // The strict transition still rejects it.
+    expect(() => advance(h.db, getBenefitByOpportunity(h.db, id)!, 'APPROVED')).toThrow(BenefitStageError);
   });
 
   it('orders the stages as the directive defines them', () => {

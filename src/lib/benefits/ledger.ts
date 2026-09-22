@@ -161,6 +161,25 @@ export function advance(
   return next;
 }
 
+/**
+ * Ensure a benefit has reached at least `stage`, without ever moving it back.
+ *
+ * `advance` stays strict, because an explicit backwards transition is a bug
+ * worth throwing on. But a caller that means "this has now been approved"
+ * should not fail when the benefit has already gone further — re-authorising a
+ * plan for an opportunity that was executed before is an ordinary thing to do,
+ * not an error.
+ */
+export function advanceAtLeast(
+  db: TenantDb,
+  benefit: Benefit,
+  stage: BenefitStage,
+  update: Parameters<typeof advance>[3] = {},
+): Benefit {
+  if (STAGE_ORDER.indexOf(benefit.stage) >= STAGE_ORDER.indexOf(stage)) return benefit;
+  return advance(db, benefit, stage, update);
+}
+
 export function listBenefits(db: TenantDb, companyId?: string): Benefit[] {
   const rows = db.all<{ benefit_json: string }>(
     companyId

@@ -36,8 +36,27 @@ const analysisHandler: JobHandler = async (job) => {
   });
 };
 
+/**
+ * Verification re-reads the connected system and compares it against the
+ * baseline captured before execution. It is retried generously: the system of
+ * record may be briefly unreachable, and a verification that never runs leaves
+ * value stranded at REALISED.
+ */
+const verificationHandler: JobHandler = async (job) => {
+  const { executionPlanId } = job.payload as { executionPlanId: string };
+  const db = systemDb(job.tenantId);
+  const { verifyPlan } = await import('../verification/verify');
+
+  const result = verifyPlan(db, executionPlanId, 'system:verification');
+  if (!result.verified && result.reason === 'source-unavailable') {
+    // Retryable: the connector is down, not the change missing.
+    throw new Error(result.narrative);
+  }
+};
+
 export const HANDLERS: Record<string, JobHandler> = {
   analysis: analysisHandler,
+  verification: verificationHandler,
 };
 
 export function handlerFor(type: string): JobHandler | null {

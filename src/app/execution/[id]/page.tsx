@@ -9,6 +9,8 @@ import { getBenefitByOpportunity } from '@/lib/benefits/ledger';
 import { valueOf } from '@/lib/core/provenance';
 import { PageHead } from '@/components/Shell';
 import { ExecutionControls } from '@/components/ExecutionControls';
+import { VerifyPanel } from '@/components/VerifyPanel';
+import { getBaseline } from '@/lib/verification/baseline';
 import { gbpExact } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +31,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const measured = plan.tasks.reduce((s, t) => s + (t.measuredValueGbp ?? 0), 0);
   const cost = plan.tasks.reduce((s, t) => s + t.costGbp, 0);
   const awaiting = plan.tasks.find((t) => t.status === 'AWAITING_APPROVAL') ?? null;
+  const baseline = getBaseline(database, plan.id);
 
   return (
     <>
@@ -55,6 +58,17 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
         status={plan.status}
         awaitingTask={awaiting ? { id: awaiting.id, name: awaiting.name, capability: awaiting.assignedCapabilityName } : null}
       />
+
+      {plan.status === 'COMPLETED' ? (
+        <VerifyPanel
+          planId={plan.id}
+          hasBaseline={Boolean(baseline)}
+          verifyAfter={baseline?.verifyAfter ?? null}
+          alreadyVerified={Boolean(baseline?.verifiedAt)}
+          verifiedValue={baseline?.verifiedValue ?? null}
+          outcome={baseline?.outcome ?? null}
+        />
+      ) : null}
 
       <div className="card">
         <div className="card-title">Tasks</div>

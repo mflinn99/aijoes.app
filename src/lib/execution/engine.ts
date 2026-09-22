@@ -22,7 +22,9 @@ import { routeObjective } from '../capabilities/router';
 import { getAdapter, getCapability, findActionOwner } from '../capabilities/registry';
 import { AutonomyLevel, resolveAutonomy, type ActionRequest, type AutonomyGrant } from '../core/autonomy';
 import { audit, recordEvent, proportionate } from '../observability/events';
-import { advance, createBenefit, getBenefitByOpportunity, type Benefit } from '../benefits/ledger';
+import { advance, advanceAtLeast, createBenefit, getBenefitByOpportunity, type Benefit } from '../benefits/ledger';
+import { captureBaseline, getBaseline } from '../verification/baseline';
+import { enqueue } from '../jobs/queue';
 import type { ExecutionPlan, ExecutionPreview, ExecutionTask, PlanStatus, TaskStatus } from './types';
 
 const MAX_RETRIES = 2;
@@ -282,7 +284,22 @@ export function authorisePlan(db: TenantDb, planId: string, userId: string, rati
 
   // Benefit moves THEORETICAL -> APPROVED (§16).
   const benefit = getBenefitByOpportunity(db, plan.opportunityId);
-  if (benefit) advance(db, benefit, 'APPROVED');
+  if (benefit) advanceAtLeast(db, benefit, 'APPROVED');
+
+  // The baseline has to be captured before anything changes, or there is
+  // nothing to prove the change against later.
+  const playbook = getPlaybook(plan.playbookId);
+  const baseline = captureBaseline(db, plan, plan.playbookId, playbook?.financialModel.measurementWindowDays ?? 90);
+  if (baseline) {
+    audit(db, {
+      actor: userId,
+      actorKind: 'system',
+      action: 'verification.baseline-captured',
+      subjectType: 'execution_plan',
+      subjectId: planId,
+      detail: { kind: baseline.kind, verifyAfter: baseline.verifyAfter },
+    });
+  }
 
   return authorised;
 }
@@ -354,7 +371,7 @@ export async function runExecution(db: TenantDb, planId: string, userId: string)
   let benefit = getBenefitByOpportunity(db, working.opportunityId);
   if (benefit) {
     if (working.status === 'COMPLETED') {
-      benefit = advance(db, benefit, 'REALISED', {
+      benefit = advanceAtLeast(db, benefit, 'REALISED', {
         realisedValue: Math.round(measuredValueGbp),
         attributedCapabilities: working.requiredCapabilities,
         evidence: [
@@ -369,12 +386,27 @@ export async function runExecution(db: TenantDb, planId: string, userId: string)
         ],
       });
     } else if (working.status === 'EXECUTING' || working.status === 'AWAITING_APPROVAL') {
-      benefit = advance(db, benefit, 'FORECAST', { forecastValue: working.financialTarget });
+      benefit = advanceAtLeast(db, benefit, 'FORECAST', { forecastValue: working.financialTarget });
     }
   }
 
   // Step 14 — the opportunity's status and realised value feed back to the twin view.
   updateOpportunityStatus(db, working, measuredValueGbp);
+
+  // Verification runs after the playbook's measurement window, against the
+  // baseline captured at authorisation.
+  if (working.status === 'COMPLETED') {
+    const baseline = getBaseline(db, working.id);
+    if (baseline && !baseline.verifiedAt) {
+      enqueue(
+        db.ctx.tenantId,
+        'verification',
+        { executionPlanId: working.id },
+        { runAfter: new Date(baseline.verifyAfter), maxAttempts: 5 },
+        db.raw,
+      );
+    }
+  }
 
   audit(db, {
     actor: userId,
@@ -662,3 +694,4 @@ function updateOpportunityStatus(db: TenantDb, plan: ExecutionPlan, measuredValu
 }
 
 export { createBenefit, AutonomyLevel };
+export { getBaseline } from '../verification/baseline';

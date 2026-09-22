@@ -14,6 +14,16 @@
 | F — Portfolio | **Complete** | Estate view, prioritisation, next best action, benefit totals |
 | G — QA | **Complete** | 115 tests, all passing |
 
+## Iteration 2 — from hypothesis to counted fact
+
+| Priority | Status | Output |
+| --- | --- | --- |
+| 1 — Make it safe | **Complete** | Authentication, session management, RBAC on every page and route, CSRF, rate limiting, user administration |
+| 2 — Microsoft 365 connector | **Complete** | Graph client, counted licence facts, mechanical promotion to inferred-fact |
+| 3 — Accounting connector | **Complete** | Xero client, counted turnover, supplier spend, software subscriptions and customer base |
+| 4 — Durable execution | **Partly complete** | Durable job queue with claim, retry, backoff, dead-letter and stale-lock recovery. Postgres migration still open — no server available in this environment |
+| 5 — Verification loop | **Complete** | Baselines captured before execution, compared against the system of record, benefits reaching VERIFIED |
+
 ## Completed
 
 - Company Digital Twin: 43 provenanced fields, conflicting-claim retention, weighted understanding score
@@ -53,22 +63,22 @@
 
 ## Remaining
 
-1. Authentication and RBAC enforcement at route level
-2. Microsoft 365 connector (highest understanding uplift among unimplemented)
-3. Accounting connector (largest promotion effect: turns spend hypotheses into counted facts)
-4. CRM connector (unlocks real dormant-account counts and pipeline measurement)
-5. Postgres migration with row-level security
-6. Durable job runner for analysis and execution
-7. Per-tenant credential vault
-8. Competitor analysis (currently skipped with a stated reason)
-9. LLM enrichment for proposition and evidence summarisation, behind the typed-output rule
-10. Real Onward estate sync
+1. CRM connector — the last big promotion: real dormant-account counts and pipeline measurement
+2. Postgres migration with row-level security (no Postgres server available in this environment)
+3. OIDC callback handler, so SSO works end to end rather than only building an authorization URL
+4. Shared-store rate limiting, for more than one instance
+5. Encryption at rest for the database file itself
+6. Competitor analysis (currently skipped with a stated reason)
+7. LLM enrichment for proposition and evidence summarisation, behind the typed-output rule
+8. Real Onward estate sync
+9. Pagination, once an estate outgrows a single page
+10. First live opco adapter, replacing a mock
 
 ## Test status
 
 ```
-Test Files  11 passed (11)
-Tests      115 passed (115)
+Test Files  17 passed (17)
+Tests      216 passed (216)
 ```
 
 | Suite | Tests | Covers |
@@ -84,3 +94,9 @@ Tests      115 passed (115)
 | `playbooks` | 6 | §15 — completeness, capability mapping, external gating |
 | `api-contract` | 10 | §27 — route handler contracts |
 | `end-to-end` | 8 | §30 — the complete loop, all three synthetic companies |
+| `auth` | 30 | Passwords, sessions, lockout, RBAC matrix, rate limiting, providers |
+| `jobs` | 8 | Durable queue: claim, retry, backoff, dead-letter, stale-lock recovery |
+| `vault` | 10 | Encryption at rest, tenant isolation, rotation, tampering |
+| `microsoft365` | 14 | Graph client, counted licence facts, promotion to inferred-fact |
+| `xero` | 13 | Xero client, counted spend and customers, promotion |
+| `verification` | 10 | Baselines, comparison against the system of record, VERIFIED |

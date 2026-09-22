@@ -3,6 +3,7 @@ import { guardRoute } from '@/lib/session';
 import { putSecret, deleteSecret, vaultConfigured, VaultUnconfiguredError } from '@/lib/secrets/vault';
 import { SECRET_REFS } from '@/lib/discovery/registry';
 import { Microsoft365Connector } from '@/lib/discovery/microsoft365-connector';
+import { XeroConnector } from '@/lib/discovery/xero-connector';
 import { setConnectorConfig } from '@/lib/db/repositories/tenant-data';
 import { audit } from '@/lib/observability/events';
 
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
 
 type Body =
   | { action: 'connect'; connectorId: 'microsoft-365'; tenantId: string; clientId: string; clientSecret: string }
+  | { action: 'connect'; connectorId: 'accounting'; xeroTenantId: string; clientId: string; clientSecret: string }
   | { action: 'disconnect'; connectorId: string };
 
 export async function POST(request: Request) {
@@ -22,40 +24,57 @@ export async function POST(request: Request) {
   try {
     if (body.action === 'connect') {
       if (!vaultConfigured()) throw new VaultUnconfiguredError();
-      if (body.connectorId !== 'microsoft-365') {
-        return NextResponse.json({ error: 'That connector cannot be configured here yet.' }, { status: 400 });
+      if (body.connectorId === 'microsoft-365') {
+        if (!body.tenantId || !body.clientId || !body.clientSecret) {
+          return NextResponse.json({ error: 'Tenant id, client id and client secret are all required.' }, { status: 400 });
+        }
+        const credentials = { tenantId: body.tenantId, clientId: body.clientId, clientSecret: body.clientSecret };
+
+        // Prove the credentials work before storing them, so a typo surfaces
+        // here rather than as a failed analysis later.
+        const probe = await new Microsoft365Connector(credentials).discover();
+        if (probe.status !== 'available') {
+          return NextResponse.json({ error: `Could not connect: ${probe.detail}` }, { status: 400 });
+        }
+
+        putSecret(database, SECRET_REFS.microsoft365, credentials);
+        setConnectorConfig(database, 'microsoft-365', true, 'available');
+        audit(database, {
+          actor: session.email, actorKind: 'human', action: 'integration.connected',
+          subjectType: 'connector', subjectId: 'microsoft-365',
+          // The secret itself is never written to the audit log.
+          detail: { microsoftTenantId: body.tenantId, clientId: body.clientId },
+        });
+        return NextResponse.json({ ok: true });
       }
-      if (!body.tenantId || !body.clientId || !body.clientSecret) {
-        return NextResponse.json({ error: 'Tenant id, client id and client secret are all required.' }, { status: 400 });
+
+      if (body.connectorId === 'accounting') {
+        if (!body.xeroTenantId || !body.clientId || !body.clientSecret) {
+          return NextResponse.json({ error: 'Xero tenant id, client id and client secret are all required.' }, { status: 400 });
+        }
+        const credentials = { xeroTenantId: body.xeroTenantId, clientId: body.clientId, clientSecret: body.clientSecret };
+
+        const probe = await new XeroConnector(credentials).discover();
+        if (probe.status !== 'available') {
+          return NextResponse.json({ error: `Could not connect: ${probe.detail}` }, { status: 400 });
+        }
+
+        putSecret(database, SECRET_REFS.accounting, credentials);
+        setConnectorConfig(database, 'accounting', true, 'available');
+        audit(database, {
+          actor: session.email, actorKind: 'human', action: 'integration.connected',
+          subjectType: 'connector', subjectId: 'accounting',
+          detail: { xeroTenantId: body.xeroTenantId, clientId: body.clientId },
+        });
+        return NextResponse.json({ ok: true });
       }
 
-      const credentials = { tenantId: body.tenantId, clientId: body.clientId, clientSecret: body.clientSecret };
-
-      // Prove the credentials work before storing them, so a typo surfaces here
-      // rather than as a failed analysis later.
-      const probe = await new Microsoft365Connector(credentials).discover();
-      if (probe.status !== 'available') {
-        return NextResponse.json({ error: `Could not connect: ${probe.detail}` }, { status: 400 });
-      }
-
-      putSecret(database, SECRET_REFS.microsoft365, credentials);
-      setConnectorConfig(database, 'microsoft-365', true, 'available');
-
-      audit(database, {
-        actor: session.email,
-        actorKind: 'human',
-        action: 'integration.connected',
-        subjectType: 'connector',
-        subjectId: 'microsoft-365',
-        // The secret itself is never written to the audit log.
-        detail: { microsoftTenantId: body.tenantId, clientId: body.clientId },
-      });
-
-      return NextResponse.json({ ok: true });
+      return NextResponse.json({ error: 'That connector cannot be configured here yet.' }, { status: 400 });
     }
 
     if (body.action === 'disconnect') {
       if (body.connectorId === 'microsoft-365') deleteSecret(database, SECRET_REFS.microsoft365);
+      if (body.connectorId === 'accounting') deleteSecret(database, SECRET_REFS.accounting);
       setConnectorConfig(database, body.connectorId, false, 'not-configured');
       audit(database, {
         actor: session.email,

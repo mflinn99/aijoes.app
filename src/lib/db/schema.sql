@@ -352,3 +352,24 @@ CREATE TABLE IF NOT EXISTS connected_facts (
   retrieved_at TEXT NOT NULL,
   UNIQUE (tenant_id, company_id, kind)
 );
+
+-- ---------------------------------------------------------- verification ----
+-- A baseline captured before execution, so realised value can later be proved
+-- against a connected system of record rather than asserted.
+
+CREATE TABLE IF NOT EXISTS verification_baselines (
+  id              TEXT PRIMARY KEY,
+  tenant_id       TEXT NOT NULL,
+  company_id      TEXT NOT NULL,
+  opportunity_id  TEXT NOT NULL,
+  execution_plan_id TEXT NOT NULL,
+  kind            TEXT NOT NULL,
+  baseline_json   TEXT NOT NULL,
+  captured_at     TEXT NOT NULL,
+  verify_after    TEXT NOT NULL,
+  verified_at     TEXT,
+  verified_value  REAL,
+  outcome         TEXT,
+  UNIQUE (tenant_id, execution_plan_id)
+);
+CREATE INDEX IF NOT EXISTS idx_baselines_due ON verification_baselines(verified_at, verify_after);

@@ -12,12 +12,21 @@ import { BENCHMARKS } from '../benchmarks';
 import type { AnalysisContext } from '../context';
 import { benchmarkEvidence, evidenceFromField, makeOpportunity, money, type DraftInput } from './shared';
 import { valueOf } from '../../core/provenance';
+import type { FinancialLine } from '../../core/opportunity';
 
 type Rule = (ctx: AnalysisContext) => DraftInput | null;
 
 const dormantReactivation: Rule = (ctx) => {
-  const customerValue = ctx.turnover.value * BENCHMARKS.averageCustomerValueRatio.value;
-  const estimatedCustomers = Math.max(10, Math.round(ctx.turnover.value / Math.max(customerValue, 1)));
+  // With accounting connected, the customer base and its average value are
+  // counted rather than derived from a turnover ratio — which is the single
+  // largest source of error in this model.
+  const financial = ctx.facts.financial;
+  const counted = financial?.customerCount && financial.averageCustomerValue;
+
+  const customerValue = counted ? financial!.averageCustomerValue! : ctx.turnover.value * BENCHMARKS.averageCustomerValueRatio.value;
+  const estimatedCustomers = counted
+    ? financial!.customerCount!
+    : Math.max(10, Math.round(ctx.turnover.value / Math.max(customerValue, 1)));
   const dormant = Math.round(estimatedCustomers * BENCHMARKS.dormantAccountPct.value);
   if (dormant < 5) return null;
 
@@ -25,7 +34,7 @@ const dormantReactivation: Rule = (ctx) => {
   const value = reactivated * customerValue;
   if (value < 5_000) return null;
 
-  const basis = ctx.hasCrmData ? 'connected' : 'benchmark';
+  const basis: FinancialLine['basis'] = counted || ctx.hasCrmData ? 'connected' : 'benchmark';
 
   return {
     category: 'MAKE_MORE',
@@ -35,8 +44,20 @@ const dormantReactivation: Rule = (ctx) => {
     problem:
       'Customers who bought before and stopped are the cheapest revenue available, and they are almost never worked systematically because nobody owns them.',
     lines: [
-      { label: 'Estimated active customer base', value: estimatedCustomers, unit: 'count', basis: ctx.hasCrmData ? 'connected' : 'benchmark', note: BENCHMARKS.averageCustomerValueRatio.note },
-      { label: 'Average annual customer value', value: Math.round(customerValue), unit: 'GBP', basis, note: 'Turnover divided by estimated customer count.' },
+      {
+        label: counted ? 'Invoiced customers in the last 12 months' : 'Estimated active customer base',
+        value: estimatedCustomers,
+        unit: 'count',
+        basis,
+        note: counted ? `Counted from sales invoices, ${financial!.periodStart} to ${financial!.periodEnd}.` : BENCHMARKS.averageCustomerValueRatio.note,
+      },
+      {
+        label: 'Average annual customer value',
+        value: Math.round(customerValue),
+        unit: 'GBP',
+        basis,
+        note: counted ? 'Counted: total invoiced divided by distinct customers.' : 'Turnover divided by estimated customer count.',
+      },
       { label: 'Dormant share', value: BENCHMARKS.dormantAccountPct.value * 100, unit: 'percent', basis: 'benchmark', note: BENCHMARKS.dormantAccountPct.note },
       { label: 'Dormant accounts', value: dormant, unit: 'count', basis, note: 'Active base × dormant share.' },
       { label: 'Reactivation rate', value: BENCHMARKS.dormantReactivationRate.value * 100, unit: 'percent', basis: 'benchmark', note: BENCHMARKS.dormantReactivationRate.note },
@@ -45,7 +66,7 @@ const dormantReactivation: Rule = (ctx) => {
     formula: 'dormant_accounts × reactivation_rate × average_customer_value',
     pointEstimate: value,
     implementationCost: Math.min(12_000, Math.max(3_000, value * 0.06)),
-    confidence: ctx.hasCrmData ? 0.84 : 0.52,
+    confidence: ctx.hasCrmData ? 0.84 : counted ? 0.7 : 0.52,
     effort: 0.4,
     risk: 'low',
     timeToValue: 45,
@@ -57,7 +78,9 @@ const dormantReactivation: Rule = (ctx) => {
     assumptions: [
       ctx.hasCrmData
         ? 'Dormancy measured against connected CRM records.'
-        : 'No CRM is connected — dormant count is modelled from turnover, not counted. Connect CRM to replace this with a real number.',
+        : counted
+          ? 'The customer base and its average value are counted from the ledger; the dormant share is still a benchmark. Connect CRM to count that too.'
+          : 'No CRM is connected — dormant count is modelled from turnover, not counted. Connect CRM to replace this with a real number.',
     ],
     reasoningSummary:
       'Prior customers carry established trust and known requirements, so the cost of the second sale is a fraction of the first. The value shown is the modelled recovery from one structured campaign, not a run rate.',

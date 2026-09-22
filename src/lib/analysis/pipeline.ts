@@ -13,6 +13,7 @@ import { createEmptyTwin, understandingScore, type CompanyTwin, type TwinFieldKe
 import { addClaim, claim, type ProvenancedField } from '../core/provenance';
 import { connectorsFor, recommendedConnections } from '../discovery/registry';
 import { computeLicenceFacts } from '../discovery/microsoft365-connector';
+import { computeFinancialFacts } from '../discovery/xero-connector';
 import { getFacts, putFacts } from '../db/repositories/facts';
 import { normaliseDomain, looksLikeDomain } from '../discovery/http';
 import type { CompanyIdentity, SourceRecord } from '../discovery/connector';
@@ -261,6 +262,9 @@ export async function analyseCompany(
         computeLicenceFacts(m365Users.payload as never, m365Skus.payload as never),
       );
     }
+
+    const financialFacts = computeFinancialFacts(allRecords);
+    if (financialFacts) putFacts(db, twin.id, 'financial', 'accounting', financialFacts);
 
     // ---- Stages 3–5: market, customers, competitors ------------------------
     const ctx = buildContext(twin, getFacts(db, twin.id));
