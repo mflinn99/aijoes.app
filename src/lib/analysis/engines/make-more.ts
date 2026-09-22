@@ -13,10 +13,79 @@ import type { AnalysisContext } from '../context';
 import { benchmarkEvidence, evidenceFromField, makeOpportunity, money, type DraftInput } from './shared';
 import { valueOf } from '../../core/provenance';
 import type { FinancialLine } from '../../core/opportunity';
+import { CRM_DORMANT_MONTHS } from '../../discovery/hubspot-connector';
 
 type Rule = (ctx: AnalysisContext) => DraftInput | null;
 
+/**
+ * Dormancy counted from the CRM: accounts that bought before and have not
+ * bought since. The benchmark version applies a share to a modelled customer
+ * count, which is two estimates stacked; this is neither.
+ */
+function dormantFromCrm(ctx: AnalysisContext): DraftInput | null {
+  const crm = ctx.facts.crm;
+  if (!crm || crm.dormantAccounts < 3) return null;
+
+  const dealValue = crm.averageDealValue ?? ctx.facts.financial?.averageCustomerValue ?? null;
+  if (!dealValue) return null;
+
+  const reactivated = crm.dormantAccounts * BENCHMARKS.dormantReactivationRate.value;
+  const value = Math.round(reactivated * dealValue);
+  if (value < 2_000) return null;
+
+  return {
+    category: 'MAKE_MORE',
+    subcategory: 'Existing customer expansion',
+    title: 'Dormant customer reactivation',
+    summary:
+      `${crm.dormantAccounts} account(s) in the CRM bought before and have bought nothing in ${CRM_DORMANT_MONTHS} months. ` +
+      `At the counted average deal value of ${money(dealValue)}, a reactivation campaign is worth about ${money(value)}.`,
+    problem:
+      'Customers who bought before and stopped are the cheapest revenue available, and they are almost never worked ' +
+      'systematically because nobody owns them.',
+    lines: [
+      { label: 'Accounts that have ever bought', value: crm.customersWithRevenue, unit: 'count', basis: 'connected', note: 'Counted from closed-won deals.' },
+      { label: `Dormant for ${CRM_DORMANT_MONTHS}+ months`, value: crm.dormantAccounts, unit: 'count', basis: 'connected', note: 'Previously bought, nothing since. Accounts that never bought are excluded — they are prospects, not dormant customers.' },
+      { label: 'Average deal value', value: dealValue, unit: 'GBP', basis: 'connected', note: 'Counted from closed-won deals in the last 12 months.' },
+      { label: 'Reactivation rate', value: BENCHMARKS.dormantReactivationRate.value * 100, unit: 'percent', basis: 'benchmark', note: BENCHMARKS.dormantReactivationRate.note },
+      { label: 'Recovered annual revenue', value, unit: 'GBP', basis: 'connected', note: 'Dormant accounts × reactivation rate × average deal value.' },
+    ],
+    formula: 'dormant_accounts × reactivation_rate × average_deal_value',
+    pointEstimate: value,
+    band: 0.3,
+    implementationCost: Math.min(12_000, Math.max(3_000, value * 0.06)),
+    confidence: 0.86,
+    effort: 0.35,
+    risk: 'low',
+    timeToValue: 45,
+    evidence: [
+      {
+        statement:
+          `${crm.dormantAccounts} of ${crm.customersWithRevenue} accounts with purchase history have no closed-won deal ` +
+          `in ${CRM_DORMANT_MONTHS} months. Average closed-won value over the last 12 months is ${money(dealValue)} across ${crm.wonLast12m} deal(s).`,
+        epistemics: 'fact',
+        confidence: 0.96,
+        sources: [{ connectorId: 'crm', label: 'HubSpot CRM', locator: 'hubspot:/deals', retrievedAt: crm.retrievedAt }],
+      },
+      benchmarkEvidence(BENCHMARKS.dormantReactivationRate.note, 0.55),
+    ],
+    assumptions: ['The reactivation rate is the one modelled figure left; the account list and deal values are counted.'],
+    reasoningSummary:
+      'The target list exists and can be exported today. Prior customers carry established trust, so the cost of the ' +
+      'second sale is a fraction of the first.',
+    dependencies: [],
+    capabilities: ['salesonic'],
+    requiredIntegrations: [],
+    playbookId: 'dormant-customer-reactivation',
+    executionReadiness: 0.95,
+    approvalRequirements: ['Approve target list before any outreach is sent'],
+  };
+}
+
 const dormantReactivation: Rule = (ctx) => {
+  const fromCrm = dormantFromCrm(ctx);
+  if (fromCrm) return fromCrm;
+
   // With accounting connected, the customer base and its average value are
   // counted rather than derived from a turnover ratio — which is the single
   // largest source of error in this model.
@@ -116,12 +185,20 @@ function winRateForDealSize(averageCustomerValue: number): { rate: number; note:
 const FIRST_YEAR_RAMP = 0.5;
 
 const pipelineGeneration: Rule = (ctx) => {
-  const customerValue = ctx.turnover.value * BENCHMARKS.averageCustomerValueRatio.value;
+  const crm = ctx.facts.crm;
+
+  // A counted conversion rate and deal value beat any benchmark, and they are
+  // the two numbers this model is most sensitive to.
+  const customerValue = crm?.averageDealValue ?? ctx.turnover.value * BENCHMARKS.averageCustomerValueRatio.value;
   const meetings = BENCHMARKS.outboundMeetingsPerRepPerMonth.value * 12;
-  const winRate = winRateForDealSize(customerValue);
+  const winRate = crm?.conversionRate !== null && crm?.conversionRate !== undefined
+    ? { rate: crm.conversionRate, note: `Counted: ${crm.wonLast12m} won of ${crm.wonLast12m + crm.lostLast12m} closed deals in the last 12 months.` }
+    : winRateForDealSize(customerValue);
   const wins = meetings * winRate.rate;
   const value = wins * customerValue * FIRST_YEAR_RAMP;
   if (value < 10_000) return null;
+
+  const countedBasis: FinancialLine['basis'] = crm?.averageDealValue ? 'connected' : ctx.turnover.basis;
 
   const hasOutbound =
     ((valueOf(ctx.twin.salesChannels) as string[] | null) ?? []).length > 0 ||
@@ -132,22 +209,24 @@ const pipelineGeneration: Rule = (ctx) => {
     subcategory: 'New business',
     title: 'Build a repeatable outbound pipeline',
     summary: `A working outbound motion producing ${BENCHMARKS.outboundMeetingsPerRepPerMonth.value} qualified meetings a month is worth roughly ${money(value)} a year at this company's average deal size.`,
-    problem: hasOutbound
-      ? 'Sales tooling is present but there is no visible systematic outbound motion — pipeline depends on referral and inbound, which cannot be turned up on demand.'
-      : 'No outbound sales motion is detectable. Growth is therefore capped by inbound volume, which the company does not control.',
+    problem: crm
+      ? `The CRM holds ${crm.openDeals} open deal(s) worth ${money(crm.openPipelineValue)}, of which ${crm.stalledDeals} have not been touched in 60 days. Pipeline is not being generated or worked systematically.`
+      : hasOutbound
+        ? 'Sales tooling is present but there is no visible systematic outbound motion — pipeline depends on referral and inbound, which cannot be turned up on demand.'
+        : 'No outbound sales motion is detectable. Growth is therefore capped by inbound volume, which the company does not control.',
     lines: [
       { label: 'Qualified meetings per month', value: BENCHMARKS.outboundMeetingsPerRepPerMonth.value, unit: 'count', basis: 'benchmark', note: BENCHMARKS.outboundMeetingsPerRepPerMonth.note },
       { label: 'Meetings per year', value: meetings, unit: 'count', basis: 'benchmark', note: 'Monthly target × 12.' },
-      { label: 'Meeting to win rate', value: Math.round(winRate.rate * 1000) / 10, unit: 'percent', basis: 'benchmark', note: winRate.note },
+      { label: 'Meeting to win rate', value: Math.round(winRate.rate * 1000) / 10, unit: 'percent', basis: crm?.conversionRate != null ? 'connected' : 'benchmark', note: winRate.note },
       { label: 'New customers per year', value: Math.round(wins), unit: 'count', basis: 'benchmark', note: 'Meetings × win rate.' },
-      { label: 'Average annual customer value', value: Math.round(customerValue), unit: 'GBP', basis: ctx.turnover.basis, note: ctx.turnover.note },
+      { label: 'Average annual customer value', value: Math.round(customerValue), unit: 'GBP', basis: countedBasis, note: crm?.averageDealValue ? 'Counted from closed-won deals in the last 12 months.' : ctx.turnover.note },
       { label: 'First-year revenue ramp', value: FIRST_YEAR_RAMP * 100, unit: 'percent', basis: 'assumption', note: 'Deals land across the year, so year one yields roughly half of each contract\u2019s annual value.' },
       { label: 'New revenue in year one', value: Math.round(value), unit: 'GBP', basis: 'benchmark', note: 'New customers × average customer value × first-year ramp.' },
     ],
     formula: 'meetings_per_month × 12 × win_rate × average_customer_value × first_year_ramp',
     pointEstimate: value,
     implementationCost: Math.min(30_000, Math.max(8_000, value * 0.12)),
-    confidence: 0.58,
+    confidence: crm?.conversionRate != null ? 0.74 : 0.58,
     effort: 0.65,
     risk: 'medium',
     timeToValue: 90,

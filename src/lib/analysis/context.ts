@@ -117,7 +117,7 @@ export function buildContext(twin: CompanyTwin, facts: ConnectedFacts = {}): Ana
     technology,
     connectedSources,
     hasFinancialData: Boolean(facts.financial) || connectedSources.some((s) => FINANCIAL_CONNECTORS.includes(s)),
-    hasCrmData: connectedSources.some((s) => CRM_CONNECTORS.includes(s)),
+    hasCrmData: Boolean(facts.crm) || connectedSources.some((s) => CRM_CONNECTORS.includes(s)),
     hasLicenceData: Boolean(facts.licence) || connectedSources.some((s) => LICENCE_CONNECTORS.includes(s)),
     itSpendEstimate,
     facts,

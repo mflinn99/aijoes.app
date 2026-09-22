@@ -4,6 +4,7 @@ import { putSecret, deleteSecret, vaultConfigured, VaultUnconfiguredError } from
 import { SECRET_REFS } from '@/lib/discovery/registry';
 import { Microsoft365Connector } from '@/lib/discovery/microsoft365-connector';
 import { XeroConnector } from '@/lib/discovery/xero-connector';
+import { HubspotConnector } from '@/lib/discovery/hubspot-connector';
 import { setConnectorConfig } from '@/lib/db/repositories/tenant-data';
 import { audit } from '@/lib/observability/events';
 
@@ -12,6 +13,7 @@ export const dynamic = 'force-dynamic';
 type Body =
   | { action: 'connect'; connectorId: 'microsoft-365'; tenantId: string; clientId: string; clientSecret: string }
   | { action: 'connect'; connectorId: 'accounting'; xeroTenantId: string; clientId: string; clientSecret: string }
+  | { action: 'connect'; connectorId: 'crm'; accessToken: string }
   | { action: 'disconnect'; connectorId: string };
 
 export async function POST(request: Request) {
@@ -69,12 +71,35 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
       }
 
+      if (body.connectorId === 'crm') {
+        if (!body.accessToken) {
+          return NextResponse.json({ error: 'A HubSpot private app access token is required.' }, { status: 400 });
+        }
+        const credentials = { accessToken: body.accessToken };
+
+        const probe = await new HubspotConnector(credentials).discover();
+        if (probe.status !== 'available') {
+          return NextResponse.json({ error: `Could not connect: ${probe.detail}` }, { status: 400 });
+        }
+
+        putSecret(database, SECRET_REFS.crm, credentials);
+        setConnectorConfig(database, 'crm', true, 'available');
+        audit(database, {
+          actor: session.email, actorKind: 'human', action: 'integration.connected',
+          subjectType: 'connector', subjectId: 'crm',
+          // The token is never written to the audit log.
+          detail: { provider: 'hubspot' },
+        });
+        return NextResponse.json({ ok: true });
+      }
+
       return NextResponse.json({ error: 'That connector cannot be configured here yet.' }, { status: 400 });
     }
 
     if (body.action === 'disconnect') {
       if (body.connectorId === 'microsoft-365') deleteSecret(database, SECRET_REFS.microsoft365);
       if (body.connectorId === 'accounting') deleteSecret(database, SECRET_REFS.accounting);
+      if (body.connectorId === 'crm') deleteSecret(database, SECRET_REFS.crm);
       setConnectorConfig(database, body.connectorId, false, 'not-configured');
       audit(database, {
         actor: session.email,

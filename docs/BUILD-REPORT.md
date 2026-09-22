@@ -1,5 +1,12 @@
 # BUILD REPORT — AIGoGo MetaMSP
 
+> **This report records iteration 1.** Iterations 2 and 3 followed: authentication and
+> RBAC, a credential vault, Microsoft 365 / Xero / HubSpot connectors, a durable job
+> queue, the verification loop, estate import, refresh scheduling and SSO. See
+> `docs/build-status.md` for the current position and `docs/security-model.md` for the
+> current security posture. Section 10's "no authentication" and section 13's "0%
+> reusable" were true when written; the first is closed, the second still holds.
+
 **Directive:** `docs/BUILD-DIRECTIVE.md` · **Branch:** `claude/aiogo-metamsp-build-directive-2lsui2`
 **Date:** 2026-09-16 · **Repository:** `mflinn99/aijoes.app` (was empty at build start)
 

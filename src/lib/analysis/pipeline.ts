@@ -14,6 +14,7 @@ import { addClaim, claim, type ProvenancedField } from '../core/provenance';
 import { connectorsFor, recommendedConnections } from '../discovery/registry';
 import { computeLicenceFacts } from '../discovery/microsoft365-connector';
 import { computeFinancialFacts } from '../discovery/xero-connector';
+import { computeCrmFacts } from '../discovery/hubspot-connector';
 import { getFacts, putFacts } from '../db/repositories/facts';
 import { scheduleRefresh } from './refresh';
 import { normaliseDomain, looksLikeDomain } from '../discovery/http';
@@ -266,6 +267,9 @@ export async function analyseCompany(
 
     const financialFacts = computeFinancialFacts(allRecords);
     if (financialFacts) putFacts(db, twin.id, 'financial', 'accounting', financialFacts);
+
+    const crmFacts = computeCrmFacts(allRecords);
+    if (crmFacts) putFacts(db, twin.id, 'crm', 'crm', crmFacts);
 
     // ---- Stages 3–5: market, customers, competitors ------------------------
     const ctx = buildContext(twin, getFacts(db, twin.id));

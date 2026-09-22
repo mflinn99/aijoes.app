@@ -1,12 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import type { TenantDb } from '../tenant';
 import type { LicenceFacts } from '../../discovery/microsoft365-connector';
+import type { CrmFacts } from '../../discovery/hubspot-connector';
 
-export type FactKind = 'licence' | 'financial';
+export type FactKind = 'licence' | 'financial' | 'crm';
 
 export interface ConnectedFacts {
   licence?: LicenceFacts;
   financial?: FinancialFacts;
+  crm?: CrmFacts;
 }
 
 /** Counted figures from an accounting or banking connector. */
@@ -49,6 +51,7 @@ export function getFacts(db: TenantDb, companyId: string): ConnectedFacts {
   for (const row of rows) {
     if (row.kind === 'licence') out.licence = JSON.parse(row.facts_json) as LicenceFacts;
     if (row.kind === 'financial') out.financial = JSON.parse(row.facts_json) as FinancialFacts;
+    if (row.kind === 'crm') out.crm = JSON.parse(row.facts_json) as CrmFacts;
   }
   return out;
 }

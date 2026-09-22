@@ -6,7 +6,8 @@ import { listConnectorConfigs } from '@/lib/db/repositories/tenant-data';
 import { hasSecret, vaultConfigured } from '@/lib/secrets/vault';
 import { can } from '@/lib/auth/rbac';
 import { PageHead } from '@/components/Shell';
-import { ConnectMicrosoft } from '@/components/ConnectMicrosoft';
+import { ConnectPanel } from '@/components/ConnectPanel';
+import { CONNECTOR_SPECS } from '@/lib/connector-specs';
 import { TenantDb } from '@/lib/db/tenant';
 import { getDb } from '@/lib/db/client';
 
@@ -20,7 +21,11 @@ export default async function IntegrationsPage() {
   const live = connectorsFor(database);
 
   const discovery = await Promise.all(live.map(async (c) => ({ id: c.id, result: await c.discover() })));
-  const m365Connected = hasSecret(database, SECRET_REFS.microsoft365);
+  const connectedRefs: Record<string, boolean> = {
+    'microsoft-365': hasSecret(database, SECRET_REFS.microsoft365),
+    accounting: hasSecret(database, SECRET_REFS.accounting),
+    crm: hasSecret(database, SECRET_REFS.crm),
+  };
   const mayAdminister = can(session.context.role, 'administer');
 
   return (
@@ -38,7 +43,16 @@ export default async function IntegrationsPage() {
         </div>
       ) : null}
 
-      {mayAdminister ? <ConnectMicrosoft connected={m365Connected} vaultReady={vaultConfigured()} /> : null}
+      {mayAdminister
+        ? CONNECTOR_SPECS.map((spec) => (
+            <ConnectPanel
+              key={spec.id}
+              spec={spec}
+              connected={connectedRefs[spec.id] ?? false}
+              vaultReady={vaultConfigured()}
+            />
+          ))
+        : null}
 
       <div className="card" style={{ marginTop: 14 }}>
         <div className="card-title">Connectors</div>
@@ -80,7 +94,7 @@ export default async function IntegrationsPage() {
       </div>
 
       <div className="note" style={{ marginTop: 14 }}>
-        Uplift figures are estimates derived from the Company Twin field weights each connector can populate. Three
+        Uplift figures are estimates derived from the Company Twin field weights each connector can populate. Five
         connectors are implemented; the rest declare the interface so the ingestion contract is fixed now and adapters
         can be added without changing the Company Twin or any analysis engine.
       </div>

@@ -24,6 +24,16 @@
 | 4 — Durable execution | **Partly complete** | Durable job queue with claim, retry, backoff, dead-letter and stale-lock recovery. Postgres migration still open — no server available in this environment |
 | 5 — Verification loop | **Complete** | Baselines captured before execution, compared against the system of record, benefits reaching VERIFIED |
 
+## Iteration 3 — usable by a real MSP
+
+| Item | Status | Output |
+| --- | --- | --- |
+| Estate import | **Complete** | CSV / paste import with per-line validation, preview, and one queued analysis per customer |
+| Refresh scheduling (§22) | **Complete** | Every analysed company on an interval; the worker queues what falls due |
+| Portfolio at scale | **Complete** | Search, nine sorts, pagination; unanalysed customers counted separately |
+| SSO end to end | **Complete** | Discovery, single-use state with bound nonce, token exchange, JWKS signature verification, guarded JIT provisioning |
+| CRM connector | **Complete** | HubSpot: counted dormant accounts, pipeline, conversion rate and average deal value |
+
 ## Completed
 
 - Company Digital Twin: 43 provenanced fields, conflicting-claim retention, weighted understanding score
@@ -63,22 +73,22 @@
 
 ## Remaining
 
-1. CRM connector — the last big promotion: real dormant-account counts and pipeline measurement
-2. Postgres migration with row-level security (no Postgres server available in this environment)
-3. OIDC callback handler, so SSO works end to end rather than only building an authorization URL
-4. Shared-store rate limiting, for more than one instance
-5. Encryption at rest for the database file itself
-6. Competitor analysis (currently skipped with a stated reason)
-7. LLM enrichment for proposition and evidence summarisation, behind the typed-output rule
-8. Real Onward estate sync
-9. Pagination, once an estate outgrows a single page
-10. First live opco adapter, replacing a mock
+1. Postgres migration with row-level security — no Postgres server is available in this environment
+2. Shared-store rate limiting, for more than one instance
+3. Encryption at rest for the database file itself
+4. PSA connector — current MSP services and contract values, which would make MSP EXPAND counted too
+5. Competitor analysis (currently skipped with a stated reason)
+6. LLM enrichment for proposition and evidence summarisation, behind the typed-output rule
+7. Real Onward estate sync
+8. First live opco adapter, replacing a mock
+9. Per-company refresh interval controls in the interface (the mechanism exists; the controls do not)
+10. Sage and QuickBooks alongside Xero
 
 ## Test status
 
 ```
-Test Files  17 passed (17)
-Tests      216 passed (216)
+Test Files  21 passed (21)
+Tests      271 passed (271)
 ```
 
 | Suite | Tests | Covers |
@@ -100,3 +110,6 @@ Tests      216 passed (216)
 | `microsoft365` | 14 | Graph client, counted licence facts, promotion to inferred-fact |
 | `xero` | 13 | Xero client, counted spend and customers, promotion |
 | `verification` | 10 | Baselines, comparison against the system of record, VERIFIED |
+| `estate` | 20 | CSV parsing, import application, refresh scheduling |
+| `oidc` | 23 | Discovery, state, signature verification, alg confusion, provisioning |
+| `hubspot` | 12 | CRM client, counted dormancy and pipeline, promotion |

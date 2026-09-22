@@ -88,6 +88,15 @@ unknown user so the timing does not distinguish them either.
 are implemented; OIDC reports itself unconfigured until an issuer is supplied, rather
 than falling back to something weaker. Wiring an MSP's SSO is configuration, not code.
 
+The OIDC flow is complete, and the parts a careless implementation skips are the ones
+worth naming: `state` is single-use, stored server side and expires in ten minutes;
+`nonce` is bound to that state row and checked against the token; the id_token's
+signature is verified against the issuer's JWKS rather than decoded and trusted; and
+`iss`, `aud` and `exp` are all checked. `alg: none` and HMAC confusion are refused
+outright. Just-in-time provisioning is off unless a tenant is explicitly named for it,
+because creating accounts from an unverified assertion is how an SSO integration
+becomes an open door — and an email the IdP marks unverified is never matched.
+
 ## RBAC
 
 One matrix, enforced on every page and every route handler.
@@ -134,7 +143,7 @@ record or a prompt.
 | SQLite rather than Postgres with RLS | **Open** | Isolation is enforced by the guarded query layer. Tested, but a database-level control is stronger. |
 | No CSRF token on the sign-in POST | **Accepted** | SameSite=Lax cookies plus a JSON content-type requirement; login CSRF is low impact here. |
 | Single-instance rate limiting | **Open** | Buckets are in-process; a shared store is needed behind more than one instance. |
-| OIDC flow not exercised end to end | **Open** | The provider builds an authorization URL; the callback handler is not yet written. |
+| OIDC refresh tokens | **Open** | Sign-in is verified end to end; sessions are platform-issued and do not follow the IdP's own lifetime. |
 
 The platform is now safe to hold real customer data behind a trusted network. The
 remaining items above are what stands between that and an internet-facing deployment.

@@ -11,6 +11,7 @@ import { WebsiteConnector } from './website-connector';
 import { CompaniesHouseConnector } from './companies-house-connector';
 import { Microsoft365Connector } from './microsoft365-connector';
 import { XeroConnector, type XeroCredentials } from './xero-connector';
+import { HubspotConnector, type HubspotCredentials } from './hubspot-connector';
 import type { GraphCredentials } from './graph-client';
 import type { TenantDb } from '../db/tenant';
 import { getSecret } from '../secrets/vault';
@@ -36,7 +37,7 @@ export const CONNECTOR_CATALOGUE: PlannedConnector[] = [
   { id: 'companies-house', name: 'Companies House', category: 'registry', authType: 'api-key', understandingUplift: 14, implemented: true, unlocks: 'Legal identity, SIC codes, filing history, officers' },
   { id: 'microsoft-365', name: 'Microsoft 365', category: 'productivity', authType: 'oauth2', understandingUplift: 11, implemented: true, unlocks: 'Counted licence seats and waste, real user population, actual tenant configuration' },
   { id: 'accounting', name: 'Accounting (Xero)', category: 'accounting', authType: 'oauth2', understandingUplift: 21, implemented: true, unlocks: 'Counted turnover, margin, supplier spend and customer base — promotes savings hypotheses to quantified opportunities' },
-  { id: 'crm', name: 'CRM', category: 'crm', authType: 'oauth2', understandingUplift: 18, implemented: false, unlocks: 'Pipeline, dormant accounts, conversion rates, customer concentration' },
+  { id: 'crm', name: 'CRM (HubSpot)', category: 'crm', authType: 'oauth2', understandingUplift: 18, implemented: true, unlocks: 'Counted pipeline, dormant accounts, conversion rate and average deal value' },
   { id: 'psa', name: 'PSA', category: 'psa', authType: 'api-key', understandingUplift: 17, implemented: false, unlocks: 'Current MSP services, contract values, ticket themes' },
   { id: 'rmm', name: 'RMM', category: 'rmm', authType: 'api-key', understandingUplift: 12, implemented: false, unlocks: 'Device estate, patch posture, endpoint counts' },
   { id: 'banking', name: 'Bank transaction feed', category: 'banking', authType: 'oauth2', understandingUplift: 15, implemented: false, unlocks: 'Actual supplier payments, maverick spend, duplicate subscriptions' },
@@ -57,6 +58,7 @@ const GLOBAL: CompanyDataConnector[] = [new WebsiteConnector(), new CompaniesHou
 export const SECRET_REFS = {
   microsoft365: 'connector:microsoft-365',
   accounting: 'connector:accounting',
+  crm: 'connector:crm',
 } as const;
 
 /**
@@ -73,6 +75,9 @@ export function connectorsFor(db: TenantDb): CompanyDataConnector[] {
 
   const xero = getSecret<XeroCredentials>(db, SECRET_REFS.accounting);
   if (xero) out.push(new XeroConnector(xero));
+
+  const crm = getSecret<HubspotCredentials>(db, SECRET_REFS.crm);
+  if (crm) out.push(new HubspotConnector(crm));
 
   return out;
 }
