@@ -9,10 +9,10 @@ interface Problem { line: number; raw: string; reason: string }
 interface Preview { rows: Row[]; problems: Problem[]; headers: string[] | null; willQueue: number }
 interface Result { created: number; updated: number; queued: number; skipped: Problem[] }
 
-const EXAMPLE = `name,domain,mrr,renewal
-Acme Engineering,acme-engineering.co.uk,2400,2027-03-31
-Northern Logistics,northernlogistics.com,1850,2026-11-30
-Bright Dental Group,brightdental.co.uk,critical`;
+const EXAMPLE = `name,domain,mrr,renewal,services
+Acme Engineering,acme-engineering.co.uk,2400,2027-03-31,managed-microsoft; backup-continuity
+Northern Logistics,northernlogistics.com,1850,2026-11-30,device-management
+Bright Dental Group,brightdental.co.uk,,,`;
 
 export function EstateImport() {
   const router = useRouter();

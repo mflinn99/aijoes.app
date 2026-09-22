@@ -41,6 +41,14 @@ describe('CSV parsing', () => {
     });
   });
 
+  it('appends new positional columns rather than inserting them', () => {
+    // Services were added after this format shipped. A file written against the
+    // old order must still import the same way.
+    const parsed = parseImport(`Acme Ltd,acme.co.uk,2400,2027-03-31,Key account,managed-microsoft`);
+    expect(parsed.rows[0]!.note).toBe('Key account');
+    expect(parsed.rows[0]!.currentServices).toEqual(['managed-microsoft']);
+  });
+
   it('accepts a bare list of domains or names', () => {
     const parsed = parseImport(`acme.co.uk\nBright Dental Group\nnorthern-logistics.com`);
     expect(parsed.rows).toHaveLength(3);
@@ -175,5 +183,21 @@ describe('refresh scheduling', () => {
   it('does not queue for a company that no longer exists', () => {
     scheduleRefresh(tdb, 'gone', 30, new Date('2026-01-01T00:00:00Z'));
     expect(queueDueRefreshes(tdb)).toBe(0);
+  });
+});
+
+describe('services the MSP already sells', () => {
+  it('parses a services column and keeps it on the customer', () => {
+    const parsed = parseImport(`name,domain,services\nAcme,acme.co.uk,managed-microsoft; Backup Continuity`);
+    expect(parsed.rows[0]!.currentServices).toEqual(['managed-microsoft', 'backup-continuity']);
+
+    applyImport(tdb, parsed, { analyse: false });
+    expect(listCustomers(tdb)[0]!.currentServices).toEqual(['managed-microsoft', 'backup-continuity']);
+  });
+
+  it('keeps existing services when a later import omits the column', () => {
+    applyImport(tdb, parseImport(`name,domain,services\nAcme,acme.co.uk,managed-microsoft`), { analyse: false });
+    applyImport(tdb, parseImport(`name,domain\nAcme,acme.co.uk`), { analyse: false });
+    expect(listCustomers(tdb)[0]!.currentServices).toEqual(['managed-microsoft']);
   });
 });

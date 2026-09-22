@@ -6,7 +6,9 @@ import { listCustomers } from '@/lib/db/repositories/tenant-data';
 import { valueOf } from '@/lib/core/provenance';
 import { buildContext } from '@/lib/analysis/context';
 import { getFacts } from '@/lib/db/repositories/facts';
-import { mspExpansionSummary } from '@/lib/analysis/engines/msp-expand';
+import { mspExpansionSummary, MSP_SERVICES } from '@/lib/analysis/engines/msp-expand';
+import { ServicesHeld } from '@/components/ServicesHeld';
+import { can } from '@/lib/auth/rbac';
 import { PageHead } from '@/components/Shell';
 import { CompanyTabs } from '@/components/CompanyTabs';
 import { OpportunityCard } from '@/components/OpportunityCard';
@@ -15,7 +17,7 @@ import { gbpExact, pct } from '@/lib/format';
 export const dynamic = 'force-dynamic';
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-  await requirePermission('read');
+  const session = await requirePermission('read');
   const { id } = await params;
   const database = await db();
   const twin = getTwin(database, id);
@@ -37,7 +39,16 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
       />
       <CompanyTabs companyId={id} active="msp-expand" />
 
-      <div className="grid-4">
+      {customer ? (
+        <ServicesHeld
+          customerId={customer.id}
+          catalogue={MSP_SERVICES.map((s) => ({ id: s.id, name: s.name, category: s.category }))}
+          held={customer.currentServices}
+          editable={can(session.context.role, 'analyse')}
+        />
+      ) : null}
+
+      <div className="grid-4" style={{ marginTop: 14 }}>
         <Fig label="Current MSP MRR" value={gbpExact(summary.currentMrr)} />
         <Fig label="Potential MSP MRR" value={gbpExact(summary.potentialMrr)} tone="msp" />
         <Fig label="Expansion opportunity" value={`+${gbpExact(summary.expansionMrr)} MRR`} tone="msp" />

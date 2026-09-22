@@ -190,3 +190,52 @@ describe('JoJo orchestration', () => {
     expect(r.selected.every((o) => startAvailable(o).available && o.risk === 'low')).toBe(true);
   });
 });
+
+describe('MSP expansion respects what the customer already buys', () => {
+  it('does not propose a service the customer already holds', async () => {
+    const { buildContext } = await import('@/lib/analysis/context');
+    const { mspExpandOpportunities } = await import('@/lib/analysis/engines/msp-expand');
+    const { createEmptyTwin } = await import('@/lib/core/company-twin');
+    const { addClaim, claim } = await import('@/lib/core/provenance');
+
+    const twin = createEmptyTwin('co1', 't1');
+    twin.employeesEstimate = addClaim(twin.employeesEstimate, claim(60, { connectorId: 'user', label: 'user', method: 'user-supplied', confidence: 0.9 }));
+
+    const before = mspExpandOpportunities(buildContext(twin));
+    expect(before.some((o) => o.title === 'Managed Microsoft 365')).toBe(true);
+
+    twin.currentMSPServices = addClaim(
+      twin.currentMSPServices,
+      claim(['managed-microsoft', 'backup-continuity'], { connectorId: 'user', label: 'MSP record', method: 'user-supplied', confidence: 0.95 }),
+    );
+
+    const after = mspExpandOpportunities(buildContext(twin));
+    expect(after.some((o) => o.title === 'Managed Microsoft 365')).toBe(false);
+    expect(after.some((o) => o.title === 'Backup and business continuity')).toBe(false);
+    // Everything else is still offered.
+    expect(after.length).toBe(before.length - 2);
+  });
+
+  it('carries the customer record through analysis into the expansion engine', async () => {
+    const { harness, seedCustomer } = await import('./helpers');
+    const { upsertCustomer } = await import('@/lib/db/repositories/tenant-data');
+    const h = harness('tenant-services');
+    const fixture = SYNTHETIC_COMPANIES[2]!;
+
+    seedCustomer(h, 'cust-x', fixture.name, fixture.domain, 4800);
+    upsertCustomer(h.db, {
+      id: 'cust-x', name: fixture.name, domain: fixture.domain, currentMrr: 4800,
+      relationshipNote: null, renewalDate: null,
+      currentServices: ['managed-microsoft', 'device-management', 'service-desk'],
+    });
+
+    const result = await analyseCompany(h.db, fixture.domain, {
+      customerId: 'cust-x', offline: true, seedRecords: fixture.records,
+    });
+
+    const expansion = result.opportunities.filter((o) => o.category === 'MSP_EXPAND');
+    expect(expansion.some((o) => o.title === 'Managed Microsoft 365')).toBe(false);
+    expect(expansion.some((o) => o.title === 'Managed service desk')).toBe(false);
+    expect(expansion.length).toBeGreaterThan(0);
+  });
+});

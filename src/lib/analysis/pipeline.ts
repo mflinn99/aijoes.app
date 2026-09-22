@@ -25,6 +25,7 @@ import { spendLessOpportunities } from './engines/spend-less';
 import { mspExpandOpportunities } from './engines/msp-expand';
 import { buildSupplyChain } from './supply-chain';
 import { saveTwin, saveOpportunities, saveSuppliers, saveSourceRecords, findTwinByDomain } from '../db/repositories/company';
+import { getCustomer } from '../db/repositories/tenant-data';
 import { audit, recordEvent } from '../observability/events';
 import { createBenefit } from '../benefits/ledger';
 import type { Opportunity } from '../core/opportunity';
@@ -219,8 +220,19 @@ export async function analyseCompany(
       }
     }
 
+    // What the MSP already sells this customer is a fact they hold, not
+    // something to infer. Without it the expansion engine proposes services
+    // they are already paying for.
+    const customer = options.customerId ? getCustomer(db, options.customerId) : null;
+    const supplied: Partial<Record<TwinFieldKey, unknown>> = {
+      ...(customer && customer.currentServices.length > 0
+        ? { currentMSPServices: customer.currentServices }
+        : {}),
+      ...options.userSupplied,
+    };
+
     // User-supplied facts outrank inference but not registry data.
-    for (const [key, value] of Object.entries(options.userSupplied ?? {})) {
+    for (const [key, value] of Object.entries(supplied)) {
       if (value === undefined || value === null) continue;
       const field = twin[key as TwinFieldKey] as ProvenancedField<unknown>;
       (twin as unknown as Record<string, unknown>)[key] = addClaim(

@@ -9,12 +9,14 @@ export interface Customer {
   currentMrr: number;
   relationshipNote: string | null;
   renewalDate: string | null;
+  /** Service ids the MSP already sells this customer. */
+  currentServices: string[];
 }
 
 export function listCustomers(db: TenantDb): Customer[] {
   return db
-    .all<{ id: string; name: string; domain: string | null; current_mrr: number; relationship_note: string | null; renewal_date: string | null }>(
-      `SELECT id, name, domain, current_mrr, relationship_note, renewal_date
+    .all<{ id: string; name: string; domain: string | null; current_mrr: number; relationship_note: string | null; renewal_date: string | null; current_services: string | null }>(
+      `SELECT id, name, domain, current_mrr, relationship_note, renewal_date, current_services
        FROM customers WHERE tenant_id = @tenantId ORDER BY current_mrr DESC`,
     )
     .map((r) => ({
@@ -25,19 +27,30 @@ export function listCustomers(db: TenantDb): Customer[] {
       currentMrr: r.current_mrr,
       relationshipNote: r.relationship_note,
       renewalDate: r.renewal_date,
+      currentServices: parseServices(r.current_services),
     }));
+}
+
+function parseServices(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
 }
 
 export function getCustomer(db: TenantDb, id: string): Customer | null {
   return listCustomers(db).find((c) => c.id === id) ?? null;
 }
 
-export function upsertCustomer(db: TenantDb, c: Omit<Customer, 'tenantId'>): void {
+export function upsertCustomer(db: TenantDb, c: Omit<Customer, 'tenantId' | 'currentServices'> & { currentServices?: string[] }): void {
   db.run(
-    `INSERT INTO customers (id, tenant_id, name, domain, current_mrr, relationship_note, renewal_date, created_at)
-     VALUES (@id, @tenantId, @name, @domain, @currentMrr, @note, @renewalDate, @createdAt)
+    `INSERT INTO customers (id, tenant_id, name, domain, current_mrr, relationship_note, renewal_date, current_services, created_at)
+     VALUES (@id, @tenantId, @name, @domain, @currentMrr, @note, @renewalDate, @services, @createdAt)
      ON CONFLICT(id) DO UPDATE SET name = @name, domain = @domain, current_mrr = @currentMrr,
-       relationship_note = @note, renewal_date = @renewalDate`,
+       relationship_note = @note, renewal_date = @renewalDate, current_services = @services`,
     {
       id: c.id,
       name: c.name,
@@ -45,8 +58,16 @@ export function upsertCustomer(db: TenantDb, c: Omit<Customer, 'tenantId'>): voi
       currentMrr: c.currentMrr,
       note: c.relationshipNote,
       renewalDate: c.renewalDate,
+      services: JSON.stringify(c.currentServices ?? []),
       createdAt: new Date().toISOString(),
     },
+  );
+}
+
+export function setCustomerServices(db: TenantDb, customerId: string, services: string[]): void {
+  db.run(
+    `UPDATE customers SET current_services = @services WHERE tenant_id = @tenantId AND id = @id`,
+    { id: customerId, services: JSON.stringify(services) },
   );
 }
 

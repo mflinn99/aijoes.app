@@ -25,6 +25,8 @@ export interface ImportRow {
   currentMrr: number;
   renewalDate: string | null;
   note: string | null;
+  /** Service ids the MSP already sells, so expansion does not re-propose them. */
+  currentServices: string[];
 }
 
 export interface ImportProblem {
@@ -45,9 +47,12 @@ const HEADER_ALIASES: Record<string, keyof ImportRow> = {
   mrr: 'currentMrr', 'current mrr': 'currentMrr', 'monthly revenue': 'currentMrr', revenue: 'currentMrr',
   renewal: 'renewalDate', 'renewal date': 'renewalDate', 'contract end': 'renewalDate',
   note: 'note', notes: 'note', comment: 'note',
+  services: 'currentServices', 'current services': 'currentServices', 'services held': 'currentServices',
 };
 
-const POSITIONAL: (keyof ImportRow)[] = ['name', 'domain', 'currentMrr', 'renewalDate', 'note'];
+// Appended, never inserted: changing the meaning of an existing column would
+// silently mis-import a file that worked yesterday.
+const POSITIONAL: (keyof ImportRow)[] = ['name', 'domain', 'currentMrr', 'renewalDate', 'note', 'currentServices'];
 
 /** Splits a CSV line, honouring quoted fields that contain commas. */
 export function splitCsvLine(line: string): string[] {
@@ -77,6 +82,15 @@ export function splitCsvLine(line: string): string[] {
   }
   out.push(current.trim());
   return out;
+}
+
+/** Services arrive as "managed-microsoft; backup-continuity" or with pipes. */
+function parseServices(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(/[;|]/)
+    .map((v) => v.trim().toLowerCase().replace(/\s+/g, '-'))
+    .filter(Boolean);
 }
 
 function parseMoney(value: string | undefined): number {
@@ -114,7 +128,7 @@ export function parseImport(input: string): ParsedImport {
     if (headers && index === 0) return;
     const lineNumber = index + 1;
     const cells = splitCsvLine(line);
-    const row: ImportRow = { line: lineNumber, name: '', domain: null, currentMrr: 0, renewalDate: null, note: null };
+    const row: ImportRow = { line: lineNumber, name: '', domain: null, currentMrr: 0, renewalDate: null, note: null, currentServices: [] };
 
     if (cells.length === 1 && cells[0]) {
       // A bare name, or a bare domain.
@@ -130,6 +144,7 @@ export function parseImport(input: string): ParsedImport {
         else if (field === 'currentMrr') row.currentMrr = parseMoney(cell);
         else if (field === 'renewalDate') row.renewalDate = parseDate(cell);
         else if (field === 'note') row.note = cell;
+        else if (field === 'currentServices') row.currentServices = parseServices(cell);
       });
 
       // A cell that was meant to be a domain but is not one is a data error
@@ -196,6 +211,7 @@ export function applyImport(
       currentMrr: row.currentMrr || match?.currentMrr || 0,
       relationshipNote: row.note ?? match?.relationshipNote ?? null,
       renewalDate: row.renewalDate ?? match?.renewalDate ?? null,
+      currentServices: row.currentServices.length > 0 ? row.currentServices : (match?.currentServices ?? []),
     });
 
     if (match) result.updated++;

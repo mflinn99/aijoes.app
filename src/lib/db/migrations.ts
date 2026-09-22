@@ -21,6 +21,10 @@ const COLUMNS: ColumnAddition[] = [
   { table: 'users', column: 'last_login_at', definition: 'TEXT' },
   { table: 'users', column: 'idp', definition: "TEXT NOT NULL DEFAULT 'local'" },
   { table: 'users', column: 'idp_subject', definition: 'TEXT' },
+  // What the MSP already sells this customer. Without it, MSP EXPAND proposes
+  // services the customer is already paying for, which is worse than proposing
+  // nothing — it tells the account owner the platform does not know the account.
+  { table: 'customers', column: 'current_services', definition: "TEXT NOT NULL DEFAULT '[]'" },
 ];
 
 function hasColumn(db: Database, table: string, column: string): boolean {
