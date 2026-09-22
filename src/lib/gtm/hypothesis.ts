@@ -83,13 +83,39 @@ function qualityFrom(reasons: RejectionReason[], match: ArchetypeMatch, scores: 
   return 'weak';
 }
 
-function valueFor(service: ServiceLine | undefined, scores: AccountScores): { low: number; high: number; point: number; basis: string; recurring: boolean } {
+/**
+ * Where an account sits inside a service's deal range, as a function of
+ * headcount alone.
+ *
+ * This is deliberately NOT the account's value score. That score blends deal
+ * size, size fit and recurrence, so a service with a wide range scores higher,
+ * and using it to position within that same range compounds: an eighteen-person
+ * consultancy came out at £192,000 of managed IT, which is not a number anyone
+ * could defend in front of the customer.
+ *
+ * Headcount is the only spend proxy we hold, so it is the only one used, and an
+ * account whose headcount is unknown sits near the bottom rather than the middle
+ * — being ignorant about a company is not a reason to price it optimistically.
+ */
+function spendPosition(employees: number | null): { position: number; note: string } {
+  if (employees === null) return { position: 0.1, note: 'headcount unknown, so priced near the bottom of the range' };
+  if (employees < 10) return { position: 0.05, note: `${employees} employees` };
+  if (employees < 25) return { position: 0.12, note: `${employees} employees` };
+  if (employees < 50) return { position: 0.22, note: `${employees} employees` };
+  if (employees < 100) return { position: 0.35, note: `${employees} employees` };
+  if (employees < 250) return { position: 0.5, note: `${employees} employees` };
+  if (employees < 500) return { position: 0.7, note: `${employees} employees` };
+  return { position: 0.85, note: `${employees} employees` };
+}
+
+function valueFor(
+  service: ServiceLine | undefined,
+  employees: number | null,
+): { low: number; high: number; point: number; basis: string; recurring: boolean } {
   if (!service) return { low: 0, high: 0, point: 0, basis: 'No deliverable service matched', recurring: false };
 
   const { typicalDealLowGbp: low, typicalDealHighGbp: high, recurring } = service.commercials;
-  // Scale within the service's own range by how well the account fits, rather
-  // than inventing a number outside what Onward actually sells at.
-  const position = scores.value.value;
+  const { position, note } = spendPosition(employees);
   const point = Math.round(low + (high - low) * position);
 
   return {
@@ -97,9 +123,10 @@ function valueFor(service: ServiceLine | undefined, scores: AccountScores): { lo
     high,
     point,
     basis:
-      `${service.name} typically runs £${low.toLocaleString('en-GB')}–£${high.toLocaleString('en-GB')}` +
-      `${recurring ? ` with roughly £${(service.commercials.typicalMonthlyGbp ?? 0).toLocaleString('en-GB')}/month recurring` : ''}. ` +
-      `Positioned at ${Math.round(position * 100)}% of that range on account size and fit.`,
+      `${service.name} typically runs \u00a3${low.toLocaleString('en-GB')}\u2013\u00a3${high.toLocaleString('en-GB')}` +
+      `${recurring ? ` with roughly \u00a3${(service.commercials.typicalMonthlyGbp ?? 0).toLocaleString('en-GB')}/month recurring` : ''}. ` +
+      `Placed at ${Math.round(position * 100)}% of that range on ${note}. ` +
+      `The range itself is a planning placeholder, not an Onward rate card.`,
     recurring,
   };
 }
@@ -139,7 +166,7 @@ export function generateHypotheses(input: HypothesisInput): OpportunityHypothesi
       .filter((s): s is ServiceLine => Boolean(s) && s!.deliveryCapacity !== 'not-available');
     const service = services.sort((a, b) => b.commercials.typicalDealHighGbp - a.commercials.typicalDealHighGbp)[0];
 
-    const value = valueFor(service, scores);
+    const value = valueFor(service, ctx.employees);
     const reasons = evaluate(match, ctx, scores, account, service, value.point);
     const quality = qualityFrom(reasons, match, scores);
     const evidence = evidenceItems(match, ctx);

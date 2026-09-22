@@ -78,6 +78,8 @@ export interface ProofPoint {
   confidence: number;
   /** Cleared for use in outreach? Unverified proof must not be quoted at a prospect. */
   usableInOutreach: boolean;
+  /** When a second, independent look returned the same claim. Not proof — corroboration. */
+  corroboratedAt?: string;
 }
 
 export interface MspProfile {

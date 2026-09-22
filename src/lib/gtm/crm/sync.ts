@@ -240,7 +240,8 @@ export async function syncAccount(db: TenantDb, targets: CrmTargets, account: Gt
     properties: {
       aigogo_priority_score: Math.round(account.priorityScore),
       aigogo_status: account.status,
-      aigogo_archetype: account.scores?.icp.components[0]?.label ?? null,
+      // The archetype, not the first scoring component — which is always 'Size fit'.
+      aigogo_archetype: account.scores?.primary?.name ?? null,
     } as Record<string, string | number | null>,
   };
 

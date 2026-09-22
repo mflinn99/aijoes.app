@@ -29,9 +29,10 @@ import { runAutopilot, type AutopilotReport } from './pipeline';
 import { reconcile, crmTargets, type CrmTargets, type ReconcileReport } from './crm/sync';
 import { harvestOutcomes, analyse as analyseLearning, type LearningReport } from './learning';
 import { measureObjectives, seedObjectives, type ObjectivesReport } from './objectives';
-import { withRecovery, health as recoveryHealth, type HealthSummary } from './recovery';
+import { withRecovery, recordFailure, health as recoveryHealth, type HealthSummary } from './recovery';
 import { DEFAULT_POLICY, type CommercialPolicy } from './governance';
 import { workable } from './hypothesis';
+import { MIN_UNDERSTANDING_TO_SCORE } from './thresholds';
 
 export interface StageResult {
   stage: string;
@@ -119,9 +120,23 @@ export async function runLoop(db: TenantDb, opts: LoopOptions): Promise<LoopRepo
       }),
     );
 
-    if (result.value) {
+    // A run that completes without learning anything is not research. The
+    // analysis pipeline deliberately survives connector failures, so a company
+    // whose every source was unreachable comes back as a successful run over an
+    // empty twin. Marking that 'researched' would be the engine claiming
+    // knowledge it does not have, so understanding is the test, not the absence
+    // of a thrown error.
+    if (result.value && result.value.understanding >= MIN_UNDERSTANDING_TO_SCORE) {
       updateAccount(db, account.id, { companyId: result.value.twin.id, researchState: 'researched' });
       researched++;
+    } else if (result.value) {
+      updateAccount(db, account.id, { companyId: result.value.twin.id, researchState: 'research-failed' });
+      const reason = `understanding ${result.value.understanding}% — no source returned anything usable`;
+      researchNotes.push(`${account.name}: ${reason}`);
+      recordFailure(db, {
+        component: 'research', operation: 'analyse', subjectId: account.id,
+        error: new Error(`EGRESS_BLOCKED or no source available for ${account.domain ?? account.name}: ${reason}`),
+      });
     } else {
       updateAccount(db, account.id, { researchState: 'research-failed' });
       researchNotes.push(`${account.name}: ${result.decisions.at(-1)?.kind ?? 'unknown failure'}`);
@@ -179,20 +194,47 @@ export async function runLoop(db: TenantDb, opts: LoopOptions): Promise<LoopRepo
   });
 
   // --- 9. OPEN OPPORTUNITIES -----------------------------------------------
-  let opened = 0;
+  //
+  // One open opportunity per account per service line. Three archetypes can all
+  // point at managed IT for the same company — cyber, Microsoft estate and "no
+  // internal IT" frequently do — and opening one opportunity each would show
+  // three times the value of a single contract in the weighted forecast. The
+  // account still carries all three hypotheses, because the reasons are
+  // genuinely different and each is worth putting to the customer; it is the
+  // money that must not be counted three times.
+  const bestPerService = new Map<string, typeof hypotheses[number]>();
   for (const hypothesis of hypotheses) {
     const account = accountMap.get(hypothesis.accountId);
     if (!account || account.synthetic) continue;
+    const key = `${hypothesis.accountId}:${hypothesis.serviceIds[0] ?? 'none'}`;
+    const held = bestPerService.get(key);
+    if (!held || hypothesis.confidence > held.confidence) bestPerService.set(key, hypothesis);
+  }
+
+  let opened = 0;
+  let collapsed = 0;
+  for (const hypothesis of bestPerService.values()) {
+    const account = accountMap.get(hypothesis.accountId)!;
     createOpportunityFromHypothesis(db, hypothesis, account);
     opened++;
   }
+  collapsed = hypotheses.filter((h) => {
+    const a = accountMap.get(h.accountId);
+    return a !== undefined && !a.synthetic;
+  }).length - opened;
+
   stages.push({
     stage: 'open-opportunities',
     ran: true,
     produced: opened,
-    summary: opened === 0
-      ? 'No opportunity was opened. Synthetic accounts are excluded by design, so a synthetic-only universe produces no pipeline.'
-      : `${opened} opportunit(ies) open in the pipeline.`,
+    summary: opened > 0
+      ? `${opened} opportunit(ies) open in the pipeline.` +
+        (collapsed > 0
+          ? ` ${collapsed} further hypothesis(es) point at a service already in the pipeline for that account, so they are kept as reasons to talk but not counted again as money.`
+          : '')
+      : hypotheses.length === 0
+        ? 'No opportunity was opened, because no hypothesis cleared the evidence bar. There is nothing to open.'
+        : 'No opportunity was opened. Every workable hypothesis belongs to a synthetic account, and synthetic accounts are excluded by design.',
     blockedBy: null,
   });
 

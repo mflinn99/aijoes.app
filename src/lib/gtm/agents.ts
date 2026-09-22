@@ -22,6 +22,7 @@ import {
   saveHypothesis, listHypotheses, listContacts, upsertContact, isSuppressed,
   listOpportunities, upsertOpportunity, getHypothesis, countAccounts,
 } from './store';
+import { MIN_UNDERSTANDING_TO_SCORE } from './thresholds';
 import type { GtmAccount, OpportunityHypothesis, PipelineStage } from './types';
 import { STAGE_PROBABILITY } from './types';
 import { sourceById, type DiscoveredAccount } from './sources';
@@ -149,6 +150,7 @@ export function accountIntelligenceAgent(
   const accounts = listAccounts(db, { mspId: opts.mspId, limit: opts.limit ?? 1000 });
   let produced = 0;
   let skipped = 0;
+  let unknown = 0;
   const notes: string[] = [];
 
   for (const account of accounts) {
@@ -158,19 +160,33 @@ export function accountIntelligenceAgent(
 
     const understanding = understandingScore(twin);
     const ctx = buildIcpContext(twin, opts.profile, understanding);
-    const contacts = listContacts(db, account.id).filter((c) => !c.suppressed);
-    const scores = scoreAccount(ctx, contacts.length);
+    // Contactability must count people we can actually reach. The contact agent
+    // writes role placeholders with no email — deliberately, because inventing a
+    // name is worse than having none — and counting those would let the engine
+    // raise an account's priority on the strength of contacts it made up. It
+    // also made the score climb on every re-run, which is how this was noticed.
+    const reachable = listContacts(db, account.id).filter((c) => !c.suppressed && (c.email ?? c.linkedin));
+    const scores = scoreAccount(ctx, reachable.length);
+
+    // Having a twin is not the same as knowing anything. A twin built from
+    // sources that all failed scores our own ignorance, so the account is not
+    // promoted to 'researched' on the strength of having been attempted.
+    const known = understanding >= MIN_UNDERSTANDING_TO_SCORE;
+    if (!known) unknown++;
 
     updateAccount(db, account.id, {
       scores,
       priorityScore: Math.round(scores.priority.value * 1000) / 10,
-      researchState: 'researched',
-      status: scores.priority.value >= 0.5 ? 'qualified-target' : account.status,
+      researchState: known ? 'researched' : 'research-failed',
+      status: known && scores.priority.value >= 0.5 ? 'qualified-target' : account.status,
     });
     produced++;
   }
 
-  notes.push(`${produced} account(s) scored, ${skipped} skipped for want of research.`);
+  notes.push(
+    `${produced} account(s) scored, ${skipped} skipped for want of research.` +
+      (unknown > 0 ? ` ${unknown} scored at or near zero because no source returned anything about them — they are marked research-failed, not researched.` : ''),
+  );
   return r.finish({ processed: accounts.length, produced, skipped, notes });
 }
 

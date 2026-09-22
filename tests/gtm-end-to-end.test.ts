@@ -219,7 +219,12 @@ describe('the closed loop, end to end', () => {
 
     expect(listOutreach(h.db, { limit: 100 })).toHaveLength(0);
     expect(readLocalRecords(h.db, 'company')).toHaveLength(0);
-    expect(report.stages.find((s) => s.stage === 'open-opportunities')!.summary).toContain('Synthetic accounts are excluded');
+    // Synthetic accounts have no research behind them and are barred from
+    // contact, so nothing opens — and the stage says which of those it was
+    // rather than reporting a bare zero.
+    const opened = report.stages.find((s) => s.stage === 'open-opportunities')!;
+    expect(opened.produced).toBe(0);
+    expect(opened.summary).toMatch(/evidence bar|Synthetic accounts are excluded/);
 
     // And no synthetic account counts towards a commercial target.
     expect(measureObjectives(h.db, MSP).progress.find((p) => p.key === 'accounts-researched')!.actual).toBe(0);

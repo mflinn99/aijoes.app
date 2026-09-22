@@ -22,6 +22,8 @@
 import type { MspProfile } from '@/lib/gtm/profile';
 
 const RETRIEVED = '2026-09-22T19:20:00.000Z';
+/** A second search pass on the same date returned the same claims. Same source, so a small lift only. */
+const CORROBORATED = '2026-09-22T19:55:00.000Z';
 const SEARCH_CAVEAT = 'From a web-search summary, not a direct fetch of onwardps.co.uk (egress blocked). Confirm with Onward.';
 const INFERRED_CAVEAT = 'Planning placeholder from typical UK MSP economics. NOT an Onward figure. Replace before quoting.';
 
@@ -253,7 +255,11 @@ export const ONWARD: MspProfile = {
       customer: null,
       quantified: '30+ clients, 12 months',
       provenance: 'web-search-snippet',
-      confidence: 0.5,
+      corroboratedAt: CORROBORATED,
+      // Corroborated by a second, independent search run on 2026-09-22 returning
+      // the same claim. Two snippets of the same page is still one source, so the
+      // lift is small and it stays unusable in outreach until Onward confirms it.
+      confidence: 0.6,
       usableInOutreach: false,
     },
     {
@@ -264,7 +270,9 @@ export const ONWARD: MspProfile = {
       customer: null,
       quantified: '30% cost reduction',
       provenance: 'web-search-snippet',
-      confidence: 0.5,
+      corroboratedAt: CORROBORATED,
+      // Same corroboration as above, same limit on what it is worth.
+      confidence: 0.6,
       usableInOutreach: false,
     },
     {
