@@ -405,3 +405,288 @@ CREATE TABLE IF NOT EXISTS oidc_states (
   expires_at  TEXT NOT NULL,
   consumed_at TEXT
 );
+
+-- =========================================================== agentic gtm ====
+-- Build Directive 02. The seller-side model: accounts Onward wants to win,
+-- rather than customers an MSP already has.
+
+CREATE TABLE IF NOT EXISTS gtm_accounts (
+  id             TEXT PRIMARY KEY,
+  tenant_id      TEXT NOT NULL,
+  msp_id         TEXT NOT NULL,
+  name           TEXT NOT NULL,
+  domain         TEXT,
+  company_id     TEXT,
+  source         TEXT NOT NULL,
+  -- Synthetic accounts exist to prove the engine at scale and are barred from
+  -- every outreach path. Never flip this to 0 for a fabricated company.
+  synthetic      INTEGER NOT NULL DEFAULT 0,
+  status         TEXT NOT NULL,
+  research_state TEXT NOT NULL,
+  priority_score REAL NOT NULL DEFAULT 0,
+  scores_json    TEXT NOT NULL DEFAULT '{}',
+  account_json   TEXT NOT NULL DEFAULT '{}',
+  suppressed     INTEGER NOT NULL DEFAULT 0,
+  suppress_reason TEXT,
+  created_at     TEXT NOT NULL,
+  updated_at     TEXT NOT NULL,
+  UNIQUE (tenant_id, msp_id, domain),
+  UNIQUE (tenant_id, msp_id, name)
+);
+CREATE INDEX IF NOT EXISTS idx_gtm_accounts_priority ON gtm_accounts(tenant_id, msp_id, priority_score DESC);
+
+CREATE TABLE IF NOT EXISTS gtm_signals (
+  id          TEXT PRIMARY KEY,
+  tenant_id   TEXT NOT NULL,
+  account_id  TEXT NOT NULL,
+  kind        TEXT NOT NULL,
+  summary     TEXT NOT NULL,
+  strength    REAL NOT NULL,
+  source      TEXT NOT NULL,
+  locator     TEXT,
+  detected_at TEXT NOT NULL,
+  expires_at  TEXT,
+  UNIQUE (tenant_id, account_id, kind, summary)
+);
+CREATE INDEX IF NOT EXISTS idx_gtm_signals_account ON gtm_signals(tenant_id, account_id);
+
+CREATE TABLE IF NOT EXISTS gtm_hypotheses (
+  id              TEXT PRIMARY KEY,
+  tenant_id       TEXT NOT NULL,
+  account_id      TEXT NOT NULL,
+  archetype       TEXT NOT NULL,
+  service_ids     TEXT NOT NULL,
+  headline        TEXT NOT NULL,
+  value_low       REAL NOT NULL,
+  value_high      REAL NOT NULL,
+  value_point     REAL NOT NULL,
+  confidence      REAL NOT NULL,
+  quality         TEXT NOT NULL,
+  status          TEXT NOT NULL,
+  hypothesis_json TEXT NOT NULL,
+  created_at      TEXT NOT NULL,
+  updated_at      TEXT NOT NULL,
+  UNIQUE (tenant_id, account_id, archetype)
+);
+CREATE INDEX IF NOT EXISTS idx_gtm_hyp_account ON gtm_hypotheses(tenant_id, account_id);
+
+CREATE TABLE IF NOT EXISTS gtm_contacts (
+  id          TEXT PRIMARY KEY,
+  tenant_id   TEXT NOT NULL,
+  account_id  TEXT NOT NULL,
+  name        TEXT,
+  role        TEXT,
+  email       TEXT,
+  linkedin    TEXT,
+  source      TEXT NOT NULL,
+  confidence  REAL NOT NULL,
+  consent_basis TEXT,
+  suppressed  INTEGER NOT NULL DEFAULT 0,
+  created_at  TEXT NOT NULL,
+  UNIQUE (tenant_id, account_id, email)
+);
+
+CREATE TABLE IF NOT EXISTS gtm_outreach (
+  id            TEXT PRIMARY KEY,
+  tenant_id     TEXT NOT NULL,
+  account_id    TEXT NOT NULL,
+  hypothesis_id TEXT NOT NULL,
+  contact_id    TEXT,
+  -- The natural key needs a non-null contact: SQLite treats NULLs as distinct
+  -- in a UNIQUE index, so a message to an account with no named contact would
+  -- otherwise duplicate on every run.
+  contact_key   TEXT NOT NULL DEFAULT '-',
+  channel       TEXT NOT NULL,
+  step          INTEGER NOT NULL DEFAULT 1,
+  subject       TEXT,
+  body          TEXT NOT NULL,
+  status        TEXT NOT NULL,
+  reason_for_contact TEXT NOT NULL,
+  evidence_json TEXT NOT NULL,
+  approved_by   TEXT,
+  approved_at   TEXT,
+  sent_at       TEXT,
+  blocked_reason TEXT,
+  created_at    TEXT NOT NULL,
+  UNIQUE (tenant_id, hypothesis_id, contact_key, step)
+);
+CREATE INDEX IF NOT EXISTS idx_gtm_outreach_account ON gtm_outreach(tenant_id, account_id);
+
+CREATE TABLE IF NOT EXISTS gtm_responses (
+  id          TEXT PRIMARY KEY,
+  tenant_id   TEXT NOT NULL,
+  outreach_id TEXT NOT NULL,
+  account_id  TEXT NOT NULL,
+  sentiment   TEXT NOT NULL,
+  body        TEXT,
+  received_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS gtm_opportunities (
+  id             TEXT PRIMARY KEY,
+  tenant_id      TEXT NOT NULL,
+  account_id     TEXT NOT NULL,
+  hypothesis_id  TEXT NOT NULL,
+  name           TEXT NOT NULL,
+  stage          TEXT NOT NULL,
+  value_gbp      REAL NOT NULL,
+  probability    REAL NOT NULL,
+  weighted_gbp   REAL NOT NULL,
+  owner          TEXT,
+  next_action    TEXT,
+  next_action_at TEXT,
+  last_action_at TEXT,
+  close_date     TEXT,
+  source         TEXT NOT NULL,
+  crm_id         TEXT,
+  opportunity_json TEXT NOT NULL,
+  created_at     TEXT NOT NULL,
+  updated_at     TEXT NOT NULL,
+  UNIQUE (tenant_id, hypothesis_id)
+);
+CREATE INDEX IF NOT EXISTS idx_gtm_opps_stage ON gtm_opportunities(tenant_id, stage);
+
+CREATE TABLE IF NOT EXISTS gtm_meetings (
+  id            TEXT PRIMARY KEY,
+  tenant_id     TEXT NOT NULL,
+  account_id    TEXT NOT NULL,
+  opportunity_id TEXT,
+  contact_id    TEXT,
+  scheduled_for TEXT NOT NULL,
+  status        TEXT NOT NULL,
+  notes         TEXT,
+  created_at    TEXT NOT NULL
+);
+
+-- Mark's commercial gate (Phase 7).
+CREATE TABLE IF NOT EXISTS gtm_decisions (
+  id            TEXT PRIMARY KEY,
+  tenant_id     TEXT NOT NULL,
+  trigger       TEXT NOT NULL,
+  subject_type  TEXT NOT NULL,
+  subject_id    TEXT NOT NULL,
+  context       TEXT NOT NULL,
+  evidence_json TEXT NOT NULL,
+  recommendation TEXT NOT NULL,
+  expected_value REAL NOT NULL,
+  proposed_action TEXT NOT NULL,
+  status        TEXT NOT NULL,
+  decided_by    TEXT,
+  decided_at    TEXT,
+  decision_note TEXT,
+  created_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_gtm_decisions_status ON gtm_decisions(tenant_id, status);
+
+-- Phase 15 learning loop.
+CREATE TABLE IF NOT EXISTS gtm_outcomes (
+  id            TEXT PRIMARY KEY,
+  tenant_id     TEXT NOT NULL,
+  account_id    TEXT NOT NULL,
+  hypothesis_id TEXT,
+  outcome       TEXT NOT NULL,
+  archetype     TEXT,
+  service_id    TEXT,
+  sector        TEXT,
+  persona       TEXT,
+  signal_kind   TEXT,
+  value_gbp     REAL,
+  cycle_days    INTEGER,
+  strategy_version TEXT NOT NULL,
+  recorded_at   TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_gtm_outcomes_archetype ON gtm_outcomes(tenant_id, archetype);
+
+CREATE TABLE IF NOT EXISTS gtm_strategies (
+  version      TEXT NOT NULL,
+  tenant_id    TEXT NOT NULL,
+  weights_json TEXT NOT NULL,
+  note         TEXT NOT NULL,
+  active       INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT NOT NULL,
+  PRIMARY KEY (tenant_id, version)
+);
+
+CREATE TABLE IF NOT EXISTS gtm_objectives (
+  tenant_id     TEXT NOT NULL,
+  msp_id        TEXT NOT NULL,
+  key           TEXT NOT NULL,
+  target        REAL NOT NULL,
+  updated_at    TEXT NOT NULL,
+  PRIMARY KEY (tenant_id, msp_id, key)
+);
+
+-- Suppression: do-not-contact, existing customers, competitors, opt-outs.
+CREATE TABLE IF NOT EXISTS gtm_suppressions (
+  id         TEXT PRIMARY KEY,
+  tenant_id  TEXT NOT NULL,
+  match_type TEXT NOT NULL,
+  match_value TEXT NOT NULL,
+  reason     TEXT NOT NULL,
+  added_by   TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE (tenant_id, match_type, match_value)
+);
+
+-- Phase 9 CRM closed loop. The link table is what makes CRM writes idempotent:
+-- a local record maps to exactly one external id per provider, so replaying an
+-- agent updates rather than duplicates.
+CREATE TABLE IF NOT EXISTS gtm_crm_links (
+  id          TEXT PRIMARY KEY,
+  tenant_id   TEXT NOT NULL,
+  provider    TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  local_id    TEXT NOT NULL,
+  external_id TEXT NOT NULL,
+  -- Hash of the payload last written, so an unchanged record is not re-sent.
+  payload_hash TEXT NOT NULL,
+  synced_at   TEXT NOT NULL,
+  UNIQUE (tenant_id, provider, entity_type, local_id)
+);
+
+-- Writes survive a CRM outage: they queue here and drain on the next run.
+CREATE TABLE IF NOT EXISTS gtm_crm_outbox (
+  id          TEXT PRIMARY KEY,
+  tenant_id   TEXT NOT NULL,
+  provider    TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  local_id    TEXT NOT NULL,
+  operation   TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  status      TEXT NOT NULL,
+  attempts    INTEGER NOT NULL DEFAULT 0,
+  last_error  TEXT,
+  next_attempt_at TEXT NOT NULL,
+  created_at  TEXT NOT NULL,
+  completed_at TEXT,
+  UNIQUE (tenant_id, provider, entity_type, local_id, operation)
+);
+CREATE INDEX IF NOT EXISTS idx_gtm_outbox_pending ON gtm_crm_outbox(tenant_id, status, next_attempt_at);
+
+-- Phase 10 pipeline autopilot: what the engine did to keep a deal moving.
+CREATE TABLE IF NOT EXISTS gtm_pipeline_actions (
+  id             TEXT PRIMARY KEY,
+  tenant_id      TEXT NOT NULL,
+  opportunity_id TEXT NOT NULL,
+  rule           TEXT NOT NULL,
+  action         TEXT NOT NULL,
+  detail         TEXT NOT NULL,
+  requires_human INTEGER NOT NULL DEFAULT 0,
+  created_at     TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_gtm_pipeline_actions_opp ON gtm_pipeline_actions(tenant_id, opportunity_id);
+
+-- The local CRM of record (Phase 9). Onward has no CRM credentials here, so the
+-- loop closes against this and reconciles to a real CRM once one is connected.
+CREATE TABLE IF NOT EXISTS gtm_crm_records (
+  id          TEXT PRIMARY KEY,
+  tenant_id   TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  local_id    TEXT NOT NULL,
+  external_id TEXT NOT NULL,
+  payload_json TEXT NOT NULL,
+  payload_hash TEXT NOT NULL,
+  created_at  TEXT NOT NULL,
+  updated_at  TEXT NOT NULL,
+  UNIQUE (tenant_id, entity_type, local_id)
+);
