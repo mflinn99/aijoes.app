@@ -3,7 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { guardRoute } from '@/lib/session';
 import { createRun } from '@/lib/analysis/pipeline';
 import { getSynthetic } from '@/lib/fixtures/synthetic';
-import { upsertCustomer } from '@/lib/db/repositories/tenant-data';
+import { upsertCustomer, listCustomers } from '@/lib/db/repositories/tenant-data';
+import { normaliseDomain } from '@/lib/discovery/http';
 import { rateLimit, ANALYSIS_LIMIT } from '@/lib/rate-limit';
 import { enqueueAnalysis } from '@/lib/jobs/queue';
 
@@ -36,12 +37,20 @@ export async function POST(request: Request) {
   const synthetic = getSynthetic(input);
   const run = createRun(database, input);
 
-  const customerId = body.customerId ?? `cust-${randomUUID().slice(0, 8)}`;
-  if (!body.customerId) {
+  // Re-analysing a company the MSP already has must not create a second
+  // customer record for it; the twin would attach to the first one and the new
+  // record would sit in the estate for ever as "never analysed".
+  const domain = synthetic?.domain ?? normaliseDomain(input);
+  const existing = listCustomers(database).find(
+    (c) => (domain && c.domain === domain) || c.name.toLowerCase() === input.toLowerCase(),
+  );
+
+  const customerId = body.customerId ?? existing?.id ?? `cust-${randomUUID().slice(0, 8)}`;
+  if (!body.customerId && !existing) {
     upsertCustomer(database, {
       id: customerId,
       name: synthetic?.name ?? input,
-      domain: synthetic?.domain ?? null,
+      domain: domain ?? null,
       currentMrr: synthetic?.currentMrr ?? 0,
       relationshipNote: 'Added via company analysis',
       renewalDate: null,

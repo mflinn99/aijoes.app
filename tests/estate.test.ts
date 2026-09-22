@@ -201,3 +201,35 @@ describe('services the MSP already sells', () => {
     expect(listCustomers(tdb)[0]!.currentServices).toEqual(['managed-microsoft']);
   });
 });
+
+describe('re-analysing a company the MSP already has', () => {
+  it('reuses the existing customer rather than creating a second record', async () => {
+    const { analyseCompany } = await import('@/lib/analysis/pipeline');
+    const { SYNTHETIC_COMPANIES } = await import('@/lib/fixtures/synthetic');
+    const { listSchedules } = await import('@/lib/analysis/refresh');
+
+    const fixture = SYNTHETIC_COMPANIES[0]!;
+    applyImport(tdb, parseImport(`${fixture.name},${fixture.domain},1200`), { analyse: false });
+    const customerId = listCustomers(tdb)[0]!.id;
+
+    await analyseCompany(tdb, fixture.domain, { customerId, offline: true, seedRecords: fixture.records });
+    await analyseCompany(tdb, fixture.domain, { customerId, offline: true, seedRecords: fixture.records });
+
+    // One customer, one twin, one schedule — not three of each.
+    expect(listCustomers(tdb)).toHaveLength(1);
+    expect(listSchedules(tdb)).toHaveLength(1);
+  });
+
+  it('schedules a refresh for every analysed company', async () => {
+    const { analyseCompany } = await import('@/lib/analysis/pipeline');
+    const { SYNTHETIC_COMPANIES } = await import('@/lib/fixtures/synthetic');
+    const { listSchedules } = await import('@/lib/analysis/refresh');
+
+    const fixture = SYNTHETIC_COMPANIES[1]!;
+    await analyseCompany(tdb, fixture.domain, { offline: true, seedRecords: fixture.records });
+
+    const schedules = listSchedules(tdb);
+    expect(schedules).toHaveLength(1);
+    expect(schedules[0]!.enabled).toBe(true);
+  });
+});

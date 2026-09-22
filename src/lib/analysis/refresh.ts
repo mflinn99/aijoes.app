@@ -14,6 +14,7 @@ import { randomUUID } from 'node:crypto';
 import type { TenantDb } from '../db/tenant';
 import { enqueueAnalysis } from '../jobs/queue';
 import { createRun } from './pipeline';
+import { getSynthetic } from '../fixtures/synthetic';
 
 export const DEFAULT_INTERVAL_DAYS = 30;
 
@@ -117,12 +118,16 @@ export function queueDueRefreshes(db: TenantDb, now = new Date()): number {
     const input = company.domain ?? company.display_name;
     const run = createRun(db, input);
 
+    // A reference company refreshes from its fixture, not from a domain that
+    // does not exist.
+    const synthetic = getSynthetic(input);
+
     enqueueAnalysis(db, {
       runId: run.id,
       input,
       customerId: company.customer_id ?? '',
-      offline: false,
-      syntheticKey: null,
+      offline: Boolean(synthetic),
+      syntheticKey: synthetic?.key ?? null,
     });
 
     db.run(

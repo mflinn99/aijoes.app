@@ -355,7 +355,7 @@ export async function analyseCompany(
     // Directive §22: a twin that is never re-read decays quietly, and a stale
     // figure still renders at full confidence. Every analysed company goes on
     // an interval from here.
-    if (!options.offline) scheduleRefresh(db, twin.id);
+    scheduleRefresh(db, twin.id);
 
     recordEvent(db, {
       tenantId: db.ctx.tenantId,
