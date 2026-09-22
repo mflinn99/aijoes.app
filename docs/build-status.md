@@ -87,8 +87,8 @@
 ## Test status
 
 ```
-Test Files  21 passed (21)
-Tests      271 passed (271)
+Test Files  20 passed (20)
+Tests      278 passed (278)
 ```
 
 | Suite | Tests | Covers |
@@ -110,6 +110,6 @@ Tests      271 passed (271)
 | `microsoft365` | 14 | Graph client, counted licence facts, promotion to inferred-fact |
 | `xero` | 13 | Xero client, counted spend and customers, promotion |
 | `verification` | 10 | Baselines, comparison against the system of record, VERIFIED |
-| `estate` | 20 | CSV parsing, import application, refresh scheduling |
+| `estate` | 27 | CSV parsing, import application, refresh scheduling, held services, re-analysis |
 | `oidc` | 23 | Discovery, state, signature verification, alg confusion, provisioning |
 | `hubspot` | 12 | CRM client, counted dormancy and pipeline, promotion |
