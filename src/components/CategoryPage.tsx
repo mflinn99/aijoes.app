@@ -22,7 +22,7 @@ export async function CategoryPage({
   title: string;
   blurb: string;
 }) {
-  const database = db();
+  const database = await db();
   const twin = getTwin(database, id);
   if (!twin) notFound();
 

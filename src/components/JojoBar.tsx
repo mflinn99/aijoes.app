@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { jsonHeaders } from '@/lib/csrf-client';
 
 const EXAMPLES = [
   'Find £100k of addressable annual savings across this company',
@@ -29,7 +30,7 @@ export function JojoBar({ companyId }: { companyId?: string }) {
     try {
       const res = await fetch('/api/jojo', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: jsonHeaders(),
         body: JSON.stringify({ objective, companyId }),
       });
       setResult((await res.json()) as JojoResult);

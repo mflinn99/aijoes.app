@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { db } from '@/lib/session';
+import { db, requirePermission } from '@/lib/session';
 import { getOpportunity, getTwin } from '@/lib/db/repositories/company';
 import { listPlans } from '@/lib/execution/engine';
 import { getPlaybook } from '@/lib/playbooks/registry';
@@ -16,8 +16,9 @@ import { categoryClass, categoryLabel, gbp, gbpExact, pct } from '@/lib/format';
 export const dynamic = 'force-dynamic';
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermission('read');
   const { id } = await params;
-  const database = db();
+  const database = await db();
   const o = getOpportunity(database, id);
   if (!o) notFound();
 

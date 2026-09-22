@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
-import { db } from '@/lib/session';
-import { analyseCompany, createRun } from '@/lib/analysis/pipeline';
+import { guardRoute } from '@/lib/session';
+import { createRun } from '@/lib/analysis/pipeline';
 import { getSynthetic } from '@/lib/fixtures/synthetic';
 import { upsertCustomer } from '@/lib/db/repositories/tenant-data';
+import { rateLimit, ANALYSIS_LIMIT } from '@/lib/rate-limit';
+import { enqueueAnalysis } from '@/lib/jobs/queue';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,13 +15,24 @@ export const dynamic = 'force-dynamic';
  * rather than the user waiting on a blank screen.
  */
 export async function POST(request: Request) {
-  const body = (await request.json()) as { input?: string; customerId?: string };
+  const guard = await guardRoute(request, 'analyse');
+  if (!guard.ok) return guard.response;
+  const { db: database, session } = guard;
+
+  // Analysis fetches third-party websites; an unbounded endpoint makes this
+  // platform a nuisance to other people's servers as well as to itself.
+  const limit = rateLimit(`analyse:${session.context.tenantId}`, ANALYSIS_LIMIT);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: 'Analysis rate limit reached. Please wait a moment.' },
+      { status: 429, headers: { 'retry-after': String(limit.retryAfterSeconds) } },
+    );
+  }
+
+  const body = (await request.json().catch(() => ({}))) as { input?: string; customerId?: string };
   const input = body.input?.trim();
   if (!input) return NextResponse.json({ error: 'input is required' }, { status: 400 });
 
-  const database = db();
-
-  // A synthetic fixture is analysed offline and deterministically.
   const synthetic = getSynthetic(input);
   const run = createRun(database, input);
 
@@ -35,15 +48,14 @@ export async function POST(request: Request) {
     });
   }
 
-  // Fire and forget: the run's stage states are the progress channel.
-  void analyseCompany(database, input, {
+  // Queued rather than fired and forgotten: the job survives a restart and the
+  // run's stage states remain the progress channel.
+  enqueueAnalysis(database, {
+    runId: run.id,
+    input,
     customerId,
     offline: Boolean(synthetic),
-    seedRecords: synthetic?.records,
-    userSupplied: synthetic?.userSupplied,
-    runId: run.id,
-  }).catch(() => {
-    /* failure is recorded on the run itself */
+    syntheticKey: synthetic?.key ?? null,
   });
 
   return NextResponse.json({ runId: run.id });

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { db } from '@/lib/session';
+import { db, requirePermission } from '@/lib/session';
 import { getTwin, listSuppliers } from '@/lib/db/repositories/company';
 import { summariseSupplyChain } from '@/lib/analysis/supply-chain';
 import { valueOf } from '@/lib/core/provenance';
@@ -11,8 +11,9 @@ import { gbp, gbpExact, pct } from '@/lib/format';
 export const dynamic = 'force-dynamic';
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermission('read');
   const { id } = await params;
-  const database = db();
+  const database = await db();
   const twin = getTwin(database, id);
   if (!twin) notFound();
 

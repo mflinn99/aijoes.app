@@ -1,7 +1,7 @@
 /** Benefits Ledger — Directive §16. */
 
 import Link from 'next/link';
-import { db } from '@/lib/session';
+import { db, requirePermission } from '@/lib/session';
 import { listBenefits, summariseLedger, STAGE_ORDER, STAGE_DESCRIPTIONS } from '@/lib/benefits/ledger';
 import { listOpportunities, listCompanies } from '@/lib/db/repositories/company';
 import { getCapability } from '@/lib/capabilities/registry';
@@ -11,8 +11,9 @@ import { gbp, gbpExact } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
-export default function BenefitsPage() {
-  const database = db();
+export default async function BenefitsPage() {
+  await requirePermission('read');
+  const database = await db();
   const benefits = listBenefits(database);
   const summary = summariseLedger(benefits);
   const opportunities = listOpportunities(database);

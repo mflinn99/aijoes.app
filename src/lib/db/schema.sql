@@ -268,3 +268,54 @@ CREATE TABLE IF NOT EXISTS connector_configs (
   updated_at    TEXT NOT NULL,
   UNIQUE (tenant_id, connector_id)
 );
+
+-- ------------------------------------------------------------------ auth ----
+-- Directive iteration 2: authentication and session state.
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id            TEXT PRIMARY KEY,
+  tenant_id     TEXT NOT NULL,
+  user_id       TEXT NOT NULL,
+  -- SHA-256 of the session token. The token itself is never stored.
+  token_hash    TEXT NOT NULL UNIQUE,
+  csrf_token    TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  expires_at    TEXT NOT NULL,
+  last_seen_at  TEXT NOT NULL,
+  revoked_at    TEXT,
+  user_agent    TEXT,
+  ip            TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);
+
+-- Failed sign-in attempts, for lockout. Keyed by email + ip.
+CREATE TABLE IF NOT EXISTS auth_attempts (
+  id        TEXT PRIMARY KEY,
+  key       TEXT NOT NULL,
+  at        TEXT NOT NULL,
+  succeeded INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_attempts_key ON auth_attempts(key, at DESC);
+
+-- ------------------------------------------------------------------ jobs ----
+-- Durable background work. Iteration 1 used fire-and-forget promises, so a
+-- restart mid-analysis left a run stuck at "running" forever.
+
+CREATE TABLE IF NOT EXISTS jobs (
+  id            TEXT PRIMARY KEY,
+  tenant_id     TEXT NOT NULL,
+  type          TEXT NOT NULL,
+  payload_json  TEXT NOT NULL,
+  status        TEXT NOT NULL CHECK (status IN ('pending','running','succeeded','failed','dead')),
+  attempts      INTEGER NOT NULL DEFAULT 0,
+  max_attempts  INTEGER NOT NULL DEFAULT 3,
+  run_after     TEXT NOT NULL,
+  locked_at     TEXT,
+  locked_by     TEXT,
+  last_error    TEXT,
+  created_at    TEXT NOT NULL,
+  updated_at    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, run_after);
+CREATE INDEX IF NOT EXISTS idx_jobs_tenant ON jobs(tenant_id, created_at DESC);

@@ -1,7 +1,7 @@
 /** MSP Portfolio — Directive §17. */
 
 import Link from 'next/link';
-import { db } from '@/lib/session';
+import { db, requirePermission } from '@/lib/session';
 import { listCompanies, listOpportunities } from '@/lib/db/repositories/company';
 import { listCustomers } from '@/lib/db/repositories/tenant-data';
 import { nextBestActionAcrossEstate, portfolioValueSummary } from '@/lib/jojo/orchestrator';
@@ -11,8 +11,9 @@ import { gbp, gbpExact, pct, relativeTime } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
-export default function PortfolioPage() {
-  const database = db();
+export default async function PortfolioPage() {
+  await requirePermission('read');
+  const database = await db();
   const companies = listCompanies(database);
   const customers = listCustomers(database);
   const allOpportunities = listOpportunities(database);

@@ -65,11 +65,29 @@ export interface Benefit {
 
 export class BenefitStageError extends Error {}
 
+/**
+ * Open a benefit for an opportunity, or refresh the existing one.
+ *
+ * Re-analysis re-derives every opportunity, so this must not accumulate a new
+ * benefit row per run. An existing benefit that is still THEORETICAL is updated
+ * in place; one that has advanced is left exactly as it is, because its stage
+ * and realised value are a record of what happened, not a projection to be
+ * recalculated.
+ */
 export function createBenefit(
   db: TenantDb,
   input: Omit<Benefit, 'id' | 'tenantId' | 'createdAt' | 'updatedAt'>,
 ): Benefit {
   const now = new Date().toISOString();
+  const existing = getBenefitByOpportunity(db, input.opportunityId);
+
+  if (existing) {
+    if (existing.stage !== 'THEORETICAL') return existing;
+    const refreshed: Benefit = { ...existing, ...input, id: existing.id, tenantId: existing.tenantId, createdAt: existing.createdAt, updatedAt: now };
+    persist(db, refreshed);
+    return refreshed;
+  }
+
   const benefit: Benefit = {
     id: randomUUID(),
     tenantId: db.ctx.tenantId,

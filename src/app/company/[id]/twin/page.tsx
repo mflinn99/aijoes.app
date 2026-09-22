@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { db } from '@/lib/session';
+import { db, requirePermission } from '@/lib/session';
 import { getTwin } from '@/lib/db/repositories/company';
 import { TWIN_FIELDS, understandingScore, understandingGaps, getField, FIELD_WEIGHTS } from '@/lib/core/company-twin';
 import { isConflicted, isStale, valueOf } from '@/lib/core/provenance';
@@ -26,8 +26,9 @@ function renderValue(value: unknown): string {
 }
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermission('read');
   const { id } = await params;
-  const database = db();
+  const database = await db();
   const twin = getTwin(database, id);
   if (!twin) notFound();
 

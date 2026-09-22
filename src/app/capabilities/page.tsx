@@ -1,15 +1,16 @@
 /** Capability Health — Directive §5, §14, §19. */
 
 import { listCapabilities } from '@/lib/capabilities/registry';
-import { db } from '@/lib/session';
+import { db, requirePermission } from '@/lib/session';
 import { costSummary } from '@/lib/observability/events';
 import { PageHead } from '@/components/Shell';
 
 export const dynamic = 'force-dynamic';
 
-export default function CapabilitiesPage() {
+export default async function CapabilitiesPage() {
+  await requirePermission('read');
   const capabilities = listCapabilities();
-  const costs = costSummary(db());
+  const costs = costSummary(await db());
   const mocked = capabilities.filter((c) => c.maturity === 'mock');
 
   return (

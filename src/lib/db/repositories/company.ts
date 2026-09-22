@@ -88,8 +88,33 @@ export function saveSourceRecords(
   }
 }
 
+/**
+ * Replace the un-started opportunities for a company.
+ *
+ * Re-analysis must be non-destructive to anything that has moved: an
+ * opportunity someone has started, or whose benefit has advanced past
+ * THEORETICAL, is history and is kept. Only untouched opportunities are
+ * cleared, and their still-theoretical benefits go with them — the benefits FK
+ * means the order matters, and a benefit that has advanced blocks the delete on
+ * purpose rather than being silently destroyed.
+ */
 export function saveOpportunities(db: TenantDb, companyId: string, opportunities: Opportunity[]): void {
-  db.run(`DELETE FROM opportunities WHERE tenant_id = @tenantId AND company_id = @companyId AND execution_status = 'NOT_STARTED'`, { companyId });
+  const removable = db.all<{ id: string }>(
+    `SELECT o.id FROM opportunities o
+     WHERE o.tenant_id = @tenantId
+       AND o.company_id = @companyId
+       AND o.execution_status = 'NOT_STARTED'
+       AND NOT EXISTS (
+         SELECT 1 FROM benefits b
+         WHERE b.tenant_id = @tenantId AND b.opportunity_id = o.id AND b.stage <> 'THEORETICAL'
+       )`,
+    { companyId },
+  );
+
+  for (const { id } of removable) {
+    db.run(`DELETE FROM benefits WHERE tenant_id = @tenantId AND opportunity_id = @id`, { id });
+    db.run(`DELETE FROM opportunities WHERE tenant_id = @tenantId AND id = @id`, { id });
+  }
   for (const o of opportunities) {
     db.run(
       `INSERT INTO opportunities

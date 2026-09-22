@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { jsonHeaders } from '@/lib/csrf-client';
 
 export function HaltControl({ currentLevel }: { currentLevel: number }) {
   const router = useRouter();
@@ -11,7 +12,7 @@ export function HaltControl({ currentLevel }: { currentLevel: number }) {
   async function halt() {
     setBusy(true);
     try {
-      await fetch('/api/autonomy', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'halt' }) });
+      await fetch('/api/autonomy', { method: 'POST', headers: jsonHeaders(), body: JSON.stringify({ action: 'halt' }) });
       setDone(true);
       router.refresh();
     } finally {

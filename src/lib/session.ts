@@ -1,22 +1,13 @@
 /**
- * Session and tenant context.
+ * Session entry points.
  *
- * Authentication is out of scope for this build (no IdP is available in this
- * environment), so the demo MSP tenant is resolved from a cookie-free default.
- * The important part is that everything downstream of here already takes a
- * TenantContext, so swapping this for a real IdP changes this file only.
+ * Iteration 1 resolved a fixed demo tenant here. It now resolves the signed-in
+ * user's session; everything downstream already took a TenantContext, so this
+ * file is the whole of the change.
  */
 
-import { TenantDb, type TenantContext } from './db/tenant';
-import { getDb } from './db/client';
+export { currentSession, requireSession, requirePermission, db, guardRoute, clientIp, CSRF_HEADER } from './auth/guard';
+export { SESSION_COOKIE } from './auth/sessions';
 
+/** Seed identifiers, used by the seed script and the first-run bootstrap. */
 export const DEMO_TENANT_ID = 'tenant-onward-demo';
-export const DEMO_USER_ID = 'user-demo';
-
-export function currentContext(): TenantContext {
-  return { tenantId: DEMO_TENANT_ID, userId: DEMO_USER_ID, role: 'MSP_ADMIN' };
-}
-
-export function db(): TenantDb {
-  return new TenantDb(currentContext(), getDb());
-}

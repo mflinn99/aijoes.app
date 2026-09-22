@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { jsonHeaders } from '@/lib/csrf-client';
 
 interface StageState {
   id: string;
@@ -38,7 +39,7 @@ export function AnalyseForm({
 
     const res = await fetch('/api/analyse', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: jsonHeaders(),
       body: JSON.stringify({ input: value }),
     });
     if (!res.ok) {

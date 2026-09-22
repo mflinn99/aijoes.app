@@ -1,7 +1,9 @@
+import { requirePermission } from '@/lib/session';
 import { CategoryPage } from '@/components/CategoryPage';
 export const dynamic = 'force-dynamic';
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermission('read');
   const { id } = await params;
   return (
     <CategoryPage

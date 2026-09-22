@@ -1,6 +1,6 @@
 /** Autonomy & Permissions — Directive §12. */
 
-import { db } from '@/lib/session';
+import { db, requirePermission } from '@/lib/session';
 import { listGrants } from '@/lib/db/repositories/tenant-data';
 import { AUTONOMY_LABELS, AUTONOMY_DESCRIPTIONS, AutonomyLevel } from '@/lib/core/autonomy';
 import { PageHead } from '@/components/Shell';
@@ -17,8 +17,9 @@ const LEVELS = [
   AutonomyLevel.AUTONOMOUS,
 ];
 
-export default function AutonomyPage() {
-  const grants = listGrants(db());
+export default async function AutonomyPage() {
+  await requirePermission('read');
+  const grants = listGrants(await db());
   const highest = grants.reduce((max, g) => Math.max(max, g.level), 0);
 
   return (

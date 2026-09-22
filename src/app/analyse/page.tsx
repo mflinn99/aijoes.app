@@ -1,10 +1,12 @@
+import { requirePermission } from '@/lib/session';
 import { PageHead } from '@/components/Shell';
 import { AnalyseForm } from '@/components/AnalyseForm';
 import { SYNTHETIC_COMPANIES } from '@/lib/fixtures/synthetic';
 
 export const dynamic = 'force-dynamic';
 
-export default function AnalysePage() {
+export default async function AnalysePage() {
+  await requirePermission('analyse');
   return (
     <>
       <PageHead

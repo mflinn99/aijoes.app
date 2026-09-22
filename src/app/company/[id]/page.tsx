@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { db } from '@/lib/session';
+import { db, requirePermission } from '@/lib/session';
 import { getTwin, listOpportunities } from '@/lib/db/repositories/company';
 import { listCustomers } from '@/lib/db/repositories/tenant-data';
 import { listPlans } from '@/lib/execution/engine';
@@ -21,8 +21,9 @@ import { gbp, gbpExact, pct, relativeTime } from '@/lib/format';
 export const dynamic = 'force-dynamic';
 
 export default async function CompanyOverview({ params }: { params: Promise<{ id: string }> }) {
+  await requirePermission('read');
   const { id } = await params;
-  const database = db();
+  const database = await db();
   const twin = getTwin(database, id);
   if (!twin) notFound();
 

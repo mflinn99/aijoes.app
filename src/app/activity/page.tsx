@@ -1,6 +1,6 @@
 /** Activity & Audit — Directive §24 and §25. */
 
-import { db } from '@/lib/session';
+import { db, requirePermission } from '@/lib/session';
 import { listAudit, listAgentEvents } from '@/lib/db/repositories/tenant-data';
 import { costSummary } from '@/lib/observability/events';
 import { getCapability } from '@/lib/capabilities/registry';
@@ -9,8 +9,9 @@ import { gbpExact, relativeTime } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
-export default function ActivityPage() {
-  const database = db();
+export default async function ActivityPage() {
+  await requirePermission('read');
+  const database = await db();
   const audit = listAudit(database, 80);
   const events = listAgentEvents(database, 80);
   const costs = costSummary(database);

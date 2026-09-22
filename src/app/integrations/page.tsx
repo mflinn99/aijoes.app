@@ -1,6 +1,6 @@
 /** Integrations — Directive §4 and §23. */
 
-import { db } from '@/lib/session';
+import { db, requirePermission } from '@/lib/session';
 import { CONNECTOR_CATALOGUE, activeConnectors } from '@/lib/discovery/registry';
 import { listConnectorConfigs } from '@/lib/db/repositories/tenant-data';
 import { PageHead } from '@/components/Shell';
@@ -8,7 +8,8 @@ import { PageHead } from '@/components/Shell';
 export const dynamic = 'force-dynamic';
 
 export default async function IntegrationsPage() {
-  const database = db();
+  await requirePermission('read');
+  const database = await db();
   const configs = listConnectorConfigs(database);
   const live = activeConnectors();
 

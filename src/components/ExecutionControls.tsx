@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { jsonHeaders } from '@/lib/csrf-client';
 
 export function ExecutionControls({
   planId,
@@ -24,7 +25,7 @@ export function ExecutionControls({
     try {
       const res = await fetch('/api/execution', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: jsonHeaders(),
         body: JSON.stringify(body),
       });
       const json = (await res.json()) as { error?: string; measuredValueGbp?: number };

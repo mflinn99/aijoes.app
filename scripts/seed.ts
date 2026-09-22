@@ -1,32 +1,66 @@
 /**
- * Seed the platform with an MSP tenant, a synthetic customer estate, and a full
+ * Seed an MSP tenant with users, a synthetic customer estate, and a full
  * analysis of each synthetic company (Directive §18, §27).
+ *
+ * Passwords come from the environment where set; otherwise a random one is
+ * generated and printed once. The seed never ships a known default password.
  */
 
+import { randomBytes } from 'node:crypto';
 import { getDb } from '../src/lib/db/client';
 import { TenantDb } from '../src/lib/db/tenant';
-import { DEMO_TENANT_ID, DEMO_USER_ID } from '../src/lib/session';
+import { DEMO_TENANT_ID } from '../src/lib/session';
 import { SYNTHETIC_COMPANIES } from '../src/lib/fixtures/synthetic';
 import { upsertCustomer, saveGrant, setConnectorConfig } from '../src/lib/db/repositories/tenant-data';
 import { analyseCompany } from '../src/lib/analysis/pipeline';
 import { AutonomyLevel } from '../src/lib/core/autonomy';
-import { randomUUID } from 'node:crypto';
+import { createUser, getUserByEmail, setPassword } from '../src/lib/auth/users';
+import type { Role } from '../src/lib/auth/rbac';
+
+function generatedPassword(): string {
+  return randomBytes(12).toString('base64url');
+}
+
+interface SeedUser {
+  email: string;
+  name: string;
+  role: Role;
+  envVar: string;
+}
+
+const USERS: SeedUser[] = [
+  { email: 'mike@aigogo.ai', name: 'Mike Flinn', role: 'MSP_ADMIN', envVar: 'METAMSP_ADMIN_PASSWORD' },
+  { email: 'operator@aigogo.ai', name: 'Operations User', role: 'MSP_USER', envVar: 'METAMSP_USER_PASSWORD' },
+  { email: 'viewer@aigogo.ai', name: 'Read Only', role: 'READ_ONLY', envVar: 'METAMSP_VIEWER_PASSWORD' },
+];
 
 async function main() {
   const raw = getDb();
   const now = new Date().toISOString();
 
-  raw.prepare(
-    `INSERT INTO tenants (id, name, kind, created_at) VALUES (?, ?, 'MSP', ?)
-     ON CONFLICT(id) DO NOTHING`,
-  ).run(DEMO_TENANT_ID, 'Onward (reference MSP)', now);
+  raw
+    .prepare(`INSERT INTO tenants (id, name, kind, created_at) VALUES (?, ?, 'MSP', ?) ON CONFLICT(id) DO NOTHING`)
+    .run(DEMO_TENANT_ID, 'Onward (reference MSP)', now);
 
-  raw.prepare(
-    `INSERT INTO users (id, tenant_id, email, name, role, created_at) VALUES (?, ?, ?, ?, 'MSP_ADMIN', ?)
-     ON CONFLICT(id) DO NOTHING`,
-  ).run(DEMO_USER_ID, DEMO_TENANT_ID, 'mike@aigogo.ai', 'Mike Flinn', now);
+  const credentials: { email: string; role: Role; password: string | null }[] = [];
 
-  const db = new TenantDb({ tenantId: DEMO_TENANT_ID, userId: DEMO_USER_ID, role: 'MSP_ADMIN' }, raw);
+  for (const user of USERS) {
+    const supplied = process.env[user.envVar];
+    const password = supplied ?? generatedPassword();
+    const existing = getUserByEmail(user.email, raw);
+
+    if (existing) {
+      if (supplied) await setPassword(existing.id, password, raw);
+      credentials.push({ email: user.email, role: user.role, password: supplied ? password : null });
+      continue;
+    }
+
+    await createUser({ tenantId: DEMO_TENANT_ID, email: user.email, name: user.name, role: user.role, password }, raw);
+    credentials.push({ email: user.email, role: user.role, password });
+  }
+
+  const admin = getUserByEmail(USERS[0]!.email, raw)!;
+  const db = new TenantDb({ tenantId: DEMO_TENANT_ID, userId: admin.id, role: 'MSP_ADMIN' }, raw);
 
   // Directive §12: a newly-provisioned tenant starts at RECOMMEND. Nothing is
   // granted EXECUTE by default — that is a deliberate decision a human makes.
@@ -43,7 +77,6 @@ async function main() {
     grantedAt: now,
     expiresAt: null,
   });
-  // A narrow PREPARE grant so analysis-side capabilities can produce artefacts.
   saveGrant(db, {
     id: `${DEMO_TENANT_ID}-prepare-analysis`,
     tenantId: DEMO_TENANT_ID,
@@ -69,7 +102,9 @@ async function main() {
       domain: company.domain,
       currentMrr: company.currentMrr,
       relationshipNote: company.description,
-      renewalDate: new Date(Date.now() + 86_400_000 * (60 + SYNTHETIC_COMPANIES.indexOf(company) * 45)).toISOString().slice(0, 10),
+      renewalDate: new Date(Date.now() + 86_400_000 * (60 + SYNTHETIC_COMPANIES.indexOf(company) * 45))
+        .toISOString()
+        .slice(0, 10),
     });
 
     const result = await analyseCompany(db, company.domain, {
@@ -86,8 +121,17 @@ async function main() {
     );
   }
 
-  console.log(`\nSeeded tenant ${DEMO_TENANT_ID} with ${SYNTHETIC_COMPANIES.length} companies.`);
-  void randomUUID;
+  console.log(`\nSeeded tenant ${DEMO_TENANT_ID} with ${SYNTHETIC_COMPANIES.length} companies.\n`);
+  console.log('Sign in at http://localhost:3000/login\n');
+
+  for (const c of credentials) {
+    if (c.password) {
+      console.log(`  ${c.email.padEnd(24)} ${c.role.padEnd(10)} ${c.password}`);
+    } else {
+      console.log(`  ${c.email.padEnd(24)} ${c.role.padEnd(10)} (unchanged — set ${USERS.find((u) => u.email === c.email)!.envVar} to reset)`);
+    }
+  }
+  console.log('\nThese passwords are shown once. Change them after first sign-in.');
 }
 
 main().catch((err) => {

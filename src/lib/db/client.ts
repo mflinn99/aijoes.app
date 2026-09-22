@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+import { migrate } from './migrations';
 import { readFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
@@ -23,6 +24,7 @@ export function applySchema(target: Database.Database): void {
   const sql = existsSync(schemaPath) ? readFileSync(schemaPath, 'utf8') : '';
   if (!sql) throw new Error(`schema.sql not found at ${schemaPath}`);
   target.exec(sql);
+  migrate(target);
 }
 
 /** For tests: an isolated in-memory database with the full schema applied. */
