@@ -14,6 +14,10 @@ const NAV = [
     ],
   },
   {
+    label: 'Go to market',
+    items: [{ href: '/gtm', label: 'Agentic GTM', permission: 'read' as const }],
+  },
+  {
     label: 'Platform',
     items: [
       { href: '/capabilities', label: 'Capability health', permission: 'read' as const },
