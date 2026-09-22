@@ -5,13 +5,15 @@ import { useState } from 'react';
 export function LoginForm({
   next,
   ssoProviders,
+  initialError = null,
 }: {
   next: string;
   ssoProviders: { id: string; name: string }[];
+  initialError?: string | null;
 }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [busy, setBusy] = useState(false);
 
   async function submit(e: React.FormEvent) {
@@ -80,7 +82,7 @@ export function LoginForm({
         {ssoProviders.length > 0 ? (
           <div style={{ marginTop: 18, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
             {ssoProviders.map((p) => (
-              <a key={p.id} className="btn" href={`/api/auth/sso/${p.id}`} style={{ width: '100%', justifyContent: 'center' }}>
+              <a key={p.id} className="btn" href={`/api/auth/sso/${p.id}?next=${encodeURIComponent(next)}`} style={{ width: '100%', justifyContent: 'center' }}>
                 Continue with {p.name}
               </a>
             ))}

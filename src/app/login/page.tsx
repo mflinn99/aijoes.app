@@ -8,15 +8,15 @@ export const dynamic = 'force-dynamic';
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
   const session = await currentSession();
   if (session) redirect('/');
 
-  const { next } = await searchParams;
+  const { next, error } = await searchParams;
   const providers = availableProviders()
     .filter((p) => p.id !== 'local')
     .map((p) => ({ id: p.id, name: p.name }));
 
-  return <LoginForm next={next ?? '/'} ssoProviders={providers} />;
+  return <LoginForm next={next ?? '/'} ssoProviders={providers} initialError={error ?? null} />;
 }

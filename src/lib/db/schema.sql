@@ -373,3 +373,35 @@ CREATE TABLE IF NOT EXISTS verification_baselines (
   UNIQUE (tenant_id, execution_plan_id)
 );
 CREATE INDEX IF NOT EXISTS idx_baselines_due ON verification_baselines(verified_at, verify_after);
+
+-- ------------------------------------------------------------- schedules ----
+-- Directive §22: "Build a refresh mechanism." A twin that is never re-analysed
+-- decays quietly; a stale figure that still looks confident is worse than a
+-- gap, because nobody goes looking for it.
+
+CREATE TABLE IF NOT EXISTS refresh_schedules (
+  id             TEXT PRIMARY KEY,
+  tenant_id      TEXT NOT NULL,
+  company_id     TEXT NOT NULL,
+  interval_days  INTEGER NOT NULL,
+  next_run_at    TEXT NOT NULL,
+  last_run_at    TEXT,
+  enabled        INTEGER NOT NULL DEFAULT 1,
+  created_at     TEXT NOT NULL,
+  UNIQUE (tenant_id, company_id)
+);
+CREATE INDEX IF NOT EXISTS idx_refresh_due ON refresh_schedules(enabled, next_run_at);
+
+-- ------------------------------------------------------------------ oidc ----
+-- Short-lived state for an in-flight sign-in. Rows are single-use and expire
+-- quickly; a callback presenting a state that is missing, used or stale is
+-- rejected.
+
+CREATE TABLE IF NOT EXISTS oidc_states (
+  state       TEXT PRIMARY KEY,
+  nonce       TEXT NOT NULL,
+  redirect_to TEXT NOT NULL,
+  created_at  TEXT NOT NULL,
+  expires_at  TEXT NOT NULL,
+  consumed_at TEXT
+);

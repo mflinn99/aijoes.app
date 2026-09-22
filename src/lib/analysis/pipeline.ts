@@ -15,6 +15,7 @@ import { connectorsFor, recommendedConnections } from '../discovery/registry';
 import { computeLicenceFacts } from '../discovery/microsoft365-connector';
 import { computeFinancialFacts } from '../discovery/xero-connector';
 import { getFacts, putFacts } from '../db/repositories/facts';
+import { scheduleRefresh } from './refresh';
 import { normaliseDomain, looksLikeDomain } from '../discovery/http';
 import type { CompanyIdentity, SourceRecord } from '../discovery/connector';
 import { buildContext } from './context';
@@ -334,6 +335,11 @@ export async function analyseCompany(
     run.status = 'completed';
     run.completedAt = new Date().toISOString();
     persistRun(db, run);
+
+    // Directive §22: a twin that is never re-read decays quietly, and a stale
+    // figure still renders at full confidence. Every analysed company goes on
+    // an interval from here.
+    if (!options.offline) scheduleRefresh(db, twin.id);
 
     recordEvent(db, {
       tenantId: db.ctx.tenantId,

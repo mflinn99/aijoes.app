@@ -11,6 +11,9 @@ import { claimNext, completeJob, failJob, type JobRecord } from './queue';
 import { handlerFor } from './handlers';
 import { getDb } from '../db/client';
 import { purgeExpiredSessions } from '../auth/sessions';
+import { purgeExpiredStates } from '../auth/oidc';
+import { TenantDb } from '../db/tenant';
+import { queueDueRefreshes } from '../analysis/refresh';
 
 const POLL_INTERVAL_MS = 1_000;
 const IDLE_BACKOFF_MS = 3_000;
@@ -74,6 +77,8 @@ export function start(): void {
     () => {
       try {
         purgeExpiredSessions(getDb());
+        purgeExpiredStates(getDb());
+        queueRefreshesForAllTenants();
       } catch {
         /* housekeeping failure is not fatal */
       }
@@ -81,6 +86,22 @@ export function start(): void {
     15 * 60_000,
   );
   housekeepingTimer.unref?.();
+}
+
+/**
+ * Refresh schedules are per tenant, so this walks the tenant list. It runs as
+ * the platform rather than as a user, but still inside a tenant scope.
+ */
+export function queueRefreshesForAllTenants(now = new Date()): number {
+  const db = getDb();
+  const tenants = db.prepare(`SELECT id FROM tenants`).all() as { id: string }[];
+  let queued = 0;
+
+  for (const tenant of tenants) {
+    const scoped = new TenantDb({ tenantId: tenant.id, userId: 'system:refresh', role: 'MSP_ADMIN' }, db);
+    queued += queueDueRefreshes(scoped, now);
+  }
+  return queued;
 }
 
 export function stop(): void {

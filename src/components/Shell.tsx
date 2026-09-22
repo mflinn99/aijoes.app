@@ -9,6 +9,7 @@ const NAV = [
     items: [
       { href: '/', label: 'MSP Portfolio', permission: 'read' as const },
       { href: '/analyse', label: 'Analyse a company', permission: 'analyse' as const },
+      { href: '/estate', label: 'Import customers', permission: 'analyse' as const },
       { href: '/benefits', label: 'Benefits Ledger', permission: 'read' as const },
     ],
   },
