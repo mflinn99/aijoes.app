@@ -482,7 +482,36 @@ export function matchArchetypes(ctx: IcpContext): ArchetypeMatch[] {
     .sort((a, b) => b.fit - a.fit);
 }
 
-export function scoreAccount(ctx: IcpContext, contactCount: number): AccountScores {
+/**
+ * The weights behind AGENTIC_GTM_PRIORITY_SCORE. Extracted so the learning loop
+ * (Phase 15) can propose a different set from measured outcomes — and so that a
+ * proposal is a versioned, reviewable object rather than an edit to this file.
+ */
+export interface PriorityWeights {
+  icp: number;
+  need: number;
+  timing: number;
+  value: number;
+  evidence: number;
+  contactability: number;
+  deliveryFit: number;
+}
+
+/**
+ * The starting weights are a judgement, not a measurement: nothing has converted
+ * yet, so there is nothing to learn from. They say that fit and need matter most,
+ * evidence is weighted heavily enough that a thin account cannot rank highly, and
+ * delivery fit is a tiebreak rather than a driver.
+ */
+export const DEFAULT_PRIORITY_WEIGHTS: PriorityWeights = {
+  icp: 20, need: 20, timing: 18, value: 15, evidence: 15, contactability: 7, deliveryFit: 5,
+};
+
+export function scoreAccount(
+  ctx: IcpContext,
+  contactCount: number,
+  weights: PriorityWeights = DEFAULT_PRIORITY_WEIGHTS,
+): AccountScores {
   const matches = matchArchetypes(ctx);
   const primary = matches[0] ?? null;
   const sellable = sellableServices(ctx.profile);
@@ -579,13 +608,13 @@ export function scoreAccount(ctx: IcpContext, contactCount: number): AccountScor
   // PRIORITY: the one number that orders the worklist.
   const priority = score(
     [
-      { label: 'ICP', weight: 20, input: icp.value, why: icp.summary },
-      { label: 'Need', weight: 20, input: need.value, why: need.summary },
-      { label: 'Timing', weight: 18, input: timing.value, why: timing.summary },
-      { label: 'Value', weight: 15, input: value.value, why: value.summary },
-      { label: 'Evidence', weight: 15, input: evidence.value, why: evidence.summary },
-      { label: 'Contactability', weight: 7, input: contactability.value, why: contactability.summary },
-      { label: 'Delivery fit', weight: 5, input: deliveryFit.value, why: deliveryFit.summary },
+      { label: 'ICP', weight: weights.icp, input: icp.value, why: icp.summary },
+      { label: 'Need', weight: weights.need, input: need.value, why: need.summary },
+      { label: 'Timing', weight: weights.timing, input: timing.value, why: timing.summary },
+      { label: 'Value', weight: weights.value, input: value.value, why: value.summary },
+      { label: 'Evidence', weight: weights.evidence, input: evidence.value, why: evidence.summary },
+      { label: 'Contactability', weight: weights.contactability, input: contactability.value, why: contactability.summary },
+      { label: 'Delivery fit', weight: weights.deliveryFit, input: deliveryFit.value, why: deliveryFit.summary },
     ],
     primary
       ? `${primary.name}: ${primary.rationale}`

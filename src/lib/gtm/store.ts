@@ -190,7 +190,23 @@ export function listSignals(db: TenantDb, accountId?: string, limit = 200): GtmS
 
 // --- hypotheses ------------------------------------------------------------
 
-export function saveHypothesis(db: TenantDb, h: OpportunityHypothesis): void {
+/**
+ * Upsert on (account, archetype). The row's id wins on a re-run: a hypothesis is
+ * the same hypothesis whether or not the generator handed it a fresh UUID, and
+ * an id in the JSON that disagrees with the id column makes getHypothesis()
+ * return null for a row that plainly exists.
+ */
+export function saveHypothesis(db: TenantDb, h: OpportunityHypothesis): OpportunityHypothesis {
+  const existing = db.get<{ id: string; created_at: string }>(
+    `SELECT id, created_at FROM gtm_hypotheses
+     WHERE tenant_id = @tenantId AND account_id = @accountId AND archetype = @archetype`,
+    { accountId: h.accountId, archetype: h.archetype },
+  );
+
+  const persisted: OpportunityHypothesis = existing
+    ? { ...h, id: existing.id, createdAt: existing.created_at }
+    : h;
+
   db.run(
     `INSERT INTO gtm_hypotheses (id, tenant_id, account_id, archetype, service_ids, headline, value_low,
        value_high, value_point, confidence, quality, status, hypothesis_json, created_at, updated_at)
@@ -201,12 +217,15 @@ export function saveHypothesis(db: TenantDb, h: OpportunityHypothesis): void {
        confidence = @confidence, quality = @quality, status = @status, hypothesis_json = @json,
        updated_at = @updatedAt`,
     {
-      id: h.id, accountId: h.accountId, archetype: h.archetype, serviceIds: JSON.stringify(h.serviceIds),
-      headline: h.headline, low: h.commercialValue.low, high: h.commercialValue.high,
-      point: h.commercialValue.point, confidence: h.confidence, quality: h.quality, status: h.status,
-      json: JSON.stringify(h), createdAt: h.createdAt, updatedAt: h.updatedAt,
+      id: persisted.id, accountId: persisted.accountId, archetype: persisted.archetype,
+      serviceIds: JSON.stringify(persisted.serviceIds),
+      headline: persisted.headline, low: persisted.commercialValue.low, high: persisted.commercialValue.high,
+      point: persisted.commercialValue.point, confidence: persisted.confidence,
+      quality: persisted.quality, status: persisted.status,
+      json: JSON.stringify(persisted), createdAt: persisted.createdAt, updatedAt: persisted.updatedAt,
     },
   );
+  return persisted;
 }
 
 export function listHypotheses(
@@ -323,8 +342,13 @@ export function getOutreach(db: TenantDb, id: string): OutreachMessage | null {
 
 // --- opportunities ---------------------------------------------------------
 
+/**
+ * Probability is always re-derived from the stage. The engine has no basis for a
+ * per-deal judgement, and carrying a stale probability through a stage change
+ * would freeze the weighted forecast at the old number without anyone noticing.
+ */
 export function upsertOpportunity(db: TenantDb, o: Omit<GtmOpportunity, 'weightedGbp'>): GtmOpportunity {
-  const probability = o.probability || STAGE_PROBABILITY[o.stage];
+  const probability = STAGE_PROBABILITY[o.stage];
   const full: GtmOpportunity = { ...o, probability, weightedGbp: Math.round(o.valueGbp * probability) };
 
   db.run(

@@ -53,6 +53,7 @@ export const TENANT_SCOPED_TABLES = new Set([
   'gtm_crm_records',
   'gtm_crm_outbox',
   'gtm_pipeline_actions',
+  'gtm_failures',
 ]);
 
 export class TenantIsolationError extends Error {

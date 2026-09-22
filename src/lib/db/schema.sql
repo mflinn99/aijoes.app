@@ -690,3 +690,20 @@ CREATE TABLE IF NOT EXISTS gtm_crm_records (
   updated_at  TEXT NOT NULL,
   UNIQUE (tenant_id, entity_type, local_id)
 );
+
+-- Phase 12 autonomous recovery. Recovering silently is how degradation goes
+-- unnoticed, so every recovered failure is recorded.
+CREATE TABLE IF NOT EXISTS gtm_failures (
+  id         TEXT PRIMARY KEY,
+  tenant_id  TEXT NOT NULL,
+  component  TEXT NOT NULL,
+  operation  TEXT NOT NULL,
+  subject_id TEXT,
+  kind       TEXT NOT NULL,
+  message    TEXT NOT NULL,
+  attempt    INTEGER NOT NULL,
+  action     TEXT NOT NULL,
+  resolved   INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_gtm_failures_open ON gtm_failures(tenant_id, resolved, component);

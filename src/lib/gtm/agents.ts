@@ -378,6 +378,18 @@ export function openOpportunityFor(db: TenantDb, hypothesisId: string) {
   return listOpportunities(db, { limit: 2000 }).find((o) => o.hypothesisId === hypothesisId) ?? null;
 }
 
+/**
+ * Open an opportunity, or return the one that already exists.
+ *
+ * Two things are deliberately preserved on an existing opportunity:
+ *
+ *  - its stage, because re-running the loop must never walk a deal backwards.
+ *    Stage changes belong to the pipeline autopilot and to people, not to a
+ *    re-run of discovery.
+ *  - its last activity date, because refreshing it on every cycle would make
+ *    every deal look freshly touched and silently disable every dormancy rule
+ *    in the system.
+ */
 export function createOpportunityFromHypothesis(
   db: TenantDb,
   hypothesis: OpportunityHypothesis,
@@ -391,14 +403,14 @@ export function createOpportunityFromHypothesis(
     id: existing?.id ?? randomUUID(),
     accountId: account.id,
     hypothesisId: hypothesis.id,
-    name: `${account.name} — ${hypothesis.headline}`,
-    stage,
+    name: `${account.name} \u2014 ${hypothesis.headline}`,
+    stage: existing?.stage ?? stage,
     valueGbp: hypothesis.commercialValue.point,
-    probability: STAGE_PROBABILITY[stage],
+    probability: STAGE_PROBABILITY[existing?.stage ?? stage],
     owner: existing?.owner ?? null,
-    nextAction: hypothesis.nextAction,
+    nextAction: existing?.nextAction ?? hypothesis.nextAction,
     nextActionAt: existing?.nextActionAt ?? null,
-    lastActionAt: now,
+    lastActionAt: existing?.lastActionAt ?? now,
     closeDate: existing?.closeDate ?? null,
     source: 'agentic-gtm',
     crmId: existing?.crmId ?? null,
