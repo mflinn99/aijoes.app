@@ -1,45 +1,82 @@
-# SIXONIC — standalone source
+# Sage Halpin — The Evolving Board
 
-This is the current SIXONIC boardroom web app plus its boardroom AI API, packaged
-without the other workspace apps, database, deployment settings, or private data.
+**The team evolves. The knowledge compounds.**
 
-## Requirements
+Sage Halpin (formerly Sixonic) is a boardroom for people and AI together. Six AI
+agents, each with a declared remit (governance, risk, commercial value,
+innovation, culture and performance), test every strategic question. The
+people accountable for the business make the decision.
 
-- Node.js 22 or newer
-- npm (included with Node)
-- An OpenAI-compatible provider account with access to the configured model.
-  AI requests may incur provider charges. No credentials are included.
+This is Sixonic's functionality under the Sage Halpin name and brand, rebuilt
+to run on Microsoft Azure with Claude on Microsoft Foundry.
+
+| | |
+| --- | --- |
+| **Boardroom** (`/boardroom`) | Put a question to the board; all six agents answer independently, and the chair agent recommends a resolution |
+| **Scenario analysis** (`/analysis`) | Six board challenges, four calibration dials, per-agent SWOT and consequences, a DO / DON'T DO recommendation, a functional (sales, finance, HR, product, legal, governance) view, two feedback rounds, then you lock the decision |
+| **Executive workspace** (`/dashboard`) | KPI snapshot with an alert engine, decisions board, growth levers and risk register |
+| **Decision log** (`/log`) | Locked decisions with outcomes |
+
+Workspace data (KPIs, decisions, levers, risks, analyses, the log) is saved in
+each visitor's browser, exactly as Sixonic did. There is no database and no
+sign-in.
 
 ## Run locally
 
-1. Extract this archive and open a terminal in `sixonic-standalone`.
-2. Run `npm install`.
-3. Copy `.env.example` to `.env` and enter your own `OPENAI_API_KEY`.
-   Set `OPENAI_BASE_URL` only for a compatible non-default provider, and
-   choose an `OPENAI_MODEL` that provider supports (default: `gpt-5.1`).
-4. In one terminal run `npm run dev:api`. In another run `npm run dev`.
-5. Open `http://localhost:5173/`. The Vite dev server forwards `/api` to
-   the API server at `http://127.0.0.1:3001`.
+```bash
+npm install
+cp .env.example .env        # then choose a provider, below
+npm run dev:api             # API on http://127.0.0.1:3001
+npm run dev                 # web on http://localhost:5173 (proxies /api)
+```
 
-## Build and host
+AI providers (`AI_PROVIDER` in `.env`):
 
-Run `npm run typecheck`, then `npm run build`. Run `npm start` from this
-directory with your host's `PORT` and `OPENAI_API_KEY` set. The Express process
-serves `dist/public` and the `/api/boardroom` endpoints on that single port.
-Keep your provider key server-side only; never set it as a `VITE_` variable.
-For production, terminate TLS at your hosting provider and consider rate limits
-and abuse controls for the publicly accessible AI endpoints.
+- `foundry` (production): Claude on Microsoft Foundry. Set
+  `ANTHROPIC_FOUNDRY_RESOURCE`. With no key it signs in with Microsoft Entra ID
+  (`az login` locally, the managed identity in Azure).
+- `anthropic`: the Claude API directly. Set `ANTHROPIC_API_KEY`.
+- `mock`: deterministic replies labelled "Mock", for tests and offline demos.
+  Refused when `NODE_ENV=production`.
 
-## What is (and is not) included
+## Check
 
-- The latest SIXONIC pages and six-perspective oval boardroom visual.
-- The SIXONIC boardroom chat and scenario analysis API, with its original
-  prompt and output contracts. The Accenture-specific board is not included.
-- Browser-local KPI, decision, risk, and analysis storage. These are saved
-  separately in each visitor's browser, not shared via a database.
-- No Replit AI integration, Supabase account login, user data, historical
-  browser storage, credentials, or production deployment.
+```bash
+npm run typecheck
+npm test               # 31 tests: API contracts, validation, limits, brand
+npm run build
+npm run check:brand    # fails on any Sixonic branding or "roster" in shipped files
+```
 
-The default app uses six parallel model calls for a full board session. The
-host must support `OPENAI_MODEL`; if its API is not OpenAI-compatible, adapt
-`server/routes/boardroom.ts` to that provider before running AI features.
+## Deploy to Azure
+
+See [`docs/RUNBOOK.md`](docs/RUNBOOK.md). In short: create a Microsoft Foundry
+resource with a Claude deployment, then
+
+```bash
+az login
+RESOURCE_GROUP=rg-sagehalpin-prod FOUNDRY_RESOURCE_NAME=<your-foundry> ./infra/deploy.sh
+```
+
+That provisions everything in `infra/main.bicep` (Container Apps, Container
+Registry, managed identity, Key Vault and Log Analytics, in UK South), builds the
+image in the registry, rolls it out and waits for `/api/readyz`. The GitHub
+Actions workflow (`.github/workflows/sage-halpin.yml`) does the same on merge to
+`main` once its repository variables are set.
+
+## Documentation
+
+| | |
+| --- | --- |
+| [`docs/BUILD-STATUS.md`](docs/BUILD-STATUS.md) | What is complete, verified, not yet verified, and remaining |
+| [`docs/INVENTORY.md`](docs/INVENTORY.md) | What Sixonic was, as received |
+| [`docs/MAPPING.md`](docs/MAPPING.md) | Every Sixonic feature, its Sage Halpin name, and the test that proves it |
+| [`docs/RENAME-EXCEPTIONS.md`](docs/RENAME-EXCEPTIONS.md) | Old identifiers kept on purpose, and why |
+| [`docs/BACKLOG.md`](docs/BACKLOG.md) | Proposal capabilities Sixonic never had, deliberately not built yet |
+| [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | Deploy, roll back, rotate, observe |
+| [`BLOCKERS.md`](BLOCKERS.md) | What needs a person before launch |
+
+Human advisers and AI agents support the board. AI agents are not statutory
+directors and do not exercise voting rights. The client's authorised people
+retain decision authority. Data access, retention and deletion follow the agreed
+terms.

@@ -2,18 +2,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Alert } from "@/lib/store";
 
 const PERSONA_COLORS: Record<string, string> = {
-  ORION: "#475569",
-  "DR WHITE": "#475569",
-  GRIMM: "#1e293b",
-  "CMDR BLACK": "#1e293b",
-  SOLARA: "#b45309",
-  "MS GOLD": "#b45309",
-  ZEPHYR: "#065F46",
-  "DR GREEN": "#065F46",
-  MIRA: "#991B1B",
-  "LT RED": "#991B1B",
-  AQUILA: "#1d4ed8",
-  "COL BLUE": "#1d4ed8",
+  GOVERNANCE: "#475569",
+  RISK: "#1e293b",
+  COMMERCIAL: "#b45309",
+  INNOVATION: "#3F6B4E",
+  CULTURE: "#991B1B",
+  PERFORMANCE: "#1d4ed8",
 };
 
 const SEVERITY_COLORS = {
@@ -25,7 +19,7 @@ const SEVERITY_COLORS = {
 const SEVERITY_BG = {
   critical: "#fef2f2",
   warning: "#fffbeb",
-  info: "#eff6ff",
+  info: "#F3EBDD",
 };
 
 const SEVERITY_ICONS = { critical: "●", warning: "◆", info: "▸" };
@@ -36,7 +30,7 @@ export function AlertStrip({ alerts }: Props) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <span style={{ color: "#1d4ed8", fontSize: 9, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 600 }}>
+        <span style={{ color: "#13232B", fontSize: 9, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 600 }}>
           Alert Engine
         </span>
         {alerts.length > 0 && (

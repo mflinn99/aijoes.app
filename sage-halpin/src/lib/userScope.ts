@@ -15,5 +15,5 @@ export function getStorageUser(): string | null {
 }
 
 export function scopedKey(suffix: string): string {
-  return `sixonic_${currentUserId ?? "anon"}_${suffix}`;
+  return `sagehalpin_${currentUserId ?? "anon"}_${suffix}`;
 }

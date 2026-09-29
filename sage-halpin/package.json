@@ -1,5 +1,5 @@
 {
-  "name": "sixonic-standalone",
+  "name": "sage-halpin",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -10,13 +10,17 @@
     "dev": "vite --host 0.0.0.0",
     "dev:api": "tsx watch server/index.ts",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "build": "vite build && esbuild server/index.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.mjs",
-    "start": "node dist/server.mjs"
+    "start": "node dist/server.mjs",
+    "check:brand": "node scripts/check-brand.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/foundry-sdk": "^0.5.0",
+    "@anthropic-ai/sdk": "^0.129.0",
+    "@azure/identity": "^4.13.3",
     "dotenv": "^16.6.1",
     "express": "^5.0.0",
-    "openai": "^6.34.0",
     "pino-http": "^10.0.0"
   },
   "devDependencies": {
@@ -55,6 +59,7 @@
     "@types/node": "^25.3.3",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "@types/supertest": "^7.2.1",
     "@vitejs/plugin-react": "^5.0.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -74,6 +79,7 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",
     "sonner": "^2.0.7",
+    "supertest": "^7.3.0",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
@@ -81,7 +87,9 @@
     "typescript": "~5.9.2",
     "vaul": "^1.1.2",
     "vite": "^7.3.2",
+    "vitest": "^3.2.7",
     "wouter": "^3.3.5",
     "zod": "^3.25.76"
-  }
+  },
+  "description": "Sage Halpin (formerly Sixonic) \u2014 the evolving board: six AI perspectives for the people who decide."
 }

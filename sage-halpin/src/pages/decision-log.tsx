@@ -98,7 +98,7 @@ export default function DecisionLog() {
             <div style={{ color: TEXT_MUTED, fontSize: 10, letterSpacing: "0.06em", marginBottom: 24 }}>Run an analysis and lock a decision to begin building your board record.</div>
             <button
               onClick={() => setLocation("/analysis")}
-              style={{ background: "#1d4ed8", border: "none", borderRadius: 7, color: "#fff", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700, padding: "10px 22px", cursor: "pointer" }}
+              style={{ background: "#13232B", border: "none", borderRadius: 7, color: "#fff", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700, padding: "10px 22px", cursor: "pointer" }}
             >
               Open Analysis Engine
             </button>

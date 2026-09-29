@@ -156,29 +156,29 @@ export function generateAlerts(kpis: KPIData): Alert[] {
   const growth = kpis.revenuePrev > 0 ? ((kpis.revenue - kpis.revenuePrev) / kpis.revenuePrev) * 100 : 0;
 
   if (kpis.cashRunway < 6)
-    alerts.push({ id: "a1", severity: "critical", persona: "GRIMM", message: `Cash runway at ${kpis.cashRunway} months — immediate capital action required.` });
+    alerts.push({ id: "a1", severity: "critical", persona: "RISK", message: `Cash runway at ${kpis.cashRunway} months — immediate capital action required.` });
   else if (kpis.cashRunway < 12)
-    alerts.push({ id: "a2", severity: "warning", persona: "GRIMM", message: `Cash runway at ${kpis.cashRunway} months — bridge planning advised within 60 days.` });
+    alerts.push({ id: "a2", severity: "warning", persona: "RISK", message: `Cash runway at ${kpis.cashRunway} months — bridge planning advised within 60 days.` });
 
   if (kpis.churnRate > 10)
-    alerts.push({ id: "a3", severity: "critical", persona: "ORION", message: `Churn at ${kpis.churnRate}% — retention failure in high-value cohort likely.` });
+    alerts.push({ id: "a3", severity: "critical", persona: "GOVERNANCE", message: `Churn at ${kpis.churnRate}% — retention failure in high-value cohort likely.` });
   else if (kpis.churnRate > 7)
-    alerts.push({ id: "a4", severity: "warning", persona: "ORION", message: `Churn at ${kpis.churnRate}% — exceeds benchmark. Root cause analysis required.` });
+    alerts.push({ id: "a4", severity: "warning", persona: "GOVERNANCE", message: `Churn at ${kpis.churnRate}% — exceeds benchmark. Root cause analysis required.` });
 
   if (kpis.pipelineCoverage < 2)
-    alerts.push({ id: "a5", severity: "critical", persona: "SOLARA", message: `Pipeline coverage at ${kpis.pipelineCoverage}x — revenue target at risk this quarter.` });
+    alerts.push({ id: "a5", severity: "critical", persona: "COMMERCIAL", message: `Pipeline coverage at ${kpis.pipelineCoverage}x — revenue target at risk this quarter.` });
   else if (kpis.pipelineCoverage < 3)
-    alerts.push({ id: "a6", severity: "warning", persona: "SOLARA", message: `Pipeline coverage at ${kpis.pipelineCoverage}x — below healthy threshold of 3x.` });
+    alerts.push({ id: "a6", severity: "warning", persona: "COMMERCIAL", message: `Pipeline coverage at ${kpis.pipelineCoverage}x — below healthy threshold of 3x.` });
 
   if (kpis.burnMultiple > 2)
-    alerts.push({ id: "a7", severity: "critical", persona: "GRIMM", message: `Burn multiple at ${kpis.burnMultiple} — capital efficiency unsustainable at current ARR growth.` });
+    alerts.push({ id: "a7", severity: "critical", persona: "RISK", message: `Burn multiple at ${kpis.burnMultiple} — capital efficiency unsustainable at current ARR growth.` });
   else if (kpis.burnMultiple > 1.5)
-    alerts.push({ id: "a8", severity: "warning", persona: "GRIMM", message: `Burn multiple at ${kpis.burnMultiple} — efficiency tightening advised.` });
+    alerts.push({ id: "a8", severity: "warning", persona: "RISK", message: `Burn multiple at ${kpis.burnMultiple} — efficiency tightening advised.` });
 
   if (growth < 0)
-    alerts.push({ id: "a9", severity: "critical", persona: "SOLARA", message: `Revenue declined ${Math.abs(growth).toFixed(1)}% month-on-month — revenue contraction signal.` });
+    alerts.push({ id: "a9", severity: "critical", persona: "COMMERCIAL", message: `Revenue declined ${Math.abs(growth).toFixed(1)}% month-on-month — revenue contraction signal.` });
   else if (growth < 5)
-    alerts.push({ id: "a10", severity: "warning", persona: "ORION", message: `Revenue growth at ${growth.toFixed(1)}% MoM — below minimum growth threshold.` });
+    alerts.push({ id: "a10", severity: "warning", persona: "GOVERNANCE", message: `Revenue growth at ${growth.toFixed(1)}% MoM — below minimum growth threshold.` });
 
   return alerts;
 }

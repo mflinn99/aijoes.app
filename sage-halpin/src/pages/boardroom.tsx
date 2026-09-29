@@ -14,7 +14,7 @@ const PERSONAS = [
   { id: "orion", name: "GOVERNANCE", role: "Audit & Compliance", color: "#475569", icon: "○" },
   { id: "grimm", name: "RISK", role: "Risk & Resilience", color: "#1e293b", icon: "◆" },
   { id: "solara", name: "COMMERCIAL", role: "Value Creation", color: "#b45309", icon: "◎" },
-  { id: "zephyr", name: "INNOVATION", role: "Options Architect", color: "#065F46", icon: "◇" },
+  { id: "zephyr", name: "INNOVATION", role: "Options Architect", color: "#3F6B4E", icon: "◇" },
   { id: "mira", name: "CULTURE", role: "Ethics & People", color: "#991B1B", icon: "◉" },
   { id: "aquila", name: "PERFORMANCE", role: "Strategy & Outcomes", color: "#1d4ed8", icon: "◈" },
 ];
@@ -111,7 +111,7 @@ export default function Boardroom() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: "center", paddingTop: "14vh" }}>
               <div style={{ fontSize: 36, marginBottom: 16 }}>◈</div>
               <p style={{ color: TEXT_SECONDARY, fontSize: 11, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: 8 }}>The board is assembled</p>
-              <p style={{ color: TEXT_MUTED, fontSize: 10, letterSpacing: "0.1em", lineHeight: 1.8 }}>State your decision, challenge, or strategic question.<br />All six directors will respond independently.</p>
+              <p style={{ color: TEXT_MUTED, fontSize: 10, letterSpacing: "0.1em", lineHeight: 1.8 }}>State your decision, challenge, or strategic question.<br />All six AI agents will respond independently.</p>
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {DISCUSSION_STARTERS.map((starter) => (
                   <button
@@ -133,7 +133,7 @@ export default function Boardroom() {
                 {msg.type === "user" && (
                   <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
                     <div style={{ maxWidth: "70%", background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: "10px 10px 2px 10px", padding: "12px 16px", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-                      <div style={{ color: TEXT_MUTED, fontSize: 8, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 5 }}>CEO</div>
+                      <div style={{ color: TEXT_MUTED, fontSize: 8, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 5 }}>You · CEO</div>
                       <p style={{ color: TEXT, fontSize: 12, lineHeight: 1.6, margin: 0 }}>{msg.topic}</p>
                     </div>
                   </div>
@@ -167,9 +167,9 @@ export default function Boardroom() {
                                     <span style={{ fontSize: 14 }}>{persona?.icon}</span>
                                     <div>
                                       <div style={{ color: r.color, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700 }}>{r.name}</div>
-                                      <div style={{ color: TEXT_MUTED, fontSize: 7, letterSpacing: "0.14em", textTransform: "uppercase" }}>{r.role}</div>
+                                      <div style={{ color: TEXT_MUTED, fontSize: 7, letterSpacing: "0.14em", textTransform: "uppercase" }}>AI agent · {r.role}</div>
                                     </div>
-                                    {isAquila && <span style={{ marginLeft: "auto", background: "#eff6ff", color: "#1d4ed8", fontSize: 7, letterSpacing: "0.14em", textTransform: "uppercase", padding: "2px 8px", borderRadius: 4, fontWeight: 700, border: "1px solid #bfdbfe" }}>Final Decision</span>}
+                                    {isAquila && <span style={{ marginLeft: "auto", background: "#F3EBDD", color: "#13232B", fontSize: 7, letterSpacing: "0.14em", textTransform: "uppercase", padding: "2px 8px", borderRadius: 4, fontWeight: 700, border: "1px solid #D9C4A3" }}>Recommended resolution</span>}
                                   </div>
                                   <p style={{ color: TEXT_SECONDARY, fontSize: 11, lineHeight: 1.7, margin: 0, whiteSpace: "pre-wrap" }}>{r.content}</p>
                                 </motion.div>
@@ -209,7 +209,7 @@ export default function Boardroom() {
       </div>
 
       {/* Input */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "18px 32px 22px", background: "rgba(244,247,252,0.97)", borderTop: `1px solid ${BORDER}`, backdropFilter: "blur(8px)" }}>
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, padding: "18px 32px 22px", background: "rgba(245,241,233,0.97)", borderTop: `1px solid ${BORDER}`, backdropFilter: "blur(8px)" }}>
         <div style={{ maxWidth: 820, margin: "0 auto" }}>
           <AnimatePresence>
             {showContext && (
@@ -233,10 +233,10 @@ export default function Boardroom() {
               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-              <button onClick={() => setShowContext((s) => !s)} style={{ background: showContext ? "#eff6ff" : SURFACE, border: `1px solid ${showContext ? "#bfdbfe" : BORDER}`, borderRadius: 6, color: showContext ? ACCENT : TEXT_MUTED, fontSize: 8, letterSpacing: "0.16em", textTransform: "uppercase", padding: "7px 10px", cursor: "pointer" }}>
+              <button onClick={() => setShowContext((s) => !s)} style={{ background: showContext ? "#F3EBDD" : SURFACE, border: `1px solid ${showContext ? "#D9C4A3" : BORDER}`, borderRadius: 6, color: showContext ? ACCENT : TEXT_MUTED, fontSize: 8, letterSpacing: "0.16em", textTransform: "uppercase", padding: "7px 10px", cursor: "pointer" }}>
                 Context
               </button>
-              <button onClick={runBoard} disabled={!topic.trim() || loading} style={{ background: !topic.trim() || loading ? SURFACE : ACCENT, border: `1px solid ${!topic.trim() || loading ? BORDER : ACCENT}`, borderRadius: 6, color: !topic.trim() || loading ? TEXT_MUTED : "#ffffff", fontSize: 8, letterSpacing: "0.2em", textTransform: "uppercase", padding: "7px 14px", cursor: !topic.trim() || loading ? "default" : "pointer", fontWeight: 600, transition: "all 0.18s", boxShadow: !topic.trim() || loading ? "none" : "0 2px 8px rgba(29,78,216,0.22)" }}>
+              <button onClick={runBoard} disabled={!topic.trim() || loading} style={{ background: !topic.trim() || loading ? SURFACE : ACCENT, border: `1px solid ${!topic.trim() || loading ? BORDER : ACCENT}`, borderRadius: 6, color: !topic.trim() || loading ? TEXT_MUTED : "#ffffff", fontSize: 8, letterSpacing: "0.2em", textTransform: "uppercase", padding: "7px 14px", cursor: !topic.trim() || loading ? "default" : "pointer", fontWeight: 600, transition: "all 0.18s", boxShadow: !topic.trim() || loading ? "none" : "0 2px 8px rgba(19,35,43,0.22)" }}>
                 {loading ? "..." : "Convene"}
               </button>
             </div>

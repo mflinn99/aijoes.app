@@ -1,17 +1,31 @@
-import { Router } from "express";
-import OpenAI from "openai";
+import { Router, type Request, type Response } from "express";
 import {
   type PersonaId,
   PERSONAS,
   ANALYSIS_PERSONAS,
 } from "../personas/boardroom-personas.js";
+import { AIRefusalError, complete } from "../ai.js";
 
 const router = Router();
 
-const client = new OpenAI({
-  baseURL: process.env.OPENAI_BASE_URL || undefined,
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Input limits for the public endpoints: long enough for a real board
+// question with context, short enough to bound cost.
+const MAX_TEXT = 4000;
+const MAX_HISTORY = 24;
+
+function isText(value: unknown, max = MAX_TEXT): value is string {
+  return typeof value === "string" && value.length <= max;
+}
+
+function failure(req: Request, res: Response, err: unknown, message: string) {
+  if (err instanceof AIRefusalError) {
+    req.log.warn({ category: err.category }, "model declined request");
+    res.status(422).json({ error: "The board could not respond to this question. Please rephrase it." });
+    return;
+  }
+  req.log.error({ err }, message);
+  res.status(502).json({ error: message });
+}
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -29,10 +43,22 @@ interface BoardroomRequest {
 }
 
 router.post("/boardroom/chat", async (req, res) => {
-  const { topic, context, sessionHistory = [], mode = "full_board", personaId } = req.body as BoardroomRequest;
+  const { topic, context, sessionHistory = [], mode = "full_board", personaId } = (req.body ?? {}) as BoardroomRequest;
 
-  if (!topic?.trim()) {
+  if (!isText(topic) || !topic.trim()) {
     res.status(400).json({ error: "topic required" });
+    return;
+  }
+  if (context !== undefined && !isText(context)) {
+    res.status(400).json({ error: "context too long" });
+    return;
+  }
+  if (
+    !Array.isArray(sessionHistory) ||
+    sessionHistory.length > MAX_HISTORY ||
+    !sessionHistory.every((m) => (m?.role === "user" || m?.role === "assistant") && isText(m.content))
+  ) {
+    res.status(400).json({ error: "invalid sessionHistory" });
     return;
   }
 
@@ -45,20 +71,15 @@ router.post("/boardroom/chat", async (req, res) => {
   try {
     if (mode === "single" && personaId && PERSONA_SET[personaId]) {
       const persona = PERSONA_SET[personaId];
-      const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-        { role: "system", content: persona.system },
-        ...sessionHistory.slice(-8).map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        })),
-        { role: "user", content: userContent },
-      ];
-
-      const completion = await client.chat.completions.create({
-        model: process.env.OPENAI_MODEL || "gpt-5.1",
-        messages,
-        max_completion_tokens: 350,
-        temperature: 0.7,
+      const content = await complete({
+        purpose: personaId === "aquila" ? "chat-chair" : "chat",
+        system: persona.system,
+        messages: [
+          ...sessionHistory.slice(-8).map((m) => ({ role: m.role, content: m.content })),
+          { role: "user", content: userContent },
+        ],
+        maxTokens: 2048,
+        effort: "low",
       });
 
       res.json({
@@ -69,7 +90,7 @@ router.post("/boardroom/chat", async (req, res) => {
           role: persona.role,
           emoji: persona.emoji,
           color: persona.color,
-          content: completion.choices[0]?.message?.content ?? "",
+          content,
         },
       });
       return;
@@ -81,20 +102,15 @@ router.post("/boardroom/chat", async (req, res) => {
     const allResponses = await Promise.all(
       personaOrder.map(async (pid) => {
         const persona = PERSONA_SET[pid];
-        const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-          { role: "system", content: persona.system },
-          ...sessionHistory.slice(-6).map((m) => ({
-            role: m.role as "user" | "assistant",
-            content: m.content,
-          })),
-          { role: "user", content: userContent },
-        ];
-
-        const completion = await client.chat.completions.create({
-          model: process.env.OPENAI_MODEL || "gpt-5.1",
-          messages,
-          max_completion_tokens: pid === "aquila" ? 600 : 300,
-          temperature: pid === "aquila" ? 0.5 : 0.75,
+        const content = await complete({
+          purpose: pid === "aquila" ? "chat-chair" : "chat",
+          system: persona.system,
+          messages: [
+            ...sessionHistory.slice(-6).map((m) => ({ role: m.role, content: m.content })),
+            { role: "user", content: userContent },
+          ],
+          maxTokens: pid === "aquila" ? 4096 : 2048,
+          effort: pid === "aquila" ? "medium" : "low",
         });
 
         return {
@@ -103,15 +119,14 @@ router.post("/boardroom/chat", async (req, res) => {
           role: persona.role,
           emoji: persona.emoji,
           color: persona.color,
-          content: completion.choices[0]?.message?.content ?? "",
+          content,
         };
       })
     );
 
     res.json({ mode: "full_board", responses: allResponses });
   } catch (err: unknown) {
-    req.log.error({ err }, "boardroom chat error");
-    res.status(500).json({ error: "Board session failed. Check AI integration." });
+    failure(req, res, err, "Board session failed.");
   }
 });
 
@@ -233,15 +248,20 @@ interface AnalysisRequest {
 }
 
 router.post("/boardroom/analysis", async (req, res) => {
-  const { challenge, calibration, feedbackRound = 0, feedbackComment = "" } = req.body as AnalysisRequest;
+  const { challenge, calibration, feedbackRound = 0, feedbackComment = "" } = (req.body ?? {}) as AnalysisRequest;
   const ANALYSIS_SET = ANALYSIS_PERSONAS;
 
   if (!challenge || !BOARD_TRUTHS[challenge]) {
     res.status(400).json({ error: "Invalid challenge" });
     return;
   }
-  if (!calibration || typeof calibration.risk !== "number") {
+  const inRange = (n: unknown) => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1;
+  if (!calibration || !inRange(calibration.risk) || !inRange(calibration.ambition) || !inRange(calibration.time) || !inRange(calibration.cost)) {
     res.status(400).json({ error: "calibration required" });
+    return;
+  }
+  if (!Number.isInteger(feedbackRound) || feedbackRound < 0 || feedbackRound > 20 || !isText(feedbackComment, 2000)) {
+    res.status(400).json({ error: "invalid feedback" });
     return;
   }
 
@@ -287,17 +307,13 @@ Calibration influence rules:
 
   try {
     async function callPersona(persona: (typeof ANALYSIS_PERSONAS)[number]) {
-      const completion = await client.chat.completions.create({
-        model: "gpt-4.1",
-        messages: [
-          { role: "system", content: persona.system },
-          { role: "user", content: challengePrompt },
-        ],
-        max_completion_tokens: 700,
-        temperature: 0.6,
-        response_format: { type: "json_object" },
+      const rawContent = await complete({
+        purpose: "analysis-persona",
+        system: persona.system,
+        messages: [{ role: "user", content: challengePrompt }],
+        maxTokens: 4096,
+        effort: "medium",
       });
-      const rawContent = completion.choices[0]?.message?.content ?? "";
       const parsed = extractJSON(rawContent) as {
         executionNarrative?: string;
         consequences?: string[];
@@ -379,37 +395,31 @@ Return ONLY valid JSON:
 }`;
 
     // Run aggregation and traditional view in parallel
-    const [aggregationCompletion, traditionalCompletion] = await Promise.all([
-      client.chat.completions.create({
-        model: "gpt-4.1",
-        messages: [
-          { role: "system", content: ANALYSIS_SET[5].system },
-          { role: "user", content: aggregationPrompt },
-        ],
-        max_completion_tokens: 800,
-        temperature: 0.4,
-        response_format: { type: "json_object" },
+    const [aggregationText, traditionalText] = await Promise.all([
+      complete({
+        purpose: "analysis-aggregate",
+        system: ANALYSIS_SET[5].system,
+        messages: [{ role: "user", content: aggregationPrompt }],
+        maxTokens: 4096,
+        effort: "medium",
       }),
-      client.chat.completions.create({
-        model: "gpt-4.1",
-        messages: [
-          { role: "system", content: "You are a business strategy analyst. You translate board-level decisions into functional business implications with precision and brevity." },
-          { role: "user", content: traditionalPrompt },
-        ],
-        max_completion_tokens: 1100,
-        temperature: 0.5,
-        response_format: { type: "json_object" },
+      complete({
+        purpose: "analysis-functions",
+        system: "You are a business strategy analyst. You translate board-level decisions into functional business implications with precision and brevity.",
+        messages: [{ role: "user", content: traditionalPrompt }],
+        maxTokens: 6144,
+        effort: "medium",
       }),
     ]);
 
-    const aggregated = extractJSON(aggregationCompletion.choices[0]?.message?.content) as {
+    const aggregated = extractJSON(aggregationText) as {
       decision?: string; rationale?: string; difficulty?: string;
       cost?: string; time?: string; risk?: string;
       personaActions?: Record<string, string[]>;
     };
 
     type VerticalData = { soWhat?: string; whatIf?: string; dataInputs?: string[] };
-    const traditional = extractJSON(traditionalCompletion.choices[0]?.message?.content) as {
+    const traditional = extractJSON(traditionalText) as {
       sales?: VerticalData; finance?: VerticalData; hr?: VerticalData;
       product?: VerticalData; legal?: VerticalData; governance?: VerticalData;
     };
@@ -444,8 +454,7 @@ Return ONLY valid JSON:
       },
     });
   } catch (err: unknown) {
-    req.log.error({ err }, "analysis engine error");
-    res.status(500).json({ error: "Analysis engine failed." });
+    failure(req, res, err, "Analysis engine failed.");
   }
 });
 

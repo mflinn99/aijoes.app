@@ -8,9 +8,9 @@ const TEXT = "hsl(var(--foreground))";
 const TEXT_MUTED = "hsl(var(--muted-foreground))";
 
 const CONFIDENCE_COLORS = { low: "#dc2626", medium: "#d97706", high: "#16a34a" };
-const SEVERITY_COLORS = { low: "#8a98ae", medium: "#d97706", high: "#dc2626" };
-const SEVERITY_BORDER = { low: "#d6deec", medium: "#fde68a", high: "#fecaca" };
-const SEVERITY_BG = { low: "#f8fafc", medium: "#fffbeb", high: "#fef2f2" };
+const SEVERITY_COLORS = { low: "#65737A", medium: "#d97706", high: "#dc2626" };
+const SEVERITY_BORDER = { low: "#DCD6CA", medium: "#fde68a", high: "#fecaca" };
+const SEVERITY_BG = { low: "#FAF8F4", medium: "#fffbeb", high: "#fef2f2" };
 
 type Props = {
   levers: GrowthLever[];
@@ -58,7 +58,7 @@ export function StrategicForces({ levers, risks, onLeversChange, onRisksChange }
       {/* Growth Levers */}
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-          <span style={{ color: "#1d4ed8", fontSize: 9, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 600 }}>Growth Levers</span>
+          <span style={{ color: "#13232B", fontSize: 9, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 600 }}>Growth Levers</span>
           <button onClick={() => { setAddingLever(true); setDraftLever(BLANK_LEVER); }} style={{ background: "none", border: "none", color: TEXT_MUTED, fontSize: 16, cursor: "pointer", lineHeight: 1 }} onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#16a34a")} onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_MUTED)}>+</button>
         </div>
 
@@ -106,7 +106,7 @@ export function StrategicForces({ levers, risks, onLeversChange, onRisksChange }
       {/* Risk Register */}
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-          <span style={{ color: "#1d4ed8", fontSize: 9, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 600 }}>Risk Register</span>
+          <span style={{ color: "#13232B", fontSize: 9, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 600 }}>Risk Register</span>
           <button onClick={() => { setAddingRisk(true); setDraftRisk(BLANK_RISK); }} style={{ background: "none", border: "none", color: TEXT_MUTED, fontSize: 16, cursor: "pointer", lineHeight: 1 }} onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "#dc2626")} onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_MUTED)}>+</button>
         </div>
 

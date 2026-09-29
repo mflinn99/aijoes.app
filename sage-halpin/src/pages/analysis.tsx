@@ -5,13 +5,17 @@ import TraditionalView, { type TraditionalViewData } from "../components/Traditi
 import { appendToLog, type DecisionLogEntry } from "@/lib/decisionLog";
 import { scopedKey } from "@/lib/userScope";
 
-const BG = "#f4f7fc";
+// The bespoke-challenge waitlist link appears only when an enquiry address is
+// configured at build time; there is no default address.
+const ENQUIRY_EMAIL = import.meta.env.VITE_ENQUIRY_EMAIL as string | undefined;
+
+const BG = "#F5F1E9";
 const SURFACE = "#ffffff";
-const BORDER = "#d6deec";
-const BORDER_BRIGHT = "#c2cfe2";
-const TEXT = "#0b1626";
-const TEXT_SEC = "#46546c";
-const TEXT_MUTED = "#8a98ae";
+const BORDER = "#DCD6CA";
+const BORDER_BRIGHT = "#C9C1B2";
+const TEXT = "#13232B";
+const TEXT_SEC = "#4F5D63";
+const TEXT_MUTED = "#65737A";
 
 const CHALLENGES = [
   { id: "reduce_payroll", label: "Reduce Payroll", description: "Cut workforce costs through headcount reduction or restructuring", icon: "💼", persona: "Risk Advisor" },
@@ -26,7 +30,7 @@ const PERSONA_META: Record<string, { color: string; icon: string; hat: string }>
   dr_white:   { color: "#475569", icon: "○", hat: "GOVERNANCE & COMPLIANCE" },
   cmdr_black: { color: "#1e293b", icon: "◆", hat: "RISK & RESILIENCE" },
   ms_gold:    { color: "#b45309", icon: "◎", hat: "COMMERCIAL VALUE" },
-  dr_green:   { color: "#065F46", icon: "◇", hat: "INNOVATION & SUSTAINABILITY" },
+  dr_green:   { color: "#3F6B4E", icon: "◇", hat: "INNOVATION & SUSTAINABILITY" },
   lt_red:     { color: "#991B1B", icon: "◉", hat: "CULTURE & ETHICS" },
   col_blue:   { color: "#1d4ed8", icon: "◈", hat: "PERFORMANCE & STRATEGY" },
 };
@@ -56,6 +60,7 @@ const ERROR_MSGS: Record<string, string> = {
   timeout: "The board's deliberation extended beyond the session window. The secretariat has preserved your calibration — please reconvene.",
   server_500: "The analysis channel encountered interference before the report could be compiled. Your setup is intact — please reconvene.",
   server_400: "The board challenge parameters were not recognised. Please review your setup and try again.",
+  rate_limited: "The board has convened several times in quick succession. Please wait a few minutes before reconvening.",
   network: "The boardroom connection was interrupted before the analysis could complete. Your calibration has been preserved — please reconvene.",
   parse: "The board's report was received but could not be compiled — a formatting issue in the channel. Please reconvene for a fresh session.",
   unknown: "The board session was disrupted by an unexpected signal. Your setup has been preserved — please reconvene.",
@@ -154,7 +159,7 @@ export default function Analysis() {
       });
 
       if (!res.ok) {
-        const key = res.status >= 500 ? "server_500" : res.status >= 400 ? "server_400" : "unknown";
+        const key = res.status === 429 ? "rate_limited" : res.status >= 500 ? "server_500" : res.status >= 400 ? "server_400" : "unknown";
         throw Object.assign(new Error(`http_${res.status}`), { errorKey: key });
       }
 
@@ -245,7 +250,7 @@ export default function Analysis() {
       <div style={{ position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 32px", borderBottom: `1px solid ${BORDER}`, background: "hsl(var(--background) / 0.95)", backdropFilter: "blur(8px)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <button onClick={() => setLocation("/")} style={{ background: "none", border: "none", color: TEXT_SEC, fontSize: 13, letterSpacing: "0.2em", textTransform: "uppercase", cursor: "pointer", fontWeight: 700 }} onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "hsl(var(--primary))")} onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_SEC)}>
-            ← SIXONIC
+            ← SAGE HALPIN
           </button>
           <span style={{ color: BORDER_BRIGHT, fontSize: 12 }}>|</span>
           <span style={{ color: TEXT, fontSize: 11, letterSpacing: "0.3em", fontWeight: 500, textTransform: "uppercase" }}>Analysis Engine</span>
@@ -259,7 +264,7 @@ export default function Analysis() {
             const past = ORDER.indexOf(step) > i;
             return (
               <div key={s} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 6, height: 6, borderRadius: "50%", background: step === s ? "#1d4ed8" : (past ? "rgba(41,121,255,0.4)" : BORDER_BRIGHT), transition: "background 0.3s" }} />
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: step === s ? "#13232B" : (past ? "rgba(19,35,43,0.4)" : BORDER_BRIGHT), transition: "background 0.3s" }} />
                 <span style={{ color: step === s ? TEXT : TEXT_MUTED, fontSize: 8, letterSpacing: "0.16em", textTransform: "uppercase", transition: "color 0.3s" }}>
                   {s === "calibrate" ? "Setup" : s === "results" ? "Board Output" : "Locked"}
                 </span>
@@ -294,16 +299,16 @@ export default function Analysis() {
                     placeholder="Describe your specific board challenge — e.g. 'We are considering a joint venture with a European distributor to accelerate expansion…'"
                     rows={3}
                     disabled
-                    style={{ width: "100%", background: "#f0f3f9", border: `1px solid ${BORDER}`, borderRadius: 9, color: TEXT_MUTED, fontSize: 11, padding: "14px 16px", outline: "none", resize: "none", fontFamily: "Inter, sans-serif", boxSizing: "border-box", letterSpacing: "0.03em", lineHeight: 1.6, cursor: "not-allowed", opacity: 0.7 }}
+                    style={{ width: "100%", background: "#EEE9DF", border: `1px solid ${BORDER}`, borderRadius: 9, color: TEXT_MUTED, fontSize: 11, padding: "14px 16px", outline: "none", resize: "none", fontFamily: "Inter, sans-serif", boxSizing: "border-box", letterSpacing: "0.03em", lineHeight: 1.6, cursor: "not-allowed", opacity: 0.7 }}
                   />
                   <div style={{ position: "absolute", bottom: 12, right: 14, display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ color: TEXT_MUTED, fontSize: 9, letterSpacing: "0.1em" }}>Unlimited bespoke challenges — coming in the next release.</span>
-                    <a
-                      href="mailto:waitlist@sixonic.ai?subject=SIXONIC%20Bespoke%20Challenge%20Waitlist&body=Please%20add%20me%20to%20the%20waitlist%20for%20bespoke%20challenge%20analysis."
+                    {ENQUIRY_EMAIL && <a
+                      href={`mailto:${ENQUIRY_EMAIL}?subject=${encodeURIComponent("Sage Halpin bespoke challenge waitlist")}&body=${encodeURIComponent("Please add me to the waitlist for bespoke challenge analysis.")}`}
                       style={{ background: "#b45309", border: "none", borderRadius: 5, color: "#ffffff", fontSize: 8, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "6px 14px", cursor: "pointer", textDecoration: "none", whiteSpace: "nowrap" }}
                     >
                       Join Waitlist
-                    </a>
+                    </a>}
                   </div>
                 </div>
               </div>
@@ -318,19 +323,19 @@ export default function Analysis() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
                     onClick={() => { setChallenge(c.id); persist({ challenge: c.id }); }}
-                    style={{ background: challenge === c.id ? "rgba(41,121,255,0.14)" : SURFACE, border: `1px solid ${challenge === c.id ? "#1d4ed870" : BORDER}`, borderRadius: 9, padding: "16px 18px", cursor: "pointer", textAlign: "left", transition: "all 0.18s", outline: "none" }}
-                    onMouseEnter={(e) => { if (challenge !== c.id) { (e.currentTarget as HTMLButtonElement).style.borderColor = "#1d4ed840"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(41,121,255,0.07)"; } }}
+                    style={{ background: challenge === c.id ? "rgba(19,35,43,0.14)" : SURFACE, border: `1px solid ${challenge === c.id ? "#13232B70" : BORDER}`, borderRadius: 9, padding: "16px 18px", cursor: "pointer", textAlign: "left", transition: "all 0.18s", outline: "none" }}
+                    onMouseEnter={(e) => { if (challenge !== c.id) { (e.currentTarget as HTMLButtonElement).style.borderColor = "#13232B40"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(19,35,43,0.07)"; } }}
                     onMouseLeave={(e) => { if (challenge !== c.id) { (e.currentTarget as HTMLButtonElement).style.borderColor = BORDER; (e.currentTarget as HTMLButtonElement).style.background = SURFACE; } }}
                     data-testid={`challenge-${c.id}`}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <span style={{ fontSize: 20, flexShrink: 0 }}>{c.icon}</span>
                       <div>
-                        <div style={{ color: challenge === c.id ? "#1d4ed8" : TEXT, fontSize: 12, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 2, transition: "color 0.18s" }}>{c.label}</div>
+                        <div style={{ color: challenge === c.id ? "#13232B" : TEXT, fontSize: 12, fontWeight: 600, letterSpacing: "0.02em", marginBottom: 2, transition: "color 0.18s" }}>{c.label}</div>
                         <div style={{ color: TEXT_MUTED, fontSize: 10, lineHeight: 1.45 }}>{c.description}</div>
                       </div>
                       {challenge === c.id && (
-                        <span style={{ marginLeft: "auto", color: "#1d4ed8", fontSize: 14, flexShrink: 0 }}>✓</span>
+                        <span style={{ marginLeft: "auto", color: "#13232B", fontSize: 14, flexShrink: 0 }}>✓</span>
                       )}
                     </div>
                   </motion.button>
@@ -377,9 +382,9 @@ export default function Analysis() {
                 onClick={() => challenge && runAnalysis(calibration)}
                 disabled={!challenge}
                 data-testid="button-run-analysis"
-                style={{ background: challenge ? "#1d4ed8" : "rgba(41,121,255,0.25)", border: "none", borderRadius: 8, color: challenge ? "#fff" : "#94a3b8", fontSize: 11, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 700, padding: "13px 32px", cursor: challenge ? "pointer" : "not-allowed", boxShadow: challenge ? "0 4px 18px rgba(41,121,255,0.4)" : "none", transition: "all 0.2s" }}
-                onMouseEnter={(e) => { if (challenge) (e.currentTarget as HTMLButtonElement).style.background = "#1b3fb0"; }}
-                onMouseLeave={(e) => { if (challenge) (e.currentTarget as HTMLButtonElement).style.background = "#1d4ed8"; }}
+                style={{ background: challenge ? "#13232B" : "rgba(19,35,43,0.25)", border: "none", borderRadius: 8, color: challenge ? "#fff" : "#94a3b8", fontSize: 11, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 700, padding: "13px 32px", cursor: challenge ? "pointer" : "not-allowed", boxShadow: challenge ? "0 4px 18px rgba(19,35,43,0.4)" : "none", transition: "all 0.2s" }}
+                onMouseEnter={(e) => { if (challenge) (e.currentTarget as HTMLButtonElement).style.background = "#0B161C"; }}
+                onMouseLeave={(e) => { if (challenge) (e.currentTarget as HTMLButtonElement).style.background = "#13232B"; }}
               >
                 {challenge ? "Convene →" : "Select a challenge to convene"}
               </button>
@@ -391,7 +396,7 @@ export default function Analysis() {
             const timerPhase = elapsed < 20 ? 0 : elapsed < 35 ? 1 : 2;
             const statIdx = timerPhase === 2 ? Math.floor((elapsed - 35) / 8) % BOARD_STATEMENTS.length : 0;
             const phaseMsg = timerPhase === 1
-              ? "Dr White is mediating a difference of opinion."
+              ? "Governance is mediating a difference of opinion."
               : timerPhase === 2
               ? (elapsed < 43 ? "Break for coffee — the board is still deliberating." : BOARD_STATEMENTS[statIdx])
               : null;
@@ -414,9 +419,9 @@ export default function Analysis() {
                 <div style={{ textAlign: "center" }}>
                   <p style={{ color: TEXT_SEC, fontSize: 13, letterSpacing: "0.14em", marginBottom: 8 }}>{runningMsg}</p>
                   <p style={{ color: TEXT_MUTED, fontSize: 9, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 10 }}>Six-persona structured analysis in progress</p>
-                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(41,121,255,0.1)", border: "1px solid #1d4ed830", borderRadius: 20, padding: "4px 14px" }}>
-                    <motion.div style={{ width: 5, height: 5, borderRadius: "50%", background: "#1d4ed8" }} animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1, repeat: Infinity }} />
-                    <span style={{ color: "#1d4ed8", fontSize: 10, letterSpacing: "0.12em", fontVariantNumeric: "tabular-nums" }}>{elapsed}s elapsed — the board is deliberating</span>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(19,35,43,0.1)", border: "1px solid #13232B30", borderRadius: 20, padding: "4px 14px" }}>
+                    <motion.div style={{ width: 5, height: 5, borderRadius: "50%", background: "#13232B" }} animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1, repeat: Infinity }} />
+                    <span style={{ color: "#13232B", fontSize: 10, letterSpacing: "0.12em", fontVariantNumeric: "tabular-nums" }}>{elapsed}s elapsed — the board is deliberating</span>
                   </div>
                 </div>
 
@@ -430,15 +435,15 @@ export default function Analysis() {
                       exit={{ opacity: 0, y: -8, scale: 0.97 }}
                       transition={{ duration: 0.5 }}
                       style={{
-                        background: timerPhase === 1 ? "rgba(255,215,64,0.08)" : "rgba(41,121,255,0.08)",
-                        border: `1px solid ${timerPhase === 1 ? "rgba(255,215,64,0.3)" : "rgba(41,121,255,0.25)"}`,
+                        background: timerPhase === 1 ? "rgba(255,215,64,0.08)" : "rgba(19,35,43,0.08)",
+                        border: `1px solid ${timerPhase === 1 ? "rgba(255,215,64,0.3)" : "rgba(19,35,43,0.25)"}`,
                         borderRadius: 10,
                         padding: "14px 22px",
                         maxWidth: 480,
                         textAlign: "center",
                       }}
                     >
-                      <div style={{ color: timerPhase === 1 ? "#b45309" : "#1d4ed8", fontSize: 8, letterSpacing: "0.24em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
+                      <div style={{ color: timerPhase === 1 ? "#b45309" : "#13232B", fontSize: 8, letterSpacing: "0.24em", textTransform: "uppercase", fontWeight: 700, marginBottom: 6 }}>
                         {timerPhase === 1 ? "Board Secretariat" : "Session Update"}
                       </div>
                       <p style={{ color: TEXT_SEC, fontSize: 12, letterSpacing: "0.05em", lineHeight: 1.6, margin: 0 }}>{phaseMsg}</p>
@@ -449,7 +454,7 @@ export default function Analysis() {
                 <div style={{ display: "flex", gap: 6 }}>
                   {[0, 1, 2].map((i) => (
                     <motion.div key={i} animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.3 }}
-                      style={{ width: 5, height: 5, borderRadius: "50%", background: "#1d4ed8" }} />
+                      style={{ width: 5, height: 5, borderRadius: "50%", background: "#13232B" }} />
                   ))}
                 </div>
                 <button
@@ -465,10 +470,10 @@ export default function Analysis() {
           {/* ── RESULTS: null guard ── */}
           {(step === "results" || step === "locked") && !result && (
             <motion.div key="no-result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "50vh", gap: 20 }}>
-              <div style={{ background: "rgba(41,121,255,0.08)", border: "1px solid #1d4ed825", borderRadius: 10, padding: "28px 36px", maxWidth: 420, textAlign: "center" }}>
-                <div style={{ color: "#1d4ed8", fontSize: 9, letterSpacing: "0.24em", textTransform: "uppercase", fontWeight: 700, marginBottom: 10 }}>Session Notice</div>
+              <div style={{ background: "rgba(19,35,43,0.08)", border: "1px solid #13232B25", borderRadius: 10, padding: "28px 36px", maxWidth: 420, textAlign: "center" }}>
+                <div style={{ color: "#13232B", fontSize: 9, letterSpacing: "0.24em", textTransform: "uppercase", fontWeight: 700, marginBottom: 10 }}>Session Notice</div>
                 <p style={{ color: TEXT_SEC, fontSize: 12, lineHeight: 1.7, marginBottom: 20 }}>The board reached quorum but the session output was not preserved. This can occur when the browser session was refreshed mid-deliberation.</p>
-                <button onClick={() => { setResult(null); setStep("calibrate"); }} style={{ background: "#1d4ed8", border: "none", borderRadius: 7, color: "#fff", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "10px 22px", cursor: "pointer" }}>
+                <button onClick={() => { setResult(null); setStep("calibrate"); }} style={{ background: "#13232B", border: "none", borderRadius: 7, color: "#fff", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "10px 22px", cursor: "pointer" }}>
                   Reconvene the Board
                 </button>
               </div>
@@ -483,8 +488,8 @@ export default function Analysis() {
               <div style={{ display: "flex", alignItems: "flex-start", gap: 20, marginBottom: 32, flexWrap: "wrap" }}>
                 <div style={{ flex: 1, minWidth: 260 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-                    <span style={{ color: TEXT_SEC, fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase" }}>Board Decision</span>
-                    {step === "locked" && <span style={{ background: "#1d4ed820", border: "1px solid #1d4ed840", borderRadius: 4, color: "#1d4ed8", fontSize: 7, letterSpacing: "0.18em", textTransform: "uppercase", padding: "2px 8px", fontWeight: 700 }}>Locked</span>}
+                    <span style={{ color: TEXT_SEC, fontSize: 9, letterSpacing: "0.3em", textTransform: "uppercase" }}>{step === "locked" ? "Your Decision" : "Board Recommendation · for your decision"}</span>
+                    {step === "locked" && <span style={{ background: "#13232B20", border: "1px solid #13232B40", borderRadius: 4, color: "#13232B", fontSize: 7, letterSpacing: "0.18em", textTransform: "uppercase", padding: "2px 8px", fontWeight: 700 }}>Locked</span>}
                     {feedbackRound > 0 && <span style={{ background: "rgba(255,215,64,0.12)", border: "1px solid #b4530940", borderRadius: 4, color: "#b45309", fontSize: 7, letterSpacing: "0.16em", textTransform: "uppercase", padding: "2px 8px" }}>Round {feedbackRound} Calibration</span>}
                   </div>
                   <h1 style={{ fontSize: "clamp(28px, 4vw, 48px)", fontWeight: 700, letterSpacing: "0.02em", color: result.aggregatedOutput.decision === "DO" ? "#047857" : "#dc2626", marginBottom: 10, textShadow: `0 0 30px ${result.aggregatedOutput.decision === "DO" ? "#04785760" : "#dc262660"}` }}>
@@ -517,7 +522,7 @@ export default function Analysis() {
                     key={v}
                     onClick={() => setResultsView(v)}
                     style={{
-                      background: resultsView === v ? "#1d4ed8" : "transparent",
+                      background: resultsView === v ? "#13232B" : "transparent",
                       border: "none",
                       color: resultsView === v ? "#fff" : TEXT_SEC,
                       fontSize: 9,
@@ -639,7 +644,7 @@ export default function Analysis() {
                         </button>
                       )}
                       <button onClick={lockDecision} data-testid="button-lock"
-                        style={{ background: "#1d4ed8", border: "none", borderRadius: 7, color: "#fff", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700, padding: "10px 22px", cursor: "pointer", boxShadow: "0 3px 14px rgba(41,121,255,0.35)" }}>
+                        style={{ background: "#13232B", border: "none", borderRadius: 7, color: "#fff", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700, padding: "10px 22px", cursor: "pointer", boxShadow: "0 3px 14px rgba(19,35,43,0.35)" }}>
                         Lock Decision
                       </button>
                       {feedbackRound >= 2 && <span style={{ color: TEXT_MUTED, fontSize: 9, letterSpacing: "0.12em" }}>Maximum feedback rounds reached.</span>}
@@ -665,7 +670,7 @@ export default function Analysis() {
                       </div>
                       <textarea placeholder="Optional: add feedback or context for the board…" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} rows={2} style={{ width: "100%", background: BG, border: `1px solid ${BORDER}`, borderRadius: 6, color: TEXT_SEC, fontSize: 11, padding: "10px 12px", outline: "none", resize: "none", fontFamily: "Inter, sans-serif", boxSizing: "border-box", marginBottom: 14 }} />
                       <div style={{ display: "flex", gap: 10 }}>
-                        <button onClick={handleFeedback} style={{ background: "#1d4ed8", border: "none", borderRadius: 6, color: "#fff", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700, padding: "9px 20px", cursor: "pointer", boxShadow: "0 2px 10px rgba(41,121,255,0.35)" }}>Re-run Analysis</button>
+                        <button onClick={handleFeedback} style={{ background: "#13232B", border: "none", borderRadius: 6, color: "#fff", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700, padding: "9px 20px", cursor: "pointer", boxShadow: "0 2px 10px rgba(19,35,43,0.35)" }}>Re-run Analysis</button>
                         <button onClick={() => setShowFeedback(false)} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, color: TEXT_MUTED, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", padding: "9px 14px", cursor: "pointer" }}>Cancel</button>
                       </div>
                     </motion.div>
@@ -675,7 +680,7 @@ export default function Analysis() {
 
               {step === "locked" && (
                 <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 20, display: "flex", gap: 14, alignItems: "center" }}>
-                  <span style={{ color: "#1d4ed8", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>Decision locked on {new Date(result.timestamp).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                  <span style={{ color: "#13232B", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 600 }}>Decision locked on {new Date(result.timestamp).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</span>
                   <button onClick={reopen} style={{ background: "none", border: `1px solid ${BORDER_BRIGHT}`, borderRadius: 6, color: TEXT_SEC, fontSize: 9, letterSpacing: "0.16em", textTransform: "uppercase", padding: "6px 14px", cursor: "pointer" }}>New Analysis</button>
                 </div>
               )}

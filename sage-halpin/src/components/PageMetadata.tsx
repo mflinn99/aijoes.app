@@ -2,18 +2,18 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 
 const pages: Record<string, [string, string]> = {
-  "/": ["SIXONIC — Boardroom Intelligence", "Whole-company boardroom intelligence connecting responsible performance, ethical leadership, organisational culture and long-term value."],
-  "/dashboard": ["Executive Workspace — SIXONIC", "Review performance, decisions, strategic priorities and risks in your browser-local executive workspace."],
-  "/boardroom": ["AI Boardroom — SIXONIC", "Explore strategic questions through six perspectives on governance, risk, value, innovation, culture and performance."],
-  "/analysis": ["Scenario Analysis — SIXONIC", "Examine strategic challenges and trade-offs through six boardroom perspectives."],
-  "/log": ["Decision Log — SIXONIC", "Review the decisions and scenario analyses saved in this browser."],
+  "/": ["Sage Halpin — The Evolving Board", "An evolving board of human judgement and AI agents: six perspectives on every decision, with the people accountable for the business deciding."],
+  "/dashboard": ["Executive Workspace — Sage Halpin", "Review performance, decisions, strategic priorities and risks in your browser-local executive workspace."],
+  "/boardroom": ["Boardroom — Sage Halpin", "Explore strategic questions with six AI agents on governance, risk, value, innovation, culture and performance."],
+  "/analysis": ["Scenario Analysis — Sage Halpin", "Examine strategic challenges and trade-offs through six AI boardroom perspectives, for your decision."],
+  "/log": ["Decision Log — Sage Halpin", "Review the decisions and scenario analyses saved in this browser."],
 };
 
 export function PageMetadata() {
   const [location] = useLocation();
 
   useEffect(() => {
-    const [title, description] = pages[location] ?? ["Page not found — SIXONIC", "Return to SIXONIC's executive workspace."];
+    const [title, description] = pages[location] ?? ["Page not found — Sage Halpin", "Return to the Sage Halpin executive workspace."];
     document.title = title;
     for (const [attribute, name, content] of [
       ["name", "description", description],

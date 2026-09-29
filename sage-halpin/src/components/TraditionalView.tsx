@@ -32,7 +32,7 @@ const VERTICALS: {
   { key: "sales",      label: "Sales",      icon: "◎", color: "#b45309", sub: "Revenue & Growth" },
   { key: "finance",    label: "Finance",    icon: "◈", color: "#1d4ed8", sub: "Capital & Returns" },
   { key: "hr",         label: "HR",         icon: "◉", color: "#991B1B", sub: "People & Culture" },
-  { key: "product",    label: "Product",    icon: "◇", color: "#065F46", sub: "Build & Roadmap" },
+  { key: "product",    label: "Product",    icon: "◇", color: "#3F6B4E", sub: "Build & Roadmap" },
   { key: "legal",      label: "Legal",      icon: "◆", color: "#1e293b", sub: "Risk & Compliance" },
   { key: "governance", label: "Governance", icon: "○", color: "#475569", sub: "Board & Oversight" },
 ];
@@ -122,7 +122,7 @@ export default function TraditionalView({ data }: { data: TraditionalViewData })
       </div>
 
       {/* Summary callout */}
-      <div style={{ background: `${BG}cc`, border: `1px solid #d6deec`, borderRadius: 9, padding: "16px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+      <div style={{ background: `${BG}cc`, border: `1px solid #DCD6CA`, borderRadius: 9, padding: "16px 20px", display: "flex", gap: 14, alignItems: "flex-start" }}>
         <span style={{ fontSize: 18, flexShrink: 0 }}>🔌</span>
         <div>
           <div style={{ color: TEXT_SEC, fontSize: 9, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 700, marginBottom: 5 }}>

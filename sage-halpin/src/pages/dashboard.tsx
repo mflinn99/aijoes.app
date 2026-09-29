@@ -64,7 +64,7 @@ export default function Dashboard() {
             onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = ACCENT)}
             onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_MUTED)}
           >
-            SIXONIC
+            SAGE HALPIN
           </button>
           <span style={{ color: BORDER, fontSize: 12 }}>|</span>
           <span style={{ color: TEXT_SECONDARY, fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 500 }}>
@@ -91,7 +91,7 @@ export default function Dashboard() {
           <button
             onClick={() => setLocation("/analysis")}
             style={{ background: ACCENT, border: "none", borderRadius: 4, color: "#fff", fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", padding: "8px 16px", cursor: "pointer", fontWeight: 600, transition: "background 0.18s", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "hsl(161 68% 14%)")}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "#0B161C")}
             onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.background = ACCENT)}
             data-testid="button-run-analysis"
           >

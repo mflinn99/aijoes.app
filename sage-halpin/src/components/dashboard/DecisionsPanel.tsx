@@ -61,13 +61,13 @@ export function DecisionsPanel({ decisions, onChange }: Props) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <span style={{ color: "#1d4ed8", fontSize: 9, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 600 }}>
+        <span style={{ color: "#13232B", fontSize: 9, letterSpacing: "0.28em", textTransform: "uppercase", fontWeight: 600 }}>
           Decisions Board
         </span>
         <button
           onClick={() => { setCreating(true); setDraft(BLANK); }}
           style={{ background: "none", border: `1px solid ${BORDER}`, color: TEXT_MUTED, fontSize: 8, letterSpacing: "0.2em", textTransform: "uppercase", padding: "3px 9px", borderRadius: 4, cursor: "pointer", transition: "all 0.18s" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#1d4ed8"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#bfdbfe"; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "#13232B"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#D9C4A3"; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = TEXT_MUTED; (e.currentTarget as HTMLButtonElement).style.borderColor = BORDER; }}
         >
           + Add
@@ -80,21 +80,21 @@ export function DecisionsPanel({ decisions, onChange }: Props) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            style={{ overflow: "hidden", marginBottom: 10, background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 7, padding: 14 }}
+            style={{ overflow: "hidden", marginBottom: 10, background: "#F3EBDD", border: "1px solid #D9C4A3", borderRadius: 7, padding: 14 }}
           >
-            <input style={{ ...inputStyle, background: "#eff6ff", fontSize: 11, marginBottom: 8, color: TEXT, fontWeight: 500 }} placeholder="Decision title…" value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && addDecision()} autoFocus />
+            <input style={{ ...inputStyle, background: "#F3EBDD", fontSize: 11, marginBottom: 8, color: TEXT, fontWeight: 500 }} placeholder="Decision title…" value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && addDecision()} autoFocus />
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-              <input style={{ ...inputStyle, background: "#eff6ff" }} placeholder="Owner" value={draft.owner} onChange={(e) => setDraft((d) => ({ ...d, owner: e.target.value }))} />
-              <input style={{ ...inputStyle, background: "#eff6ff" }} type="date" value={draft.deadline} onChange={(e) => setDraft((d) => ({ ...d, deadline: e.target.value }))} />
+              <input style={{ ...inputStyle, background: "#F3EBDD" }} placeholder="Owner" value={draft.owner} onChange={(e) => setDraft((d) => ({ ...d, owner: e.target.value }))} />
+              <input style={{ ...inputStyle, background: "#F3EBDD" }} type="date" value={draft.deadline} onChange={(e) => setDraft((d) => ({ ...d, deadline: e.target.value }))} />
             </div>
-            <select value={draft.impactArea} onChange={(e) => setDraft((d) => ({ ...d, impactArea: e.target.value as Decision["impactArea"] }))} style={{ ...inputStyle, background: "#eff6ff", marginBottom: 8, cursor: "pointer" }}>
+            <select value={draft.impactArea} onChange={(e) => setDraft((d) => ({ ...d, impactArea: e.target.value as Decision["impactArea"] }))} style={{ ...inputStyle, background: "#F3EBDD", marginBottom: 8, cursor: "pointer" }}>
               {["revenue", "cost", "people", "product", "strategy", "risk"].map((a) => (
                 <option key={a} value={a}>{a}</option>
               ))}
             </select>
-            <input style={{ ...inputStyle, background: "#eff6ff", marginBottom: 10 }} placeholder="Notes (optional)" value={draft.notes} onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))} />
+            <input style={{ ...inputStyle, background: "#F3EBDD", marginBottom: 10 }} placeholder="Notes (optional)" value={draft.notes} onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))} />
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={addDecision} style={{ background: "#1d4ed8", border: "none", color: "#fff", fontSize: 8, letterSpacing: "0.2em", textTransform: "uppercase", padding: "5px 14px", borderRadius: 4, cursor: "pointer", fontWeight: 600 }}>Add</button>
+              <button onClick={addDecision} style={{ background: "#13232B", border: "none", color: "#fff", fontSize: 8, letterSpacing: "0.2em", textTransform: "uppercase", padding: "5px 14px", borderRadius: 4, cursor: "pointer", fontWeight: 600 }}>Add</button>
               <button onClick={() => setCreating(false)} style={{ background: "none", border: `1px solid ${BORDER}`, color: TEXT_MUTED, fontSize: 8, letterSpacing: "0.2em", textTransform: "uppercase", padding: "5px 10px", borderRadius: 4, cursor: "pointer" }}>Cancel</button>
             </div>
           </motion.div>

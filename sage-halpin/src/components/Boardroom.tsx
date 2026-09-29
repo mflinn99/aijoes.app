@@ -7,8 +7,8 @@ const PERSONAS: Persona[] = [
   {
     id: "orion",
     name: "GOVERNANCE & COMPLIANCE",
-    color: "#065F46", // Deep Emerald
-    glowColor: "#10b981",
+    color: "#475569", // Slate 600
+    glowColor: "#94a3b8",
     description: "Validates facts. Demands evidence. Ensures regulatory alignment and structural integrity.",
     symbol: "○",
     position: { x: 50, y: 11 },
@@ -43,8 +43,8 @@ const PERSONAS: Persona[] = [
   {
     id: "zephyr",
     name: "INNOVATION & SUSTAINABILITY",
-    color: "#059669", // Emerald 600
-    glowColor: "#34d399",
+    color: "#5B8A6A", // Emerald 600
+    glowColor: "#8FB89A",
     description: "Expands options. Reframes problems. Focuses on long-term impact and responsible growth.",
     symbol: "◇",
     position: { x: 15, y: 71 },
@@ -117,8 +117,8 @@ export function Boardroom() {
         })}
         <ellipse cx="300" cy="195" rx="245" ry="135" fill="none" stroke="hsl(var(--border))" strokeWidth="2" />
         <ellipse cx="300" cy="195" rx="83" ry="47" fill="url(#tableCore)" stroke="hsl(var(--border))" strokeWidth="1.5" />
-        <text x="300" y="191" textAnchor="middle" fill="hsl(var(--foreground))" fontSize="11" fontWeight="700" letterSpacing="3">SIXONIC</text>
-        <text x="300" y="210" textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="7" letterSpacing="1.5">BOARDROOM</text>
+        <text x="300" y="191" textAnchor="middle" fill="hsl(var(--foreground))" fontSize="11" fontWeight="700" letterSpacing="3">SAGE HALPIN</text>
+        <text x="300" y="210" textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="7" letterSpacing="1.5">THE EVOLVING BOARD</text>
       </svg>
 
       {/* Persona Nodes */}

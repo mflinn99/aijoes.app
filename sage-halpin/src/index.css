@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -40,8 +39,8 @@
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-destructive-border: var(--destructive-border);
 
-  --font-sans: 'Plus Jakarta Sans', sans-serif;
-  --font-serif: Georgia, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
   --font-mono: Menlo, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);
@@ -50,59 +49,59 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* SIXONIC — ESG Corporate Palette */
+/* Sage Halpin — midnight ink, warm ivory, muted brass, slate.
+   #13232B = 200 39% 12%, #F5F1E9 = 40 38% 94%, #B28A56 = 34 37% 52%, #65737A = 200 9% 44%. */
 :root {
-  --button-outline: rgba(0,0,0,0.08);
-  --badge-outline: rgba(0,0,0,0.05);
-  --elevate-1: rgba(0,0,0,0.03);
-  --elevate-2: rgba(0,0,0,0.06);
+  --button-outline: rgba(19,35,43,0.10);
+  --badge-outline: rgba(19,35,43,0.06);
+  --elevate-1: rgba(19,35,43,0.03);
+  --elevate-2: rgba(19,35,43,0.06);
 
-  /* A crisp, professional slightly cool grey/white background */
-  --background: 210 20% 98%;
-  --foreground: 222 47% 11%;
-  
-  --border: 214 32% 91%;
+  --background: 40 38% 94%;
+  --foreground: 200 39% 12%;
+
+  --border: 40 20% 83%;
   --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --card-border: 214 32% 91%;
-  
-  --sidebar: 210 20% 98%;
-  --sidebar-foreground: 222 47% 11%;
-  --sidebar-border: 214 32% 91%;
-  --sidebar-primary: 222 47% 11%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 214 32% 91%;
-  --sidebar-accent-foreground: 222 47% 11%;
-  --sidebar-ring: 222 47% 11%;
-  
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --popover-border: 214 32% 91%;
-  
-  --primary: 161 68% 18%; /* Deep ESG Emerald */
-  --primary-foreground: 0 0% 100%;
-  --primary-border: hsl(161 68% 18%);
-  
-  --secondary: 214 32% 91%;
-  --secondary-foreground: 222 47% 11%;
-  --secondary-border: hsl(214 32% 91%);
-  
-  --muted: 210 16% 93%;
-  --muted-foreground: 215 16% 47%;
-  --muted-border: hsl(210 16% 93%);
-  
-  --accent: 210 16% 93%;
-  --accent-foreground: 222 47% 11%;
-  --accent-border: hsl(210 16% 93%);
-  
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
-  --destructive-border: hsl(0 84% 60%);
-  
-  --input: 214 32% 91%;
-  --ring: 161 68% 18%;
+  --card-foreground: 200 39% 12%;
+  --card-border: 40 20% 83%;
 
-  --radius: 0.25rem; /* Sharper corners for corporate feel */
+  --sidebar: 40 38% 94%;
+  --sidebar-foreground: 200 39% 12%;
+  --sidebar-border: 40 20% 83%;
+  --sidebar-primary: 200 39% 12%;
+  --sidebar-primary-foreground: 40 38% 94%;
+  --sidebar-accent: 40 25% 89%;
+  --sidebar-accent-foreground: 200 39% 12%;
+  --sidebar-ring: 34 37% 52%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 200 39% 12%;
+  --popover-border: 40 20% 83%;
+
+  --primary: 200 39% 12%; /* Midnight ink */
+  --primary-foreground: 40 38% 94%;
+  --primary-border: hsl(200 39% 12%);
+
+  --secondary: 40 25% 89%;
+  --secondary-foreground: 200 39% 12%;
+  --secondary-border: hsl(40 25% 89%);
+
+  --muted: 40 25% 89%;
+  --muted-foreground: 200 9% 40%;
+  --muted-border: hsl(40 25% 89%);
+
+  --accent: 34 37% 52%; /* Muted brass */
+  --accent-foreground: 200 39% 12%;
+  --accent-border: hsl(34 37% 52%);
+
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --destructive-border: hsl(0 72% 45%);
+
+  --input: 40 18% 78%;
+  --ring: 34 37% 52%;
+
+  --radius: 0.25rem;
 }
 
 @layer base {
@@ -117,6 +116,11 @@
 
   html, body, #root {
     height: 100%;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--accent));
+    outline-offset: 2px;
   }
 }
 
