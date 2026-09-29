@@ -1,0 +1,1009 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Interactive demo of Sage Halpin: ask a board question, assemble people and AI agents, decide, follow through and hand over. Fictional company, static demo data.">
+<meta name="theme-color" content="#13232B">
+<meta property="og:title" content="Sage Halpin Demo">
+<meta property="og:description" content="Interactive demo of Sage Halpin: ask a board question, assemble people and AI agents, decide, follow through and hand over. Fictional company, static demo data.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://sagehalpin.aigogo.ai/demo/">
+<meta property="og:image" content="https://sagehalpin.aigogo.ai/og.jpg">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<title>Sage Halpin Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500&family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+<style>
+/* Page reset (the preview host supplied this). */
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+
+/* Layout: an ink rail listing the eight steps of one decision cycle, and an
+   ivory working surface; on phones the rail becomes a scrolling step strip. */
+:root {
+  color-scheme: light;
+  --ink: #13232B;
+  --ink-2: #1B3039;
+  --ivory: #F5F1E9;
+  --paper: #FBF9F4;
+  --white: #FFFFFF;
+  --brass: #B28A56;
+  --brass-deep: #8C6A3E;
+  --slate: #65737A;
+  --person: #7FB692;
+  --person-deep: #3F7556;
+  --a-gov: #F2EEE4;
+  --a-risk: #A99BDA;
+  --a-com: #D9A15F;
+  --a-inn: #6FA8D6;
+  --a-cul: #E07F6A;
+  --a-chair: #B28A56;
+  --forecast: #3F7FC4;
+  --actual: #B0702A;
+  --good: #2F7A4F;
+  --warn: #A5620E;
+  --bad: #B3362B;
+  --line: rgba(19, 35, 43, 0.12);
+  --line-ink: rgba(245, 241, 233, 0.14);
+  --text: #13232B;
+  --text-dim: #4E5C62;
+  --display: 'Unbounded', 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif;
+  --body: 'Figtree', 'Nunito Sans', 'Segoe UI', system-ui, sans-serif;
+  --pill: 999px;
+}
+* { box-sizing: border-box; }
+body { background: var(--ivory); color: var(--text); font-family: var(--body); font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+h1, h2, h3, h4, p, ul, ol { margin: 0; }
+ul, ol { padding: 0; list-style: none; }
+h1, h2, h3 { font-family: var(--display); font-weight: 300; letter-spacing: -0.015em; text-wrap: balance; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; border-radius: 8px; }
+.label { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass-deep); }
+.muted { color: var(--text-dim); }
+.num { font-variant-numeric: tabular-nums; }
+
+.app { display: grid; grid-template-columns: 280px minmax(0, 1fr); min-height: 100vh; }
+
+/* rail */
+.rail { background: var(--ink); color: var(--ivory); padding: 22px 18px; display: flex; flex-direction: column; gap: 22px; position: sticky; top: env(safe-area-inset-top, 0px); height: 100vh; overflow-y: auto; }
+.brand { display: flex; align-items: center; gap: 11px; }
+.brand-name { font-family: var(--display); font-size: 13px; letter-spacing: 0.18em; }
+.brand-sub { display: block; font-size: 9.5px; letter-spacing: 0.28em; color: var(--brass); margin-top: 3px; }
+.demo-flag { font-size: 12px; color: rgba(245, 241, 233, 0.72); border: 1px dashed rgba(178, 138, 86, 0.6); border-radius: 12px; padding: 10px 12px; }
+.demo-flag strong { color: var(--brass); font-weight: 600; }
+.steps { display: flex; flex-direction: column; gap: 4px; counter-reset: s; }
+.step-btn { width: 100%; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; align-items: center; text-align: left; background: none; border: 0; padding: 9px 10px; border-radius: 12px; color: rgba(245, 241, 233, 0.7); }
+.step-btn:hover { background: var(--ink-2); color: var(--ivory); }
+.step-btn .n { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; border: 1px solid var(--line-ink); font-variant-numeric: tabular-nums; }
+.step-btn .t { font-size: 14px; }
+.step-btn .s { display: block; font-size: 11.5px; color: rgba(245, 241, 233, 0.5); }
+.step-btn[aria-current="step"] { background: var(--ivory); color: var(--ink); }
+.step-btn[aria-current="step"] .n { background: var(--brass); border-color: var(--brass); color: var(--ink); }
+.step-btn[aria-current="step"] .s { color: var(--text-dim); }
+.step-btn.done .n { background: var(--person-deep); border-color: var(--person-deep); color: var(--ivory); }
+.rail-q { margin-top: auto; font-size: 12.5px; color: rgba(245, 241, 233, 0.7); border-top: 1px solid var(--line-ink); padding-top: 14px; }
+.rail-q b { display: block; color: var(--ivory); font-weight: 500; margin-top: 4px; }
+
+/* main */
+.main { min-width: 0; display: flex; flex-direction: column; }
+.topline { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; padding: 18px clamp(16px, 3vw, 40px); border-bottom: 1px solid var(--line); background: var(--paper); }
+.company { display: flex; align-items: center; gap: 12px; }
+.company-badge { width: 38px; height: 38px; border-radius: 12px; background: var(--ink); color: var(--brass); display: grid; place-items: center; font-family: var(--display); font-size: 14px; }
+.company b { font-weight: 600; display: block; }
+.company span { font-size: 12.5px; color: var(--text-dim); }
+.pill { display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: var(--pill); border: 1px solid var(--line); background: var(--white); font-size: 12.5px; }
+.pill.fiction { border-style: dashed; color: var(--brass-deep); }
+.view { padding: clamp(20px, 3vw, 40px); display: flex; flex-direction: column; gap: 24px; flex: 1; }
+.view-head { display: grid; gap: 10px; max-width: 760px; }
+.view-head h1 { font-size: clamp(24px, 3vw, 36px); line-height: 1.12; }
+.view-head p { color: var(--text-dim); font-size: 16px; }
+.nav { display: flex; justify-content: space-between; gap: 12px; padding: 16px clamp(16px, 3vw, 40px) calc(16px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--line); background: var(--paper); position: sticky; bottom: 0; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 20px; border-radius: var(--pill); border: 1px solid transparent; font-weight: 600; font-size: 14px; background: var(--ink); color: var(--ivory); transition: transform .15s, background .15s; }
+.btn:hover { transform: translateY(-1px); }
+.btn.brass { background: var(--brass); color: var(--ink); }
+.btn.ghost { background: var(--white); border-color: var(--line); color: var(--ink); }
+.btn.small { padding: 7px 14px; font-size: 13px; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; transform: none; }
+
+/* surfaces */
+.card { background: var(--white); border: 1px solid var(--line); border-radius: 20px; padding: 20px; min-width: 0; }
+.card.ink { background: var(--ink); color: var(--ivory); border-color: var(--ink); }
+.card.soft { background: var(--paper); }
+.card h3 { font-size: 16px; font-weight: 400; margin-bottom: 12px; }
+.grid { display: grid; gap: 16px; }
+.g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.g-wide { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+@media (max-width: 1100px) { .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .g-wide { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 760px) { .g2, .g3, .g4 { grid-template-columns: minmax(0, 1fr); } }
+
+.kpi .v { font-family: var(--display); font-size: 26px; font-weight: 300; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.kpi .d { font-size: 12.5px; color: var(--text-dim); }
+.state { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; }
+.state::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.state.good { color: var(--good); } .state.warn { color: var(--warn); } .state.bad { color: var(--bad); }
+.list li { padding: 10px 0; border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; }
+.list li:first-child { border-top: 0; padding-top: 0; }
+.card.ink .list li { border-top-color: var(--line-ink); }
+.tag { flex: none; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: var(--pill); border: 1px solid var(--line); white-space: nowrap; }
+.tag.known { background: #E7F1EA; border-color: #BFD9C7; color: var(--person-deep); }
+.tag.uncertain { background: #FBF0DE; border-color: #EFD3A5; color: var(--warn); }
+.tag.stale { background: #F1ECE3; border-color: #D9CFBD; color: #6D5B3D; }
+.tag.restricted { background: #F6E4E1; border-color: #E5BDB6; color: var(--bad); }
+.tag.fact { background: #E9F1F8; border-color: #C2D7EA; color: #2B5E8C; }
+.tag.interp { background: #F1EDFA; border-color: #D5CCEE; color: #5D4C95; }
+.tag.rec { background: #FBF0DE; border-color: #EFD3A5; color: var(--brass-deep); }
+
+/* ask */
+.questions { display: grid; gap: 12px; }
+.q-option { text-align: left; background: var(--white); border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; transition: border-color .15s, box-shadow .15s; }
+.q-option:hover { border-color: var(--brass); }
+.q-option[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 2px var(--ink) inset; }
+.q-option .kind { grid-row: span 2; width: 38px; height: 38px; border-radius: 12px; background: var(--ivory); display: grid; place-items: center; font-family: var(--display); font-size: 13px; color: var(--brass-deep); }
+.q-option .qt { font-weight: 600; font-size: 15.5px; }
+.q-option .qc { font-size: 13.5px; color: var(--text-dim); }
+.composer { background: var(--ink); color: var(--ivory); border-radius: 22px; padding: 18px; display: grid; gap: 12px; }
+.composer .field { background: var(--ink-2); border: 1px solid var(--line-ink); border-radius: 14px; padding: 12px 14px; font-size: 15px; min-height: 52px; }
+.composer .field small { display: block; color: rgba(245, 241, 233, 0.55); font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
+.modes { display: flex; flex-wrap: wrap; gap: 8px; }
+.mode { border: 1px solid var(--line-ink); border-radius: var(--pill); padding: 6px 12px; font-size: 12.5px; color: rgba(245, 241, 233, 0.8); }
+
+/* team */
+.member { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--line); }
+.member:first-of-type { border-top: 0; }
+.seat { width: 30px; height: 30px; border-radius: 50%; grid-row: span 2; box-shadow: 0 0 0 3px var(--white), 0 0 0 4px var(--line); }
+.member b { font-weight: 600; }
+.member .meta { font-size: 12.5px; color: var(--text-dim); grid-column: 2; }
+.switch { position: relative; width: 44px; height: 26px; border-radius: var(--pill); background: #D9D3C7; border: 0; grid-row: span 2; transition: background .2s; }
+.switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--white); transition: transform .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.switch[aria-checked="true"] { background: var(--person-deep); }
+.switch[aria-checked="true"]::after { transform: translateX(18px); }
+.switch[disabled] { opacity: .6; cursor: not-allowed; }
+.table-art { display: block; width: 100%; max-width: 340px; margin: 0 auto; }
+
+/* session */
+.transcript { display: grid; gap: 12px; }
+.bubble { border-radius: 18px; padding: 14px 16px; background: var(--white); border: 1px solid var(--line); display: grid; gap: 8px; animation: rise .5s ease both; }
+.bubble.you { background: var(--ink); color: var(--ivory); border-color: var(--ink); justify-self: end; max-width: 680px; }
+.bubble.human { background: #EEF5F0; border-color: #CFE3D5; }
+.bubble.chair { background: var(--paper); border-color: var(--brass); }
+.who { display: flex; align-items: center; gap: 9px; font-size: 13px; flex-wrap: wrap; }
+.who .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; box-shadow: 0 0 0 1px rgba(19,35,43,.18); }
+.who b { font-weight: 600; }
+.who .role { color: var(--text-dim); }
+.bubble.you .who .role { color: rgba(245, 241, 233, .6); }
+.bubble p { font-size: 14.5px; }
+.req { font-size: 13.5px; border-top: 1px dashed var(--line); padding-top: 8px; }
+.req b { font-weight: 600; }
+.thinking { display: flex; align-items: center; gap: 10px; color: var(--text-dim); font-size: 13.5px; padding: 6px 4px; }
+.thinking .dots i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--brass); margin-right: 3px; animation: blink 1.2s infinite; }
+.thinking .dots i:nth-child(2) { animation-delay: .2s; } .thinking .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes blink { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+.resolution { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; font-size: 13.5px; }
+.resolution dt { font-weight: 700; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-deep); padding-top: 2px; }
+.resolution dd { margin: 0; }
+@media (max-width: 560px) { .resolution { grid-template-columns: minmax(0, 1fr); } .resolution dd { margin-bottom: 6px; } }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-btn { border: 1px solid var(--line); background: var(--white); border-radius: var(--pill); padding: 6px 13px; font-size: 13px; }
+.chip-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--ivory); }
+
+/* analysis */
+.dial { display: grid; gap: 6px; }
+.dial-top { display: flex; justify-content: space-between; font-size: 13.5px; }
+.dial-top b { font-weight: 600; }
+.dial input[type=range] { width: 100%; accent-color: var(--ink); }
+.dial-ends { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-dim); }
+.verdict { display: grid; gap: 10px; }
+.verdict .big { font-family: var(--display); font-weight: 400; font-size: clamp(22px, 3vw, 32px); line-height: 1.1; }
+.verdict.do .big { color: var(--good); } .verdict.dont .big { color: var(--bad); }
+.assess { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.assess div { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+.assess span { display: block; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); }
+.assess b { font-weight: 600; }
+@media (max-width: 560px) { .assess { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tabs { display: inline-flex; gap: 4px; padding: 4px; background: var(--white); border: 1px solid var(--line); border-radius: var(--pill); }
+.tabs button { border: 0; background: none; border-radius: var(--pill); padding: 7px 14px; font-size: 13px; font-weight: 600; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--ivory); }
+.swot { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; font-size: 13.5px; }
+.swot div { background: var(--paper); border-radius: 12px; padding: 9px 11px; }
+.swot span { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 2px; }
+details.agent { border-top: 1px solid var(--line); padding: 12px 0; }
+details.agent:first-of-type { border-top: 0; }
+details.agent summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+details.agent summary::-webkit-details-marker { display: none; }
+details.agent summary .chev { transition: transform .2s; color: var(--text-dim); }
+details.agent[open] summary .chev { transform: rotate(180deg); }
+.running { display: grid; place-items: center; gap: 14px; padding: 40px 10px; text-align: center; }
+.orbit { width: 120px; height: 120px; }
+
+/* decide */
+.choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.choice { text-align: left; border: 1px solid var(--line); background: var(--white); border-radius: 16px; padding: 14px; display: grid; gap: 4px; }
+.choice b { font-weight: 600; }
+.choice span { font-size: 13px; color: var(--text-dim); }
+.choice[aria-pressed="true"] { border-color: var(--ink); box-shadow: 0 0 0 2px var(--ink) inset; }
+@media (max-width: 760px) { .choices { grid-template-columns: minmax(0, 1fr); } }
+textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 14px; padding: 11px 13px; background: var(--white); resize: vertical; }
+.field-label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px; }
+.note { font-size: 13px; color: var(--text-dim); display: flex; gap: 8px; align-items: flex-start; }
+.note::before { content: ''; flex: none; width: 10px; height: 10px; margin-top: 5px; border-radius: 50%; background: var(--person); }
+.card.ink .note { color: rgba(245, 241, 233, 0.75); }
+.locked { border: 1px solid var(--person-deep); background: #EEF5F0; }
+.log li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; }
+.log .when { font-size: 12px; color: var(--text-dim); }
+
+/* follow through */
+.action { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); }
+.action:first-child { border-top: 0; }
+.action input { width: 20px; height: 20px; accent-color: var(--person-deep); grid-row: span 2; }
+.action .meta { grid-column: 2; font-size: 12.5px; color: var(--text-dim); }
+.action.done b { text-decoration: line-through; color: var(--text-dim); }
+.bar { height: 8px; border-radius: var(--pill); background: var(--ivory); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--person-deep); border-radius: var(--pill); transition: width .4s; }
+.chart-wrap { position: relative; }
+.chart-wrap svg { display: block; width: 100%; height: auto; overflow: visible; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--text-dim); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 18px; height: 0; border-top: 2px solid; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--ivory); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; white-space: nowrap; transform: translate(-50%, -110%); }
+.tip b { font-weight: 600; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.tbl th, .tbl td { text-align: right; padding: 6px 8px; border-top: 1px solid var(--line); }
+.tbl th:first-child, .tbl td:first-child { text-align: left; }
+.table-scroll { overflow-x: auto; }
+
+/* memory */
+.record { display: grid; gap: 6px; padding: 14px 0; border-top: 1px solid var(--line); }
+.record:first-child { border-top: 0; padding-top: 0; }
+.record-top { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.record .src { font-size: 12.5px; color: var(--text-dim); }
+.timeline { display: grid; gap: 0; position: relative; padding-left: 22px; }
+.timeline::before { content: ''; position: absolute; left: 8px; top: 6px; bottom: 6px; width: 2px; background: var(--brass); border-radius: 2px; }
+.tl { position: relative; padding: 8px 0; font-size: 13.5px; }
+.tl::before { content: ''; position: absolute; left: -19px; top: 13px; width: 10px; height: 10px; border-radius: 50%; background: var(--white); border: 2px solid var(--brass); }
+.tl.join::before { background: var(--person); border-color: var(--person-deep); }
+.tl.leave::before { background: var(--white); border-color: var(--slate); }
+.tl .when { font-size: 12px; color: var(--text-dim); display: block; }
+.handover { animation: rise .5s ease both; }
+.access { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; font-size: 13px; }
+.access div { background: var(--paper); border-radius: 12px; padding: 10px 12px; }
+.access b { display: block; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 4px; }
+.disclosure { font-size: 12px; color: var(--text-dim); padding: 0 clamp(16px, 3vw, 40px) 18px; max-width: 900px; }
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; height: auto; padding: 14px 16px; gap: 12px; }
+  .steps { flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+  .step-btn { width: auto; flex: none; grid-template-columns: 26px auto; padding: 7px 12px 7px 7px; }
+  .step-btn .s { display: none; }
+  .rail-q, .demo-flag { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail" aria-label="Demo steps">
+    <a class="brand" href="../" aria-label="Sage Halpin home" style="color:inherit;text-decoration:none">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="11.5" ry="7" fill="none" stroke="#F5F1E9" stroke-width="1.6"/><circle cx="20" cy="7" r="3" fill="#7FB692"/><circle cx="34" cy="13" r="3" fill="#F2EEE4"/><circle cx="34" cy="27" r="3" fill="#D9A15F"/><circle cx="20" cy="33" r="3" fill="#6FA8D6"/><circle cx="6" cy="27" r="3" fill="#E07F6A"/><circle cx="6" cy="13" r="3" fill="#A99BDA"/></svg>
+      <span><span class="brand-name">SAGE HALPIN</span><span class="brand-sub">INTERACTIVE DEMO</span></span>
+    </a>
+    <p class="demo-flag"><strong>Demo data.</strong> Harrow &amp; Vale Instruments and every figure, source and adviser here are fictional.</p>
+    <ol class="steps" id="steps"></ol>
+    <div class="rail-q" id="rail-q"></div>
+  </aside>
+
+  <div class="main">
+    <div class="topline">
+      <div class="company">
+        <div class="company-badge" aria-hidden="true">HV</div>
+        <div><b>Harrow &amp; Vale Instruments</b><span>Precision flow meters · Sheffield · 240 people · PE-backed</span></div>
+      </div>
+      <span class="pill fiction">Fictional company · static demo data</span>
+    </div>
+    <main class="view" id="view" tabindex="-1"></main>
+    <p class="disclosure">Human advisers and AI agents support the board. AI agents are not statutory directors and do not exercise voting rights. The client's authorised people retain decision authority. Data access, retention and deletion follow the agreed terms.</p>
+    <div class="nav">
+      <button class="btn ghost" id="back" type="button">← Back</button>
+      <button class="btn brass" id="next" type="button">Next →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ─── Demo data (all fictional) ──────────────────────────────────────────
+  var AGENTS = [
+    { id: 'gov', name: 'Governance & Compliance agent', seat: 'Board Audit Chair · White hat', colour: 'var(--a-gov)' },
+    { id: 'risk', name: 'Risk & Resilience agent', seat: 'Risk Committee Chair · Black hat', colour: 'var(--a-risk)' },
+    { id: 'com', name: 'Commercial Value agent', seat: 'Strategy & Capital · Yellow hat', colour: 'var(--a-com)' },
+    { id: 'inn', name: 'Innovation & Sustainability agent', seat: 'Options Architect · Green hat', colour: 'var(--a-inn)' },
+    { id: 'cul', name: 'Culture & Ethics agent', seat: 'People & Culture · Red hat', colour: 'var(--a-cul)' },
+    { id: 'chair', name: 'Performance & Strategy agent', seat: 'Chair · recommends the resolution', colour: 'var(--a-chair)' }
+  ];
+
+  var STEPS = [
+    { t: 'Know the business', s: 'What we know, and how well' },
+    { t: 'Ask a question', s: 'Bring a live board question' },
+    { t: 'Assemble the team', s: 'People and agents for this question' },
+    { t: 'Board session', s: 'Every perspective, independently' },
+    { t: 'Scenario analysis', s: 'Calibrate and stress-test' },
+    { t: 'Decide', s: 'People decide; agents advise' },
+    { t: 'Follow through', s: 'Actions and measured outcome' },
+    { t: 'Memory & handover', s: 'The knowledge compounds' }
+  ];
+
+  var QUESTIONS = [
+    {
+      id: 'acquire', short: 'Acquire Calder Sensing?', kind: 'M&A',
+      text: 'Should we acquire Calder Sensing for about £9m to move into connected sensors?',
+      context: 'Calder: 38 people, £4.2m revenue, loss-making for two years, strong sensor IP. The seller wants to close by March.',
+      humans: [
+        { name: 'M&A adviser', meta: 'Human · fractional · 12-week mandate · access: deal room, finance, board packs · leaves at completion' },
+        { name: 'Fractional CFO', meta: 'Human · fractional · 6-week mandate · access: finance, forecasts · challenger' }
+      ],
+      replies: {
+        gov: { kind: 'fact', text: 'Calder\'s accounts show revenue of £4.2m and operating losses in both filed years. The £9m price is 2.1× revenue; no audited forecast has been shared. The IP claim rests on two granted patents; ownership of a third, pending, sits with a founder personally.', req: ['Critical unknowns', 'customer concentration, founder IP assignment, cash burn to break-even'] },
+        risk: { kind: 'interp', text: 'The deal fails if integration distracts the core business during the margin programme. Calder\'s top engineer is also its only firmware lead. A March close compresses diligence to six weeks.', req: ['Primary failure path', 'key engineer leaves → firmware roadmap stalls → connected product slips 12+ months → £9m written down'], req2: ['Time to impact', '6–9 months after close'] },
+        com: { kind: 'rec', text: 'Connected sensors would lift recurring revenue from 9% to roughly 16% of sales by 2028 if we cross-sell into our 1,400 installed accounts. The value is in our channel, not Calder\'s revenue.', req: ['Highest value opportunity', 'bundle Calder sensors with our meters for the top 200 accounts'], req2: ['Capital efficiency', 'acceptable at £7–8m, stretched at £9m'] },
+        inn: { kind: 'rec', text: 'We may be solving the wrong problem: we need connected capability, not necessarily a company. A licence-plus-option or a minority stake would test demand first.', req: ['Non-obvious alternative', '18-month licence with an option to acquire at a pre-agreed multiple'] },
+        cul: { kind: 'interp', text: 'Calder\'s engineers chose a start-up culture; our stage-gated process will feel slow to them. Our own team hears "acquisition" as "cost cuts are coming".', req: ['Human execution risk', 'retention of Calder\'s engineers beyond the earn-out'] }
+      },
+      humanNotes: [
+        { who: 'M&A adviser', text: 'Sellers asking for a March close usually have a cash reason. Worth asking directly; it moves the price.' },
+        { who: 'Fractional CFO', text: 'Model the downside where the connected product slips a year. At £9m the payback goes past 2031.' }
+      ],
+      chair: {
+        align: 'Connected capability is strategically right; the price and pace are the problem.',
+        conflict: 'Commercial sees value in the channel; Risk sees it in a single engineer.',
+        decision: 'Do not sign at £9m by March. Offer £7.5m with a 40% earn-out tied to connected revenue, or an 18-month licence with an option.',
+        reasoning: 'Keeps the strategic prize while pricing the key-person and IP risks.',
+        tradeoffs: 'We may lose the deal to a faster bidder.',
+        owner: 'CEO, with the M&A adviser',
+        timeframe: 'Revised offer within three weeks',
+        metrics: 'Connected revenue £1.5m by end of 2027; key engineer retained two years',
+        kill: 'Founder will not assign the pending patent'
+      },
+      analysis: {
+        challenge: 'Build or buy a new product line', base: -0.06,
+        do: { headline: 'Acquire, with conditions', rationale: 'At this calibration the strategic upside outweighs the execution risk, provided the price moves to £7.5m, 40% is deferred against connected revenue and the pending patent is assigned before signing.' },
+        dont: { headline: 'Don\'t acquire on these terms', rationale: 'The case rests on one engineer, an unassigned patent and a six-week diligence window. The capability is right; the price and the pace are not. Test demand through a licence first.' },
+        assess: { difficulty: 'High', cost: 'High', time: 'Long', risk: 'High' },
+        swot: {
+          gov: ['Two granted patents', 'No audited forecast', 'Clean up IP before signing', 'Founder owns the pending patent'],
+          risk: ['Diligence already under way', 'Six-week window', 'Earn-out aligns incentives', 'Key engineer leaves'],
+          com: ['1,400 installed accounts', 'Calder is loss-making', 'Recurring revenue to 16%', 'Rival bundles first'],
+          inn: ['Proven sensor design', 'Few options explored', 'Licence with option to buy', 'We buy a company to get one capability'],
+          cul: ['Engineers are motivated', 'Culture clash likely', 'Joint engineering squad', 'Our team fears cost cuts'],
+          chair: ['Clear strategic fit', 'Price above our range', 'Earn-out structure', 'Distraction from margin programme']
+        },
+        functions: {
+          Sales: 'Bundles need a new pricing sheet and sales training for 12 account managers.',
+          Finance: 'Earn-out lowers day-one cash to £4.5m and keeps our covenant headroom above 25%.',
+          People: 'Retention packages for four Calder engineers; clear messaging to our own team.',
+          Product: 'Firmware roadmap needs a second owner within 90 days of close.',
+          Legal: 'Patent assignment is a condition precedent, not a post-close task.',
+          Governance: 'Investor consent is needed above £8m; board approves the final terms.'
+        }
+      },
+      actions: [
+        { what: 'Send revised offer: £7.5m with 40% earn-out', owner: 'CEO', due: '20 Oct 2026' },
+        { what: 'Confirm assignment of the pending patent', owner: 'M&A adviser', due: '27 Oct 2026' },
+        { what: 'Agree retention terms for Calder\'s firmware lead', owner: 'People Director', due: '10 Nov 2026' }
+      ],
+      outcome: { name: 'Connected revenue, cumulative', unit: '£k', months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'], forecast: [60, 140, 240, 360, 500, 660], actual: [45, 120, 230, 390, 540, 720] },
+      lesson: 'Key-person and IP conditions belong in the heads of terms, not in post-close plans.',
+      memory: [
+        { type: 'Decision', text: 'Revised offer for Calder Sensing: £7.5m, 40% earn-out on connected revenue.', src: 'Board session · approved by the CEO', when: 'Oct 2026', status: 'current' },
+        { type: 'Evidence', text: 'Calder revenue £4.2m; operating losses in both filed years.', src: 'Filed accounts · Governance agent', when: 'Oct 2026', status: 'current' },
+        { type: 'Assumption', text: 'Cross-sell reaches 200 of our installed accounts in 24 months.', src: 'Commercial Value agent · owner: Sales Director', when: 'Oct 2026', status: 'current' },
+        { type: 'Evidence', text: 'Employee engagement 71%, from the last staff survey.', src: 'Staff survey', when: 'Aug 2025', status: 'stale' },
+        { type: 'Evidence', text: 'Seller says there is a competing bidder; broker note says there is not.', src: 'Seller letter vs broker note', when: 'Oct 2026', status: 'contradiction' }
+      ],
+      handover: {
+        leaving: 'M&A adviser', joining: 'Integration operator',
+        points: ['The offer, the earn-out logic and the kill condition on the patent.', 'Why £9m was rejected, with the board\'s reasons and sources.', 'Open risk: the firmware lead\'s retention, owned by the People Director.', 'Contradiction to resolve: whether a competing bidder exists.'],
+        can: ['Decision record and rationale', 'Integration plan and actions', 'Calder evidence and diligence findings'],
+        cannot: ['Negotiation notes marked legal-only', 'Board members\' private comments']
+      }
+    },
+    {
+      id: 'margin', short: 'Lift margin to 35%?', kind: '%',
+      text: 'How do we lift gross margin from 31% to 35% within 18 months without losing our top ten accounts?',
+      context: 'Top ten accounts are 38% of revenue. List prices were last raised in 2024. Steel and freight costs are up 9% this year.',
+      humans: [
+        { name: 'Pricing strategist', meta: 'Human · fractional · 8-week mandate · access: pricing, CRM, margin data' },
+        { name: 'Fractional sales director', meta: 'Human · fractional · 6-week mandate · access: key account plans · challenger' }
+      ],
+      replies: {
+        gov: { kind: 'fact', text: 'Gross margin fell from 34% to 31% over two years. 62% of the fall is materials and freight; 38% is discounting above policy in the top ten accounts. Four of those contracts renew in the next nine months.', req: ['Critical unknowns', 'price elasticity by segment, competitor price moves, contract clauses on indexation'] },
+        risk: { kind: 'interp', text: 'A blanket increase triggers tenders at the four renewing accounts. Losing one of them costs more margin than the programme gains in a year.', req: ['Primary failure path', 'uniform 6% rise → two renewals go to tender → one lost → £2.1m revenue gone'], req2: ['Time to impact', 'three to nine months'] },
+        com: { kind: 'rec', text: 'The biggest lever is discount discipline, not list price: bringing top-ten discounts back to policy recovers 1.4 points. Indexation clauses at renewal add another point.', req: ['Highest value opportunity', 'discount governance plus indexation at renewal'], req2: ['Capital efficiency', 'high; no capital required'] },
+        inn: { kind: 'rec', text: 'Separate the product from the service. A calibration-as-a-service tier lets customers keep the price they know while we earn margin on uptime.', req: ['Non-obvious alternative', 'service tier priced on uptime, not hardware'] },
+        cul: { kind: 'interp', text: 'Account managers discount because their bonus rewards volume. Change the incentive first or the policy will be worked around.', req: ['Human execution risk', 'sales team treats the policy as optional'] }
+      },
+      humanNotes: [
+        { who: 'Pricing strategist', text: 'Segment before you price. Aftermarket parts can take a larger move than new meters.' },
+        { who: 'Fractional sales director', text: 'Go to the four renewing customers in person before any letter goes out.' }
+      ],
+      chair: {
+        align: 'Discount discipline and indexation matter more than a list-price rise.',
+        conflict: 'Innovation wants a new service tier now; Risk wants no change before renewals.',
+        decision: 'Proceed: enforce discount policy from November, add indexation at each renewal, pilot the service tier with two accounts.',
+        reasoning: 'Recovers most of the gap without a blanket rise that could trigger tenders.',
+        tradeoffs: 'Slower than a list-price rise; depends on sales behaviour.',
+        owner: 'Commercial Director',
+        timeframe: 'Policy live in November; review at month six',
+        metrics: 'Gross margin 33% by month nine, 35% by month eighteen; no top-ten account lost',
+        kill: 'Any top-ten account formally goes to tender'
+      },
+      analysis: {
+        challenge: 'Improve margins', base: 0.14,
+        do: { headline: 'Proceed with the margin programme', rationale: 'Discount discipline and indexation close most of the gap with manageable risk, provided the four renewing accounts are handled in person first.' },
+        dont: { headline: 'Hold until renewals close', rationale: 'At this calibration the risk of provoking tenders at four renewing accounts outweighs the margin gain. Fix sales incentives now and move on price after the renewals.' },
+        assess: { difficulty: 'Med', cost: 'Low', time: 'Med', risk: 'Med' },
+        swot: {
+          gov: ['Clear margin data', 'No elasticity data', 'Indexation clauses', 'Contract terms block changes'],
+          risk: ['Renewal dates known', 'Top ten are 38% of revenue', 'Staged rollout', 'Tender triggered'],
+          com: ['No capital required', 'Discounting is habitual', 'Recover 1.4 points', 'Rivals absorb costs'],
+          inn: ['Strong service record', 'No service pricing yet', 'Uptime-based tier', 'Tier cannibalises parts'],
+          cul: ['Team knows accounts well', 'Bonus rewards volume', 'Margin-based bonus', 'Policy worked around'],
+          chair: ['Consensus on levers', 'Execution depends on sales', 'Month-six review', 'Loss of a top account']
+        },
+        functions: {
+          Sales: 'Discount authority moves to the Commercial Director above 12%.',
+          Finance: 'Monthly margin bridge by account; indexation modelled per contract.',
+          People: 'Bonus plan shifts 40% of weighting from volume to margin.',
+          Product: 'Service tier defined for two pilot accounts.',
+          Legal: 'Indexation clause drafted for all renewals.',
+          Governance: 'Board sees the margin bridge monthly until month nine.'
+        }
+      },
+      actions: [
+        { what: 'Publish discount policy and approval limits', owner: 'Commercial Director', due: '1 Nov 2026' },
+        { what: 'Meet the four renewing accounts in person', owner: 'CEO and account leads', due: '30 Nov 2026' },
+        { what: 'Redesign the sales bonus around margin', owner: 'People Director', due: '15 Dec 2026' }
+      ],
+      outcome: { name: 'Gross margin', unit: '%', months: ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'], forecast: [31.2, 31.6, 32.0, 32.4, 32.8, 33.1], actual: [31.1, 31.4, 32.1, 32.6, 32.9, 33.4] },
+      lesson: 'Incentives moved margin faster than policy did; change the bonus before the price.',
+      memory: [
+        { type: 'Decision', text: 'Margin programme approved: discount policy, indexation at renewal, service-tier pilot.', src: 'Board session · approved by the CEO', when: 'Oct 2026', status: 'current' },
+        { type: 'Evidence', text: '38% of the margin fall is discounting above policy in the top ten accounts.', src: 'Finance system · Governance agent', when: 'Oct 2026', status: 'current' },
+        { type: 'Assumption', text: 'Aftermarket parts can take a 7% move without volume loss.', src: 'Pricing strategist · owner: Commercial Director', when: 'Oct 2026', status: 'current' },
+        { type: 'Evidence', text: 'Competitor list prices from the 2024 benchmark.', src: 'Market benchmark', when: 'Mar 2024', status: 'stale' },
+        { type: 'Evidence', text: 'CRM says discounts average 14%; finance invoices say 17%.', src: 'CRM vs finance system', when: 'Oct 2026', status: 'contradiction' }
+      ],
+      handover: {
+        leaving: 'Pricing strategist', joining: 'Customer success lead',
+        points: ['The segment price moves and the evidence behind each.', 'Renewal plan for the four key accounts, with owners.', 'Open question: service-tier pricing after the pilot.', 'Contradiction to resolve: CRM and invoiced discount rates differ.'],
+        can: ['Decision record and rationale', 'Margin bridge and account plans', 'Pilot results'],
+        cannot: ['Individual salary and bonus data', 'Board members\' private comments']
+      }
+    },
+    {
+      id: 'coo', short: 'External COO or promote?', kind: 'SMT',
+      text: 'Should we hire an external COO or promote our Operations Director?',
+      context: 'The Operations Director has been here 11 years and runs the plant well. Investors want experience of scaling multi-site operations.',
+      humans: [
+        { name: 'Executive search adviser', meta: 'Human · fractional · 10-week mandate · access: role brief, board packs' },
+        { name: 'Independent non-executive director', meta: 'Human · standing · client\'s board, holds decision authority' }
+      ],
+      replies: {
+        gov: { kind: 'fact', text: 'The plant has hit on-time delivery above 96% for eight quarters under the current Operations Director. The investor plan assumes a second site by 2028; no one in the leadership team has opened one.', req: ['Critical unknowns', 'the Director\'s appetite for the role, a second-site timeline, succession below the Director'] },
+        risk: { kind: 'interp', text: 'An external hire who fails costs a year and unsettles the plant. Promoting without support risks the second-site plan.', req: ['Primary failure path', 'external COO clashes with plant leadership → two senior departures → delivery slips'], req2: ['Time to impact', 'six to twelve months'] },
+        com: { kind: 'rec', text: 'The value is in the second site. Promote, and buy the missing experience through a part-time operating adviser for 12 months.', req: ['Highest value opportunity', 'internal promotion plus a scaling adviser'], req2: ['Capital efficiency', 'about half the cost of an external COO'] },
+        inn: { kind: 'rec', text: 'Split the question: who runs today\'s plant, and who opens the next one? They may be different people.', req: ['Non-obvious alternative', 'promote to COO and hire a site-launch lead for the second site'] },
+        cul: { kind: 'interp', text: 'The plant team trusts the Director. Passing them over for an outsider will read as a verdict on the whole team.', req: ['Human execution risk', 'loss of trust on the shop floor'] }
+      },
+      humanNotes: [
+        { who: 'Executive search adviser', text: 'Scaling COOs are scarce this year; expect a six-month search and a 30% premium.' },
+        { who: 'Independent non-executive director', text: 'Ask the Director what support they would want. Their answer tells us a lot.' }
+      ],
+      chair: {
+        align: 'The Director is strong on today\'s plant; the gap is multi-site experience.',
+        conflict: 'Investors lean external; Culture and Commercial lean internal.',
+        decision: 'Promote the Operations Director to COO with a 12-month scaling adviser and a site-launch lead for the second site.',
+        reasoning: 'Keeps trust and continuity while buying the experience the plan needs.',
+        tradeoffs: 'Slower to build second-site capability than an experienced hire.',
+        owner: 'Chair of the board',
+        timeframe: 'Announcement within six weeks',
+        metrics: 'Delivery stays above 95%; second-site plan approved by month nine',
+        kill: 'Second-site plan not credible at month six'
+      },
+      analysis: {
+        challenge: 'Recruit a senior leader', base: 0.04,
+        do: { headline: 'Promote, with support', rationale: 'Continuity and trust are worth more than an external hire here, provided the scaling adviser and site-launch lead are in place before the second-site decision.' },
+        dont: { headline: 'Run an external search', rationale: 'At this calibration the second-site timeline outweighs continuity. Run a search, but keep the Director as plant lead and involve them in the choice.' },
+        assess: { difficulty: 'Med', cost: 'Med', time: 'Med', risk: 'Med' },
+        swot: {
+          gov: ['Eight strong quarters', 'No multi-site record', 'Clear success measures', 'Plan assumes skills we lack'],
+          risk: ['Low disruption', 'Capability gap', 'Adviser covers the gap', 'Second site slips'],
+          com: ['Half the cost', 'Adviser is part-time', 'Faster decision', 'Investors lose confidence'],
+          inn: ['Roles can be split', 'Structure untested', 'Site-launch lead role', 'Two leaders, unclear lines'],
+          cul: ['Shop-floor trust', 'Director stretched', 'Visible internal promotion', 'Passed-over signal'],
+          chair: ['Clear owner', 'Investor scepticism', 'Month-six review', 'Plan not credible']
+        },
+        functions: {
+          Sales: 'Customers keep their familiar operational contact.',
+          Finance: 'Adviser and site lead cost about £260k a year, against £420k for an external COO.',
+          People: 'Succession below the Director becomes urgent.',
+          Product: 'No change to the roadmap.',
+          Legal: 'New service agreement for the COO role.',
+          Governance: 'Investor director briefed before the announcement.'
+        }
+      },
+      actions: [
+        { what: 'Discuss the role and support with the Operations Director', owner: 'Chair of the board', due: '16 Oct 2026' },
+        { what: 'Appoint a 12-month scaling adviser', owner: 'CEO', due: '15 Nov 2026' },
+        { what: 'Name a successor for the plant lead role', owner: 'People Director', due: '31 Jan 2027' }
+      ],
+      outcome: { name: 'On-time delivery', unit: '%', months: ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'], forecast: [96, 96, 95.5, 95.5, 95.5, 96], actual: [96.4, 95.8, 95.2, 95.9, 96.3, 96.5] },
+      lesson: 'Asking the internal candidate what support they need shaped a better role than the search brief did.',
+      memory: [
+        { type: 'Decision', text: 'Operations Director promoted to COO, with a scaling adviser and a site-launch lead.', src: 'Board session · approved by the Chair', when: 'Oct 2026', status: 'current' },
+        { type: 'Evidence', text: 'On-time delivery above 96% for eight quarters.', src: 'Operations reporting · Governance agent', when: 'Oct 2026', status: 'current' },
+        { type: 'Assumption', text: 'Second site approved by 2028.', src: 'Investor plan · owner: CEO', when: 'Oct 2026', status: 'current' },
+        { type: 'Evidence', text: 'Leadership capability review.', src: 'External review', when: 'Feb 2025', status: 'stale' },
+        { type: 'Evidence', text: 'Investor memo says a COO was agreed at deal; board minutes do not record it.', src: 'Investor memo vs board minutes', when: 'Oct 2026', status: 'contradiction' }
+      ],
+      handover: {
+        leaving: 'Executive search adviser', joining: 'Scaling adviser',
+        points: ['Why the board promoted internally, with its reasons.', 'The capability gaps the search surfaced.', 'Open risk: succession for the plant lead role.', 'Contradiction to resolve: what was agreed with investors at deal.'],
+        can: ['Decision record and rationale', 'Role design and success measures', 'Second-site plan'],
+        cannot: ['Candidate files from the search', 'Board members\' private comments']
+      }
+    }
+  ];
+
+  var SOURCES = [
+    { name: 'Board packs, last 12 months', state: 'known', note: 'Connected' },
+    { name: 'Finance system', state: 'known', note: 'Connected, daily' },
+    { name: 'CRM and pipeline', state: 'uncertain', note: 'Connected; 18% of deals lack a close date' },
+    { name: 'Strategy 2026–2029', state: 'known', note: 'Uploaded' },
+    { name: 'Staff engagement survey', state: 'stale', note: 'Last run 14 months ago' },
+    { name: 'Customer contracts', state: 'restricted', note: 'Legal team only' }
+  ];
+  var KPIS = [
+    { k: 'Revenue', v: '£38.4m', d: '+6.1% year on year', s: 'good', sl: 'On plan' },
+    { k: 'Gross margin', v: '31.0%', d: 'Target 35% · down from 34%', s: 'warn', sl: 'Below target' },
+    { k: 'Recurring revenue', v: '9%', d: 'Service and calibration', s: 'warn', sl: 'Low' },
+    { k: 'Cash', v: '£6.2m', d: 'Covenant headroom 31%', s: 'good', sl: 'Healthy' }
+  ];
+
+  // ─── State ─────────────────────────────────────────────────────────────
+  var st = {
+    step: 0, qid: null, agentsOn: {}, humansOn: {}, revealed: 0, filter: 'all',
+    calib: { risk: 0.5, ambition: 0.5, time: 0.5, cost: 0.5 }, analysed: false, running: false, tab: 'experts',
+    choice: null, rationale: '', owner: 'You (CEO)', locked: null, done: {}, lessonSaved: false,
+    memFilter: 'All', reviewed: {}, rotated: false, showTable: false, visited: {}
+  };
+  var timers = [];
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+  function q() { return QUESTIONS.find(function (x) { return x.id === st.qid; }); }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function agent(id) { return AGENTS.find(function (a) { return a.id === id; }); }
+  function reduced() { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+
+  function selectQuestion(id) {
+    if (st.qid === id) return;
+    st.qid = id; st.revealed = 0; st.analysed = false; st.choice = null; st.locked = null; st.done = {};
+    st.lessonSaved = false; st.reviewed = {}; st.rotated = false; st.rationale = '';
+    AGENTS.forEach(function (a) { st.agentsOn[a.id] = true; });
+    q().humans.forEach(function (h) { st.humansOn[h.name] = true; });
+  }
+
+  function verdict() {
+    var c = st.calib, a = q().analysis;
+    var score = a.base + (c.ambition - 0.5) * 0.6 + (c.risk - 0.5) * 0.6 - (c.cost - 0.5) * 0.5 - (c.time - 0.5) * 0.3;
+    return score > 0 ? { key: 'do', v: a.do } : { key: 'dont', v: a.dont };
+  }
+
+  // ─── Step renderers ────────────────────────────────────────────────────
+  function head(title, lede) {
+    return '<div class="view-head"><p class="label">Step ' + (st.step + 1) + ' of ' + STEPS.length + '</p><h1>' + title + '</h1><p>' + lede + '</p></div>';
+  }
+
+  function viewKnow() {
+    var k = KPIS.map(function (x) {
+      return '<div class="card kpi"><p class="label">' + x.k + '</p><p class="v">' + x.v + '</p><p class="d">' + x.d + '</p><p class="state ' + x.s + '" style="margin-top:8px">' + x.sl + '</p></div>';
+    }).join('');
+    var s = SOURCES.map(function (x) {
+      var label = { known: 'Known', uncertain: 'Uncertain', stale: 'Out of date', restricted: 'Restricted' }[x.state];
+      return '<li><span><b>' + x.name + '</b><br><span class="muted" style="font-size:13px">' + x.note + '</span></span><span class="tag ' + x.state + '">' + label + '</span></li>';
+    }).join('');
+    return head('Know the business', 'Before any question, Sage Halpin establishes what is known, what is uncertain, what is out of date and what is restricted. Every later answer cites these sources.') +
+      '<div class="grid g4">' + k + '</div>' +
+      '<div class="grid g-wide">' +
+        '<div class="card"><h3>Sources connected, with permission</h3><ul class="list">' + s + '</ul></div>' +
+        '<div class="card ink"><h3>Agreed priorities</h3><ul class="list">' +
+          '<li><span>Grow recurring revenue from 9% to 20% of sales by 2029</span></li>' +
+          '<li><span>Restore gross margin to 35%</span></li>' +
+          '<li><span>Open a second site by 2028</span></li>' +
+          '<li><span>Strengthen leadership succession</span></li>' +
+        '</ul><p style="margin-top:14px;font-size:13px;color:rgba(245,241,233,.7)">Decision rights: the board approves anything above £1m or affecting the senior team. The CEO decides within that.</p></div>' +
+      '</div>';
+  }
+
+  function viewAsk() {
+    var opts = QUESTIONS.map(function (x) {
+      return '<button type="button" class="q-option" data-q="' + x.id + '" aria-pressed="' + (st.qid === x.id) + '"><span class="kind">' + x.kind + '</span><span class="qt">' + x.text + '</span><span class="qc">' + x.context + '</span></button>';
+    }).join('');
+    var cur = q();
+    return head('Ask a question', 'Bring the question the board actually faces, with the context that matters. Choose one of three example questions; the rest of the demo follows it.') +
+      '<div class="grid g-wide">' +
+        '<div class="questions">' + opts + '</div>' +
+        '<div class="composer" aria-live="polite">' +
+          '<p class="label" style="color:var(--brass)">Your question to the board</p>' +
+          '<div class="field"><small>Question</small>' + (cur ? esc(cur.text) : '<span style="color:rgba(245,241,233,.5)">Choose a question on the left</span>') + '</div>' +
+          '<div class="field"><small>Context</small>' + (cur ? esc(cur.context) : '<span style="color:rgba(245,241,233,.5)">Stage, constraints, what has already been tried</span>') + '</div>' +
+          '<p style="font-size:13px;color:rgba(245,241,233,.7)">Two ways to work it:</p>' +
+          '<div class="modes"><span class="mode">Board session: every perspective answers</span><span class="mode">Scenario analysis: calibrate and stress-test</span></div>' +
+          '<button type="button" class="btn brass" data-go="2"' + (cur ? '' : ' disabled') + '>Assemble the team →</button>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function tableArt() {
+    var pos = [[20, 7], [34, 13], [34, 27], [20, 33], [6, 27], [6, 13]];
+    var dots = AGENTS.map(function (a, i) {
+      var on = st.agentsOn[a.id];
+      return '<circle cx="' + pos[i][0] + '" cy="' + pos[i][1] + '" r="3" fill="' + (on ? a.colour : 'none') + '" stroke="' + (on ? 'rgba(19,35,43,.25)' : 'rgba(19,35,43,.3)') + '" stroke-width="0.5" stroke-dasharray="' + (on ? '0' : '1 1') + '"/>';
+    }).join('');
+    var humans = q().humans.map(function (h, i) {
+      var on = st.humansOn[h.name];
+      var x = i === 0 ? 13 : 27;
+      return '<circle cx="' + x + '" cy="20" r="2.6" fill="' + (on ? 'var(--person)' : 'none') + '" stroke="rgba(19,35,43,.3)" stroke-width="0.5" stroke-dasharray="' + (on ? '0' : '1 1') + '"/>';
+    }).join('');
+    return '<svg class="table-art" viewBox="0 0 40 40" role="img" aria-label="Seating: agents around the table, people at it"><ellipse cx="20" cy="20" rx="11.5" ry="7" fill="var(--paper)" stroke="var(--ink)" stroke-width="1"/>' + humans +
+      '<circle cx="20" cy="20" r="2.6" fill="var(--person-deep)"/>' + dots + '</svg>';
+  }
+
+  function viewTeam() {
+    var cur = q();
+    var people = '<div class="member"><span class="seat" style="background:var(--person-deep)"></span><b>You · CEO</b><span class="tag known">Decides</span><span class="meta">Asks the question and holds decision authority with the board</span></div>' +
+      cur.humans.map(function (h) {
+        var on = st.humansOn[h.name];
+        return '<div class="member"><span class="seat" style="background:' + (on ? 'var(--person)' : 'var(--ivory)') + '"></span><b>' + h.name + '</b><button type="button" class="switch" role="switch" aria-checked="' + on + '" aria-label="' + h.name + ' on the team" data-human="' + esc(h.name) + '"></button><span class="meta">' + h.meta + '</span></div>';
+      }).join('');
+    var agents = AGENTS.map(function (a) {
+      var on = st.agentsOn[a.id], chair = a.id === 'chair';
+      return '<div class="member"><span class="seat" style="background:' + (on ? a.colour : 'var(--ivory)') + '"></span><b>' + a.name + '</b><button type="button" class="switch" role="switch" aria-checked="' + on + '" aria-label="' + a.name + ' on the team" data-agent="' + a.id + '"' + (chair ? ' disabled' : '') + '></button><span class="meta">' + a.seat + (chair ? ' · always present to synthesise' : '') + ' · scope: this question · reads approved memory only</span></div>';
+    }).join('');
+    var n = AGENTS.filter(function (a) { return st.agentsOn[a.id]; }).length;
+    var h = cur.humans.filter(function (x) { return st.humansOn[x.name]; }).length + 1;
+    return head('Assemble the team', 'Each question gets its own team. Fractional people bring judgement, relationships and challenge; agents research, test and follow through. Remit, access and duration are explicit. Switch members on or off.') +
+      '<div class="grid g-wide">' +
+        '<div class="grid">' +
+          '<div class="card"><h3>People <span class="muted" style="font-size:13px">· green seats</span></h3>' + people + '</div>' +
+          '<div class="card"><h3>AI agents <span class="muted" style="font-size:13px">· coloured seats</span></h3>' + agents + '</div>' +
+        '</div>' +
+        '<div class="card soft" style="align-self:start"><h3>The table for this question</h3>' + tableArt() +
+          '<p class="num" style="text-align:center;margin-top:8px"><b>' + h + '</b> people · <b>' + n + '</b> agents</p>' +
+          '<p class="note" style="margin-top:12px">Every agent declares its scope, tools, memory access and escalation threshold. None can record a decision.</p>' +
+          '<button type="button" class="btn" data-go="3" style="margin-top:16px;width:100%;justify-content:center">Convene the board →</button></div>' +
+      '</div>';
+  }
+
+  function bubbleFor(a, r) {
+    var tag = { fact: ['fact', 'Sourced fact'], interp: ['interp', 'Interpretation'], rec: ['rec', 'Recommendation'] }[r.kind];
+    var reqs = [r.req, r.req2].filter(Boolean).map(function (x) { return '<p class="req"><b>' + x[0] + ':</b> ' + x[1] + '</p>'; }).join('');
+    return '<article class="bubble" data-kind="' + r.kind + '"><div class="who"><span class="dot" style="background:' + a.colour + '"></span><b>' + a.name + '</b><span class="role">AI agent · ' + a.seat + '</span><span class="tag ' + tag[0] + '" style="margin-left:auto">' + tag[1] + '</span></div><p>' + r.text + '</p>' + reqs + '</article>';
+  }
+
+  function sessionItems() {
+    var cur = q(), items = [];
+    AGENTS.forEach(function (a) { if (a.id !== 'chair' && st.agentsOn[a.id]) items.push({ type: 'agent', a: a, r: cur.replies[a.id] }); });
+    cur.humanNotes.forEach(function (h) { if (st.humansOn[h.who]) items.push({ type: 'human', h: h }); });
+    items.push({ type: 'chair' });
+    return items;
+  }
+
+  function viewSession() {
+    var cur = q(), items = sessionItems();
+    var html = '<article class="bubble you"><div class="who"><span class="dot" style="background:var(--person)"></span><b>You · CEO</b><span class="role">Person · decides</span></div><p>' + esc(cur.text) + '</p><p style="font-size:13px;color:rgba(245,241,233,.7)">' + esc(cur.context) + '</p></article>';
+    items.slice(0, st.revealed).forEach(function (it) {
+      if (st.filter !== 'all' && it.type === 'agent' && it.r.kind !== st.filter) return;
+      if (st.filter !== 'all' && it.type !== 'agent') return;
+      if (it.type === 'agent') html += bubbleFor(it.a, it.r);
+      else if (it.type === 'human') html += '<article class="bubble human"><div class="who"><span class="dot" style="background:var(--person)"></span><b>' + it.h.who + '</b><span class="role">Human adviser</span></div><p>' + it.h.text + '</p></article>';
+      else {
+        var c = cur.chair, ch = agent('chair');
+        html += '<article class="bubble chair"><div class="who"><span class="dot" style="background:' + ch.colour + '"></span><b>' + ch.name + '</b><span class="role">AI agent · recommends; you decide</span><span class="tag rec" style="margin-left:auto">Recommended resolution</span></div>' +
+          '<p><b>Alignment:</b> ' + c.align + '</p><p><b>Conflict:</b> ' + c.conflict + '</p>' +
+          '<dl class="resolution"><dt>Decision</dt><dd>' + c.decision + '</dd><dt>Reasoning</dt><dd>' + c.reasoning + '</dd><dt>Trade-offs</dt><dd>' + c.tradeoffs + '</dd><dt>Owner</dt><dd>' + c.owner + '</dd><dt>Timeframe</dt><dd>' + c.timeframe + '</dd><dt>Success</dt><dd>' + c.metrics + '</dd><dt>Kill condition</dt><dd>' + c.kill + '</dd></dl></article>';
+      }
+    });
+    var more = st.revealed < items.length;
+    if (more) html += '<div class="thinking" aria-live="polite"><span class="dots"><i></i><i></i><i></i></span>The board is deliberating… <button type="button" class="btn ghost small" data-action="reveal-all">Show all now</button></div>';
+    var filters = [['all', 'Everything'], ['fact', 'Sourced facts'], ['interp', 'Interpretations'], ['rec', 'Recommendations']].map(function (f) {
+      return '<button type="button" class="chip-btn" data-filter="' + f[0] + '" aria-pressed="' + (st.filter === f[0]) + '">' + f[1] + '</button>';
+    }).join('');
+    return head('Board session', 'Each agent answers independently from its own remit, and says whether it is stating a sourced fact, an interpretation or a recommendation. The human advisers add their view. The chair agent synthesises; it recommends, it does not decide.') +
+      '<div class="filters" aria-label="Show">' + filters + '</div>' +
+      '<div class="transcript">' + html + '</div>' +
+      (more ? '' : '<div><button type="button" class="btn" data-go="4">Stress-test it in scenario analysis →</button></div>');
+  }
+
+  function runReveal() {
+    clearTimers();
+    var total = sessionItems().length;
+    if (reduced()) { st.revealed = total; render(); return; }
+    (function next() {
+      if (st.step !== 3 || st.revealed >= total) return;
+      timers.push(setTimeout(function () { st.revealed++; render(); next(); }, st.revealed === 0 ? 500 : 1100));
+    })();
+  }
+
+  function viewAnalysis() {
+    var cur = q(), a = cur.analysis;
+    var dials = [['risk', 'Risk appetite', 'Risk-averse', 'Risk-seeking'], ['ambition', 'Ambition', 'Conservative', 'Aggressive'], ['time', 'Time pressure', 'Flexible', 'Urgent'], ['cost', 'Cost sensitivity', 'Flexible', 'Constrained']].map(function (d) {
+      var v = Math.round(st.calib[d[0]] * 10);
+      return '<div class="dial"><div class="dial-top"><b>' + d[1] + '</b><span class="num">' + v + ' / 10</span></div><input type="range" min="0" max="10" step="1" value="' + v + '" data-dial="' + d[0] + '" id="dial-' + d[0] + '" aria-label="' + d[1] + '"><div class="dial-ends"><span>' + d[2] + '</span><span>' + d[3] + '</span></div></div>';
+    }).join('');
+    var left = '<div class="card"><h3>Calibrate the board</h3><p class="muted" style="font-size:13.5px;margin-bottom:14px">Challenge: <b>' + a.challenge + '</b>. These settings change how every agent weighs the question.</p><div class="grid">' + dials + '</div>' +
+      '<button type="button" class="btn brass" data-action="run" style="margin-top:18px">' + (st.analysed ? 'Re-run the analysis' : 'Run the analysis') + '</button></div>';
+    var right;
+    if (st.running) {
+      right = '<div class="card running" aria-live="polite">' + orbitSvg() + '<p><b>Six agents analysing in parallel</b></p><p class="muted" style="font-size:13.5px">Each builds a SWOT from its own remit; the chair then weighs them.</p></div>';
+    } else if (!st.analysed) {
+      right = '<div class="card soft running"><p><b>Set the dials, then run the analysis.</b></p><p class="muted" style="font-size:13.5px">Try a risk-averse board, then a risk-seeking one: the recommendation follows the evidence and your calibration.</p></div>';
+    } else {
+      var v = verdict();
+      var assess = ['difficulty', 'cost', 'time', 'risk'].map(function (k) { return '<div><span>' + k + '</span><b>' + a.assess[k] + '</b></div>'; }).join('');
+      var body;
+      if (st.tab === 'experts') {
+        body = AGENTS.map(function (ag) {
+          var s = a.swot[ag.id];
+          return '<details class="agent"><summary><span class="dot" style="width:12px;height:12px;border-radius:50%;background:' + ag.colour + ';box-shadow:0 0 0 1px rgba(19,35,43,.18)"></span><span><b>' + ag.name + '</b></span><span class="chev">▾</span></summary>' +
+            '<div class="swot"><div><span>Strength</span>' + s[0] + '</div><div><span>Weakness</span>' + s[1] + '</div><div><span>Opportunity</span>' + s[2] + '</div><div><span>Threat</span>' + s[3] + '</div></div></details>';
+        }).join('');
+      } else {
+        body = '<ul class="list">' + Object.keys(a.functions).map(function (f) { return '<li><span><b>' + f + '</b><br><span class="muted" style="font-size:13.5px">' + a.functions[f] + '</span></span></li>'; }).join('') + '</ul>';
+      }
+      right = '<div class="card verdict ' + v.key + '" aria-live="polite"><p class="label">Board recommendation · for your decision</p><p class="big">' + (v.key === 'do' ? '✓ ' : '✕ ') + v.v.headline + '</p><p class="muted">' + v.v.rationale + '</p><div class="assess">' + assess + '</div>' +
+        '<div class="tabs" role="tablist" style="margin-top:6px"><button type="button" role="tab" data-tab="experts" aria-selected="' + (st.tab === 'experts') + '">By perspective</button><button type="button" role="tab" data-tab="functions" aria-selected="' + (st.tab === 'functions') + '">By function</button></div>' + body +
+        '<button type="button" class="btn" data-go="5" style="margin-top:10px">Take it to decision →</button></div>';
+    }
+    return head('Scenario analysis', 'The same six perspectives, structured: calibrate the board, then each agent produces a SWOT and the chair weighs them into a recommendation you can challenge and re-run.') +
+      '<div class="grid g2" style="align-items:start">' + left + right + '</div>';
+  }
+
+  function orbitSvg() {
+    var pos = [[20, 7], [34, 13], [34, 27], [20, 33], [6, 27], [6, 13]];
+    return '<svg class="orbit" viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="11.5" ry="7" fill="none" stroke="var(--ink)" stroke-width="1.2"/>' +
+      AGENTS.map(function (a, i) { return '<circle cx="' + pos[i][0] + '" cy="' + pos[i][1] + '" r="3" fill="' + a.colour + '" stroke="rgba(19,35,43,.25)" stroke-width="0.5"><animate attributeName="opacity" values="0.25;1;0.25" dur="1.8s" begin="' + (i * 0.3) + 's" repeatCount="indefinite"/></circle>'; }).join('') + '</svg>';
+  }
+
+  function viewDecide() {
+    var cur = q();
+    var rec = st.analysed ? verdict().v.headline : cur.chair.decision;
+    if (!st.rationale) st.rationale = cur.chair.reasoning;
+    var choices = [['adopt', 'Adopt', 'Accept the recommendation as it stands'], ['amend', 'Adopt with changes', 'Accept it, with your amendments recorded'], ['reject', 'Reject', 'Decline, and record why']].map(function (c) {
+      return '<button type="button" class="choice" data-choice="' + c[0] + '" aria-pressed="' + (st.choice === c[0]) + '"' + (st.locked ? ' disabled' : '') + '><b>' + c[1] + '</b><span>' + c[2] + '</span></button>';
+    }).join('');
+    var lockedCard = st.locked ? '<div class="card locked" aria-live="polite"><p class="label" style="color:var(--person-deep)">Decision locked</p><p style="font-size:16px;margin-top:6px"><b>' + esc(st.locked.label) + '</b></p><p class="muted" style="margin-top:4px">' + esc(st.locked.rationale) + '</p><p class="muted" style="font-size:13px;margin-top:8px">Recorded by ' + esc(st.locked.owner) + ' · ' + st.locked.when + ' · added to the institutional memory with its sources</p></div>' : '';
+    var log = '<ul class="list log">' + (st.locked ? '<li><b>' + esc(cur.short) + ': ' + esc(st.locked.label) + '</b><span class="tag known">Locked</span><span class="when">' + st.locked.when + ' · ' + esc(st.locked.owner) + '</span></li>' : '') +
+      '<li><b>Board pack schedule moved to monthly</b><span class="tag known">Locked</span><span class="when">Aug 2026 · Chair</span></li>' +
+      '<li><b>Pause the South America distributor search</b><span class="tag known">Locked</span><span class="when">Jun 2026 · CEO</span></li></ul>';
+    return head('Decide', 'Agents recommend; the people accountable for the business decide. Choose how to respond, give your reasons, and lock it. Only a person can lock a decision.') +
+      '<div class="grid g-wide" style="align-items:start">' +
+        '<div class="grid">' +
+          '<div class="card ink"><p class="label" style="color:var(--brass)">The board recommends</p><p style="font-family:var(--display);font-weight:300;font-size:20px;margin-top:8px;line-height:1.3">' + esc(rec) + '</p><p style="font-size:13px;color:rgba(245,241,233,.7);margin-top:10px">From the ' + (st.analysed ? 'scenario analysis at your calibration' : 'board session') + '. Kill condition: ' + esc(cur.chair.kill) + '.</p></div>' +
+          '<div class="card"><h3>Your decision</h3><div class="choices">' + choices + '</div>' +
+            '<label class="field-label" for="rationale" style="margin-top:16px">Reasons (recorded with the decision)</label><textarea id="rationale" rows="3"' + (st.locked ? ' disabled' : '') + '>' + esc(st.rationale) + '</textarea>' +
+            '<label class="field-label" for="owner" style="margin-top:12px">Recorded by</label><select id="owner"' + (st.locked ? ' disabled' : '') + '>' + ['You (CEO)', 'Chair of the board', 'Full board'].map(function (o) { return '<option' + (st.owner === o ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:16px"><button type="button" class="btn" data-action="lock"' + (st.choice && !st.locked ? '' : ' disabled') + '>Lock decision</button><p class="note">No agent can press this button.</p></div>' +
+          '</div>' + lockedCard +
+        '</div>' +
+        '<div class="card soft"><h3>Decision log</h3>' + log + '</div>' +
+      '</div>';
+  }
+
+  function viewFollow() {
+    var cur = q();
+    var acts = cur.actions.map(function (x, i) {
+      var d = !!st.done[i];
+      return '<label class="action' + (d ? ' done' : '') + '"><input type="checkbox" data-act="' + i + '" id="act-' + i + '"' + (d ? ' checked' : '') + '><b>' + x.what + '</b><span class="tag ' + (d ? 'known' : 'uncertain') + '">' + (d ? 'Done' : 'Open') + '</span><span class="meta">' + x.owner + ' · due ' + x.due + '</span></label>';
+    }).join('');
+    var n = Object.keys(st.done).filter(function (k) { return st.done[k]; }).length;
+    var pct = Math.round(n / cur.actions.length * 100);
+    var o = cur.outcome;
+    var last = o.actual[o.actual.length - 1], fc = o.forecast[o.forecast.length - 1];
+    var ahead = last >= fc;
+    var table = '<div class="table-scroll"><table class="tbl"><thead><tr><th>Month</th><th>Forecast</th><th>Actual</th></tr></thead><tbody>' +
+      o.months.map(function (m, i) { return '<tr><td>' + m + '</td><td>' + fmt(o.forecast[i], o.unit) + '</td><td>' + fmt(o.actual[i], o.unit) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+    var lesson = st.lessonSaved
+      ? '<p class="note" style="margin-top:10px">Approved into memory by you.</p>'
+      : '<button type="button" class="btn small" data-action="lesson" style="margin-top:12px">Approve into memory</button>';
+    return head('Follow through', 'Agents track the actions between meetings and compare the outcome with the forecast behind the decision. Tick actions off as they are done.') +
+      (st.locked ? '' : '<p class="note">You have not locked a decision yet; the actions below follow the recommendation.</p>') +
+      '<div class="grid g2" style="align-items:start">' +
+        '<div class="card"><h3>Actions</h3><div>' + acts + '</div><div style="margin-top:14px"><div class="dial-top" style="font-size:13px"><span>Progress</span><span class="num">' + n + ' of ' + cur.actions.length + '</span></div><div class="bar" style="margin-top:6px"><i style="width:' + pct + '%"></i></div></div>' +
+          '<p class="note" style="margin-top:14px">The Operations agent chases overdue actions and escalates to the owner, then to you.</p></div>' +
+        '<div class="card"><h3>' + o.name + ': forecast vs actual</h3><p class="muted" style="font-size:13.5px;margin-bottom:10px">' + (ahead ? 'Ahead of forecast' : 'Behind forecast') + ' at ' + o.months[o.months.length - 1] + ': <b class="num">' + fmt(last, o.unit) + '</b> against <span class="num">' + fmt(fc, o.unit) + '</span>.</p>' +
+          '<div class="legend"><span><i style="border-color:var(--forecast);border-top-style:dashed"></i>Forecast</span><span><i style="border-color:var(--actual)"></i>Actual</span></div>' +
+          '<div class="chart-wrap" id="chart"></div>' +
+          '<button type="button" class="chip-btn" data-action="table" aria-pressed="' + st.showTable + '" style="margin-top:8px">' + (st.showTable ? 'Hide table' : 'Show as table') + '</button>' + (st.showTable ? table : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="card ink"><p class="label" style="color:var(--brass)">Lesson proposed by the Performance & Strategy agent</p><p style="margin-top:8px;font-size:16px">' + cur.lesson + '</p>' + lesson + '</div>';
+  }
+
+  function fmt(v, unit) { return unit === '%' ? v.toFixed(1) + '%' : '£' + v + 'k'; }
+
+  function drawChart() {
+    var host = document.getElementById('chart');
+    if (!host) return;
+    var o = q().outcome, W = 520, H = 220, L = 46, R = 70, T = 14, B = 30;
+    var all = o.forecast.concat(o.actual);
+    var min = Math.min.apply(null, all), max = Math.max.apply(null, all);
+    var pad = (max - min) * 0.15 || 1; min -= pad; max += pad;
+    if (o.unit !== '%') min = Math.max(0, min);
+    function x(i) { return L + i * (W - L - R) / (o.months.length - 1); }
+    function y(v) { return T + (1 - (v - min) / (max - min)) * (H - T - B); }
+    var ticks = 4, grid = '';
+    for (var k = 0; k <= ticks; k++) {
+      var v = min + (max - min) * k / ticks, yy = y(v);
+      grid += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="rgba(19,35,43,.08)"/><text x="' + (L - 8) + '" y="' + (yy + 4) + '" text-anchor="end" font-size="11" fill="#4E5C62">' + fmt(o.unit === '%' ? v : Math.round(v), o.unit) + '</text>';
+    }
+    var xl = o.months.map(function (m, i) { return '<text x="' + x(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#4E5C62">' + m + '</text>'; }).join('');
+    function path(arr) { return arr.map(function (v, i) { return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1); }).join(' '); }
+    var n = o.months.length - 1;
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + o.name + ', forecast against actual by month">' + grid + xl +
+      '<path d="' + path(o.forecast) + '" fill="none" stroke="var(--forecast)" stroke-width="2" stroke-dasharray="5 4" stroke-linecap="round"/>' +
+      '<path d="' + path(o.actual) + '" fill="none" stroke="var(--actual)" stroke-width="2" stroke-linecap="round"/>' +
+      '<circle cx="' + x(n) + '" cy="' + y(o.actual[n]) + '" r="4.5" fill="var(--actual)" stroke="#fff" stroke-width="2"/>' +
+      '<text x="' + (x(n) + 10) + '" y="' + (y(o.actual[n]) + 4) + '" font-size="11.5" font-weight="600" fill="#13232B">Actual</text>' +
+      '<text x="' + (x(n) + 10) + '" y="' + (y(o.forecast[n]) + (o.forecast[n] > o.actual[n] ? -4 : 14)) + '" font-size="11.5" fill="#4E5C62">Forecast</text>' +
+      '<line id="xh" x1="0" x2="0" y1="' + T + '" y2="' + (H - B) + '" stroke="rgba(19,35,43,.35)" stroke-width="1" visibility="hidden"/>' +
+      '<rect x="' + L + '" y="' + T + '" width="' + (W - L - R) + '" height="' + (H - T - B) + '" fill="transparent" id="hit"/></svg>' +
+      '<div class="tip" id="tip" hidden></div>';
+    host.innerHTML = svg;
+    var s = host.querySelector('svg'), hit = host.querySelector('#hit'), xh = host.querySelector('#xh'), tip = host.querySelector('#tip');
+    function show(ev) {
+      var r = s.getBoundingClientRect(), sx = (ev.clientX - r.left) * W / r.width;
+      var i = Math.max(0, Math.min(n, Math.round((sx - L) / ((W - L - R) / n))));
+      xh.setAttribute('x1', x(i)); xh.setAttribute('x2', x(i)); xh.setAttribute('visibility', 'visible');
+      tip.hidden = false;
+      tip.style.left = (x(i) / W * r.width) + 'px';
+      tip.style.top = (y(Math.max(o.forecast[i], o.actual[i])) / H * r.height) + 'px';
+      tip.innerHTML = '<b>' + o.months[i] + '</b> · Actual ' + fmt(o.actual[i], o.unit) + ' · Forecast ' + fmt(o.forecast[i], o.unit);
+    }
+    hit.addEventListener('pointermove', show);
+    hit.addEventListener('pointerdown', show);
+    hit.addEventListener('pointerleave', function () { xh.setAttribute('visibility', 'hidden'); tip.hidden = true; });
+  }
+
+  function viewMemory() {
+    var cur = q();
+    var recs = cur.memory.slice();
+    if (st.locked) recs[0] = { type: 'Decision', text: st.locked.label + '. ' + st.locked.rationale, src: 'Locked by ' + st.locked.owner, when: st.locked.when, status: 'current' };
+    if (st.lessonSaved) recs.unshift({ type: 'Lesson', text: cur.lesson, src: 'Proposed by the Performance & Strategy agent · approved by you', when: 'Apr 2027', status: 'current' });
+    var types = ['All', 'Decision', 'Evidence', 'Assumption', 'Lesson'];
+    var chips = types.map(function (t) { return '<button type="button" class="chip-btn" data-mem="' + t + '" aria-pressed="' + (st.memFilter === t) + '">' + (t === 'All' ? 'All records' : t + 's') + '</button>'; }).join('');
+    var list = recs.filter(function (r) { return st.memFilter === 'All' || r.type === st.memFilter; }).map(function (r, i) {
+      var key = r.type + r.when + r.text.slice(0, 12), rv = st.reviewed[key];
+      var flag = r.status === 'stale' ? (rv ? '<span class="tag known">Reviewed · kept with caveat</span>' : '<span class="tag stale">Out of date</span>') :
+        r.status === 'contradiction' ? (rv ? '<span class="tag known">Resolved · finance invoices win</span>' : '<span class="tag restricted">Contradiction</span>') : '<span class="tag known">Current</span>';
+      var btn = (r.status !== 'current' && !rv) ? '<button type="button" class="btn ghost small" data-review="' + esc(key) + '">' + (r.status === 'stale' ? 'Review' : 'Resolve') + '</button>' : '';
+      return '<div class="record"><div class="record-top"><span class="tag ' + (r.type === 'Decision' ? 'rec' : r.type === 'Evidence' ? 'fact' : r.type === 'Lesson' ? 'known' : 'interp') + '">' + r.type + '</span>' + flag + '</div><p>' + esc(r.text) + '</p><div class="record-top"><span class="src">' + esc(r.src) + ' · ' + r.when + '</span>' + btn + '</div></div>';
+    }).join('') || '<p class="muted">No records of this type yet.</p>';
+    var h = cur.handover;
+    var tl = '<div class="timeline">' +
+      '<div class="tl join"><span class="when">Oct 2026</span>' + cur.humans[0].name + ' joins for this question</div>' +
+      '<div class="tl"><span class="when">Oct 2026</span>Decision ' + (st.locked ? 'locked by ' + esc(st.locked.owner) : 'recommended') + '</div>' +
+      (st.rotated ? '<div class="tl leave"><span class="when">Feb 2027</span>' + h.leaving + ' leaves at the end of the mandate</div><div class="tl join"><span class="when">Feb 2027</span>' + h.joining + ' joins and receives the handover</div>' : '<div class="tl"><span class="when">Next</span>The team changes when the work does</div>') +
+      '</div>';
+    var hand = st.rotated
+      ? '<div class="card handover"><p class="label">Handover to the ' + h.joining.toLowerCase() + '</p><h3 style="margin-top:6px">What they arrive knowing</h3><ul class="list">' + h.points.map(function (p) { return '<li><span>' + p + '</span></li>'; }).join('') + '</ul>' +
+        '<div class="access"><div><b>Can see</b>' + h.can.join('<br>') + '</div><div><b>Cannot see</b>' + h.cannot.join('<br>') + '</div></div><p class="note" style="margin-top:12px">Every item links back to its original source and decision.</p></div>'
+      : '<div class="card soft"><h3>Rotate the team</h3><p class="muted" style="font-size:14px">The ' + h.leaving.toLowerCase() + '\'s fractional mandate ends. Their knowledge stays: see what the ' + h.joining.toLowerCase() + ' receives.</p><button type="button" class="btn" data-action="rotate" style="margin-top:14px">' + h.leaving + ' leaves · ' + h.joining + ' joins</button></div>';
+    return head('Memory & handover', 'Decisions, evidence, assumptions and lessons form a client-owned memory, each with its source, owner and date. Out-of-date and contradictory records are surfaced for review, not silently trusted. When the team changes, the knowledge stays.') +
+      '<div class="grid g-wide" style="align-items:start">' +
+        '<div class="card"><div class="record-top" style="margin-bottom:12px"><h3 style="margin:0">Institutional memory</h3><span class="muted num" style="font-size:13px">' + recs.length + ' records</span></div><div class="filters" style="margin-bottom:14px">' + chips + '</div>' + list + '</div>' +
+        '<div class="grid"><div class="card"><h3>The team over time</h3>' + tl + '</div>' + hand + '</div>' +
+      '</div>' +
+      '<div class="card ink" style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between"><p style="font-family:var(--display);font-weight:300;font-size:18px">The team evolves. <span style="color:var(--brass)">The knowledge compounds.</span></p><button type="button" class="btn brass" data-action="restart">Try another question</button></div>';
+  }
+
+  var VIEWS = [viewKnow, viewAsk, viewTeam, viewSession, viewAnalysis, viewDecide, viewFollow, viewMemory];
+
+  // ─── Rendering and events ──────────────────────────────────────────────
+  var stepsEl = document.getElementById('steps'), view = document.getElementById('view');
+  var back = document.getElementById('back'), next = document.getElementById('next'), railQ = document.getElementById('rail-q');
+
+  function canEnter(i) { return i <= 1 || !!st.qid; }
+
+  function render() {
+    stepsEl.innerHTML = STEPS.map(function (s, i) {
+      var cur = i === st.step, done = st.visited[i] && !cur;
+      return '<li><button type="button" class="step-btn' + (done ? ' done' : '') + '" data-step="' + i + '"' + (cur ? ' aria-current="step"' : '') + (canEnter(i) ? '' : ' disabled title="Choose a question first"') + '><span class="n">' + (done ? '✓' : i + 1) + '</span><span><span class="t">' + s.t + '</span><span class="s">' + s.s + '</span></span></button></li>';
+    }).join('');
+    var cur = q();
+    railQ.innerHTML = cur ? 'Question in play<b>' + esc(cur.short) + '</b>' : 'No question chosen yet';
+    view.innerHTML = VIEWS[st.step]();
+    back.disabled = st.step === 0;
+    var nextStep = st.step + 1;
+    next.hidden = st.step === STEPS.length - 1;
+    next.disabled = !canEnter(nextStep);
+    next.textContent = st.step < STEPS.length - 1 ? STEPS[nextStep].t + ' →' : '';
+    if (st.step === 6) drawChart();
+  }
+
+  function go(i) {
+    if (i < 0 || i >= STEPS.length || !canEnter(i)) return;
+    clearTimers();
+    st.visited[st.step] = true;
+    st.step = i;
+    if (i === 3 && st.revealed < sessionItems().length) { render(); runReveal(); }
+    else render();
+    view.focus({ preventScroll: true });
+    window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' });
+  }
+
+  stepsEl.addEventListener('click', function (e) { var b = e.target.closest('[data-step]'); if (b && !b.disabled) go(+b.dataset.step); });
+  back.addEventListener('click', function () { go(st.step - 1); });
+  next.addEventListener('click', function () { go(st.step + 1); });
+
+  view.addEventListener('click', function (e) {
+    var t = e.target.closest('button, [data-q]');
+    if (!t || t.disabled) return;
+    if (t.dataset.q) { selectQuestion(t.dataset.q); render(); return; }
+    if (t.dataset.go) { go(+t.dataset.go); return; }
+    if (t.dataset.agent) { st.agentsOn[t.dataset.agent] = !st.agentsOn[t.dataset.agent]; st.revealed = 0; render(); return; }
+    if (t.dataset.human) { st.humansOn[t.dataset.human] = !st.humansOn[t.dataset.human]; st.revealed = 0; render(); return; }
+    if (t.dataset.filter) { st.filter = t.dataset.filter; render(); return; }
+    if (t.dataset.tab) { st.tab = t.dataset.tab; render(); return; }
+    if (t.dataset.choice) { st.choice = t.dataset.choice; render(); return; }
+    if (t.dataset.mem) { st.memFilter = t.dataset.mem; render(); return; }
+    if (t.dataset.review) { st.reviewed[t.dataset.review] = true; render(); return; }
+    var a = t.dataset.action;
+    if (a === 'reveal-all') { clearTimers(); st.revealed = sessionItems().length; render(); }
+    else if (a === 'run') {
+      st.running = true; render();
+      timers.push(setTimeout(function () { st.running = false; st.analysed = true; st.tab = 'experts'; render(); }, reduced() ? 0 : 2200));
+    }
+    else if (a === 'lock') {
+      var labels = { adopt: 'Adopted', amend: 'Adopted with changes', reject: 'Rejected' };
+      var rec = st.analysed ? verdict().v.headline : q().chair.decision;
+      var d = new Date();
+      st.locked = { label: labels[st.choice] + ': ' + rec, rationale: st.rationale || '(no reasons given)', owner: st.owner, when: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) };
+      render();
+    }
+    else if (a === 'lesson') { st.lessonSaved = true; render(); }
+    else if (a === 'table') { st.showTable = !st.showTable; render(); }
+    else if (a === 'rotate') { st.rotated = true; render(); }
+    else if (a === 'restart') { st.visited = {}; st.qid = null; go(1); }
+  });
+
+  view.addEventListener('input', function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.dial) {
+      st.calib[t.dataset.dial] = +t.value / 10;
+      var top = t.closest('.dial').querySelector('.num'); if (top) top.textContent = t.value + ' / 10';
+    }
+    if (t.id === 'rationale') st.rationale = t.value;
+  });
+  view.addEventListener('change', function (e) {
+    var t = e.target;
+    if (t.dataset && t.dataset.dial && st.analysed) render();   // the recommendation follows the dials once run
+    if (t.id === 'owner') st.owner = t.value;
+    if (t.dataset && t.dataset.act !== undefined) { st.done[t.dataset.act] = t.checked; render(); }
+  });
+
+  // Open on a realistic working state: the first question chosen.
+  selectQuestion('acquire');
+  render();
+})();
+</script>
+</body>
+</html>

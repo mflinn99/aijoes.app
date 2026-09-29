@@ -1,0 +1,69 @@
+name: Sage Halpin
+
+on:
+  pull_request:
+    paths: ["sage-halpin/**", ".github/workflows/sage-halpin.yml"]
+  push:
+    # The repository's default branch today, and main if it is renamed.
+    branches: [main, claude/aiogo-metamsp-build-directive-2lsui2]
+    paths: ["sage-halpin/**", ".github/workflows/sage-halpin.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sage-halpin-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: sage-halpin
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sage-halpin/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run check:brand
+      - name: Compile infrastructure
+        run: az bicep build --file infra/main.bicep --stdout > /dev/null
+      - name: Build container image
+        run: docker build -t sage-halpin:ci .
+
+  # Deploys on merge to the default branch once the repository variables below are set:
+  #   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID  (OIDC federated credential)
+  #   AZURE_RESOURCE_GROUP, FOUNDRY_RESOURCE_NAME
+  #   optional: SAGE_HALPIN_ENV (default prod), AI_MODEL, VITE_ENQUIRY_EMAIL
+  deploy:
+    needs: ci
+    if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch && vars.AZURE_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      FOUNDRY_RESOURCE_NAME: ${{ vars.FOUNDRY_RESOURCE_NAME }}
+      ENVIRONMENT_NAME: ${{ vars.SAGE_HALPIN_ENV || 'prod' }}
+      AI_MODEL: ${{ vars.AI_MODEL || 'claude-opus-5-5' }}
+      VITE_ENQUIRY_EMAIL: ${{ vars.VITE_ENQUIRY_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Provision, build and roll out
+        run: ./infra/deploy.sh
