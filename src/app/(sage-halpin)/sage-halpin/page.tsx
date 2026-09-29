@@ -1,5 +1,7 @@
 import { BoardroomHero } from './BoardroomHero';
+import { FlowBoard } from './FlowBoard';
 import { Mark } from './Mark';
+import { SectionReveal } from './SectionReveal';
 
 // Copy follows the rebrand proposal (revised 23 September 2026), reworded as an
 // evolving team. Two things are deliberately absent until they exist: real
@@ -16,12 +18,12 @@ export default function SageHalpinPage() {
             <span><span className="wordmark-name">SAGE HALPIN</span><span className="wordmark-desc">THE EVOLVING BOARD</span></span>
           </a>
           <nav className="nav" aria-label="Primary">
-            <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a className="nav-cta" href="#contact">Talk to Us</a>
+            <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#horizon">The Horizon</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a className="nav-cta" href="#contact">Talk to Us</a>
           </nav>
           <details className="menu">
             <summary>Menu</summary>
             <nav aria-label="Primary, compact">
-              <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a href="#contact">Talk to Us</a>
+              <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#horizon">The Horizon</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a href="#contact">Talk to Us</a>
             </nav>
           </details>
         </div>
@@ -33,18 +35,24 @@ export default function SageHalpinPage() {
               <p className="label eyebrow">Sage Halpin · The evolving board</p>
               <h1 id="hero-title">The team evolves. <span className="second">The knowledge compounds.</span></h1>
               <p className="lede">An evolving team of human experts and agentic advisers that scales and flexes with the ever-changing needs of your organisation. One enduring institutional memory, so each decision benefits from the knowledge of those that came before.</p>
-              <div className="ctas">
-                <a className="btn btn-primary" href="#idea">Explore Sage Halpin</a>
-                <a className="btn btn-ghost" href="#how">See the model</a>
-              </div>
             </div>
       </BoardroomHero>
 
         <div className="strip">
           <div className="wrap strip-inner">
-            <span>Human judgement</span><em>×</em><span>Agentic capability</span><em>×</em><span>Institutional memory</span>
+            <span>Human judgement</span><em>×</em><span>Agentic capability</span><em>×</em><span>Horizon scanning</span><em>×</em><span>Institutional memory</span>
           </div>
         </div>
+
+
+        <section id="ask" className="section flow-sec" aria-labelledby="flow-title">
+          <div className="wrap">
+            <p className="label kicker">Ask the board</p>
+            <h2 id="flow-title">A question goes in. Every perspective works it. An answer comes out.</h2>
+            <FlowBoard />
+            <p className="flow-note">Example questions and answers for a fictional company. People decide; agents advise.</p>
+          </div>
+        </section>
 
         <section id="idea" className="section">
           <div className="wrap">
@@ -115,6 +123,42 @@ export default function SageHalpinPage() {
                   <li><span className="dot dot-agent" /><strong>Sector specialist agent</strong><span>Brings an industry's regulation and dynamics.</span></li>
                 </ul>
               </article>
+            </div>
+          </div>
+        </section>
+
+        <section id="horizon" className="section horizon" aria-labelledby="horizon-title">
+          <div className="wrap">
+            <div className="horizon-head">
+              <div>
+                <p className="label kicker">The horizon</p>
+                <h2 id="horizon-title">See it coming. Be ready when it arrives.</h2>
+              </div>
+              <div className="prose"><p>Between meetings, agents look forward as well as back. They scan the landscape and the frontier against your agreed priorities, and prepare the board before the question reaches the agenda.</p></div>
+            </div>
+            <div className="horizon-grid">
+              <article className="scan">
+                <p className="scan-k">Landscape scanning</p>
+                <h3>What is moving around you.</h3>
+                <p>Markets, competitors, customers, regulation, supply chains and capital markets, watched continuously for signals that touch your strategy. A weekly landscape brief, with sources.</p>
+              </article>
+              <article className="scan">
+                <p className="scan-k">Innovation scanning</p>
+                <h3>What could change the game.</h3>
+                <p>Emerging technologies, new business models and adjacent entrants, each assessed for relevance, maturity and time to impact on your business.</p>
+              </article>
+              <article className="scan scan-ready">
+                <p className="scan-k">Preparation</p>
+                <h3>Ready before the question is asked.</h3>
+                <p>Scenario rehearsals, pre-mortems and prepared options, so when a signal becomes a decision the board already has the evidence, the alternatives and the right people lined up.</p>
+              </article>
+            </div>
+            <div className="radar" role="table" aria-label="Example signals">
+              <div className="radar-row radar-head" role="row"><span role="columnheader">Example signal</span><span role="columnheader">Area</span><span role="columnheader">Horizon</span><span role="columnheader">Status</span></div>
+              <div className="radar-row" role="row"><span role="cell">Low-cost sensor entrant targets the mid-market</span><span role="cell">Competition</span><span role="cell">Now</span><span role="cell"><span className="st st-watch">Watching</span></span></div>
+              <div className="radar-row" role="row"><span role="cell">Sector regulator consults on metering data rules</span><span role="cell">Regulation</span><span role="cell">6–18 months</span><span role="cell"><span className="st st-prep">Preparing</span></span></div>
+              <div className="radar-row" role="row"><span role="cell">Consolidation among large utility customers</span><span role="cell">Market</span><span role="cell">6–18 months</span><span role="cell"><span className="st st-ready">Options ready</span></span></div>
+              <div className="radar-row" role="row"><span role="cell">Solid-state flow sensing reaches pilot scale</span><span role="cell">Technology</span><span role="cell">3–5 years</span><span role="cell"><span className="st st-watch">Watching</span></span></div>
             </div>
           </div>
         </section>
@@ -211,6 +255,7 @@ export default function SageHalpinPage() {
           <p className="disclosure">Human advisers and AI agents support the board. AI agents are not statutory directors and do not exercise voting rights. The client's authorised people retain decision authority. Data access, retention and deletion follow the agreed terms.</p>
         </div>
       </footer>
+      <SectionReveal />
     </div>
   );
 }

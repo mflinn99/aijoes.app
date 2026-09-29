@@ -19,7 +19,7 @@ const COUNT = LAST - FIRST + 1;
 // identical frame and the loop has no visible seam.
 const COPIES = 3;
 const STRIP = Array.from({ length: COUNT * COPIES }, (_, i) => FIRST + (i % COUNT));
-const YEAR_MS = 7000; // one year every 7 seconds
+const YEAR_MS = 14000; // one year every 14 seconds
 const SWAP_EVERY = 3600; // one seat changes hands every 3.6 seconds
 const FADE_MS = 3200;
 const EMPTY_MS = 1200;
