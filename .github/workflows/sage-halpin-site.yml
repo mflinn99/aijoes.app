@@ -1,0 +1,35 @@
+name: Sage Halpin site
+
+# Publishes sage-halpin/site (the landing page and the interactive demo) to
+# GitHub Pages, served at sagehalpin.aigogo.ai once the custom domain is set in
+# Settings → Pages and the DNS record points at GitHub Pages.
+
+on:
+  push:
+    branches: [claude/aiogo-metamsp-build-directive-2lsui2]
+    paths: ["sage-halpin/site/**", ".github/workflows/sage-halpin-site.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: sage-halpin-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: sage-halpin/site
+      - id: deployment
+        uses: actions/deploy-pages@v4
