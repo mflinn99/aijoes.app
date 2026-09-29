@@ -7,6 +7,11 @@ Written 29 September 2026. Sources: the Sage Halpin rebrand proposal (revised
 branding while keeping its functionality, and the landing page already built at
 `mflinn99/aijoes.app` → `src/app/(sage-halpin)/sage-halpin/`.
 
+STATUS (29 September 2026): built from the Sixonic standalone export into
+`sage-halpin/` in this repository. See `sage-halpin/docs/BUILD-STATUS.md` for
+what was verified, and for where the build departs from this instruction
+(Sixonic has no database, sign-in or tenants, so none were added).
+
 ---
 
 HOW TO USE THIS

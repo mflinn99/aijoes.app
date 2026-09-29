@@ -108,8 +108,11 @@ resolving). The page has its own root layout under `src/app/(sage-halpin)/`, so 
 needs no sign-in and shares nothing with the platform shell; the platform's screens
 live in `src/app/(platform)/` with their URLs unchanged.
 
-`docs/sage-halpin/BUILD-INSTRUCTION.md` is the Claude Code instruction for
-rebuilding Sixonic as Sage Halpin on Azure.
+`sage-halpin/` is that product: the Sixonic boardroom app, rebranded as Sage
+Halpin, calling Claude on Microsoft Foundry and deployable to Azure Container Apps
+from `sage-halpin/infra/`. It is self-contained (its own package, tests and
+pipeline, `.github/workflows/sage-halpin.yml`); start with `sage-halpin/README.md`.
+`docs/sage-halpin/BUILD-INSTRUCTION.md` is the instruction it was built from.
 
 Before launch: Bryn Sage's and Mark Halpin's consent to the name, trade mark and
 domain checks, real photography, and an enquiry route for "Talk to Us", which
