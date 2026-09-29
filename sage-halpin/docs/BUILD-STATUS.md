@@ -7,7 +7,7 @@
 - **Functionality carried across**: every Sixonic screen, action and API
   contract (see `MAPPING.md`). The demo video modal was removed; it was not used.
 - **Rebrand**: name, wordmark, symbol, favicon, social image, palette (ink,
-  ivory, brass, slate), type (Newsreader and Inter), copy and metadata. The
+  ivory, brass, slate), type (Unbounded and Figtree, both rounded), copy and metadata. The
   brand check finds no Sixonic branding and no "roster" in shipped files.
 - **People and AI**: agents are named by role and tagged "AI agent"; the chair
   recommends a resolution and the person decides; the disclosure is in the footer.

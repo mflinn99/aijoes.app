@@ -245,7 +245,7 @@ export default function Analysis() {
   const canFeedback = feedbackRound < 2 && step === "results";
 
   return (
-    <div style={{ background: BG, minHeight: "100vh", fontFamily: "Inter, sans-serif", color: TEXT }} data-testid="analysis-page">
+    <div style={{ background: BG, minHeight: "100vh", fontFamily: "var(--font-sans)", color: TEXT }} data-testid="analysis-page">
       {/* Top bar */}
       <div style={{ position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 32px", borderBottom: `1px solid ${BORDER}`, background: "hsl(var(--background) / 0.95)", backdropFilter: "blur(8px)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
@@ -299,7 +299,7 @@ export default function Analysis() {
                     placeholder="Describe your specific board challenge — e.g. 'We are considering a joint venture with a European distributor to accelerate expansion…'"
                     rows={3}
                     disabled
-                    style={{ width: "100%", background: "#EEE9DF", border: `1px solid ${BORDER}`, borderRadius: 9, color: TEXT_MUTED, fontSize: 11, padding: "14px 16px", outline: "none", resize: "none", fontFamily: "Inter, sans-serif", boxSizing: "border-box", letterSpacing: "0.03em", lineHeight: 1.6, cursor: "not-allowed", opacity: 0.7 }}
+                    style={{ width: "100%", background: "#EEE9DF", border: `1px solid ${BORDER}`, borderRadius: 9, color: TEXT_MUTED, fontSize: 11, padding: "14px 16px", outline: "none", resize: "none", fontFamily: "var(--font-sans)", boxSizing: "border-box", letterSpacing: "0.03em", lineHeight: 1.6, cursor: "not-allowed", opacity: 0.7 }}
                   />
                   <div style={{ position: "absolute", bottom: 12, right: 14, display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ color: TEXT_MUTED, fontSize: 9, letterSpacing: "0.1em" }}>Unlimited bespoke challenges — coming in the next release.</span>
@@ -668,7 +668,7 @@ export default function Analysis() {
                           </div>
                         ))}
                       </div>
-                      <textarea placeholder="Optional: add feedback or context for the board…" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} rows={2} style={{ width: "100%", background: BG, border: `1px solid ${BORDER}`, borderRadius: 6, color: TEXT_SEC, fontSize: 11, padding: "10px 12px", outline: "none", resize: "none", fontFamily: "Inter, sans-serif", boxSizing: "border-box", marginBottom: 14 }} />
+                      <textarea placeholder="Optional: add feedback or context for the board…" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} rows={2} style={{ width: "100%", background: BG, border: `1px solid ${BORDER}`, borderRadius: 6, color: TEXT_SEC, fontSize: 11, padding: "10px 12px", outline: "none", resize: "none", fontFamily: "var(--font-sans)", boxSizing: "border-box", marginBottom: 14 }} />
                       <div style={{ display: "flex", gap: 10 }}>
                         <button onClick={handleFeedback} style={{ background: "#13232B", border: "none", borderRadius: 6, color: "#fff", fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", fontWeight: 700, padding: "9px 20px", cursor: "pointer", boxShadow: "0 2px 10px rgba(19,35,43,0.35)" }}>Re-run Analysis</button>
                         <button onClick={() => setShowFeedback(false)} style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 6, color: TEXT_MUTED, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", padding: "9px 14px", cursor: "pointer" }}>Cancel</button>

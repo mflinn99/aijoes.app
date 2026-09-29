@@ -221,13 +221,14 @@ rates).
 - Palette: midnight ink `#13232B`, warm ivory `#F5F1E9`, muted brass
   `#B28A56`, slate `#65737A`, white `#FFFFFF`. Map every Sixonic colour
   token to one of these; delete the old tokens.
-- Type: Newsreader (editorial serif) for statements, Inter for interface and
-  evidence; both SIL OFL.
-- Symbol and favicon: the SH constellation, nodes around one continuous
-  central line, working as a static single-colour shape. No robots, brains
-  or circuit boards.
-- Motion: nodes join, exchange and move on while the line remains and grows;
-  respect `prefers-reduced-motion`.
+- Type: Unbounded (wide, rounded) for headlines, Figtree (rounded sans) for
+  interface and text; both SIL OFL.
+- Symbol and favicon: six dots, each a different colour, seated around one
+  oval table. People are green and AI agents white wherever the two are
+  distinguished. No robots, brains or circuit boards.
+- Motion: an oval boardroom table whose seats slowly change between people
+  and agents, one seat at a time at a steady rhythm, with faded years drifting
+  2020 to 2030 and back at a constant speed; respect `prefers-reduced-motion`.
 - Character: intelligent, assured, adaptable, quietly ambitious; more
   contemporary institution than software startup. Generous space, fine
   rules, structured timelines.

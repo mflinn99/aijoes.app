@@ -76,7 +76,7 @@ export default function Boardroom() {
   }
 
   return (
-    <div style={{ background: BG, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "Inter, sans-serif" }} data-testid="boardroom-page">
+    <div style={{ background: BG, minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "var(--font-sans)" }} data-testid="boardroom-page">
       {/* Top bar */}
       <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 32px", borderBottom: `1px solid ${BORDER}`, background: "hsl(var(--background) / 0.97)", backdropFilter: "blur(8px)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
@@ -229,7 +229,7 @@ export default function Boardroom() {
                 placeholder="State your strategic challenge, decision, or question…"
                 rows={2}
                 disabled={loading}
-                style={{ width: "100%", background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 8, color: TEXT, fontSize: 12, letterSpacing: "0.03em", padding: "12px 14px", outline: "none", resize: "none", fontFamily: "Inter, sans-serif", lineHeight: 1.5, boxSizing: "border-box", opacity: loading ? 0.6 : 1, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
+                style={{ width: "100%", background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 8, color: TEXT, fontSize: 12, letterSpacing: "0.03em", padding: "12px 14px", outline: "none", resize: "none", fontFamily: "var(--font-sans)", lineHeight: 1.5, boxSizing: "border-box", opacity: loading ? 0.6 : 1, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}
               />
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>

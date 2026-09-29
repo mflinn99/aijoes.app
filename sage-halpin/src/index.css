@@ -39,8 +39,9 @@
   --color-destructive-foreground: hsl(var(--destructive-foreground));
   --color-destructive-border: var(--destructive-border);
 
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --font-sans: 'Figtree', 'Nunito Sans', 'Segoe UI', system-ui, sans-serif;
+  /* The display face: wide and rounded. Kept on the serif token so existing font-serif headings pick it up. */
+  --font-serif: 'Unbounded', 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif;
   --font-mono: Menlo, monospace;
 
   --radius-sm: calc(var(--radius) - 4px);

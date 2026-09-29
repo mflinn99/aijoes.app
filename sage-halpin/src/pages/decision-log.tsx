@@ -46,7 +46,7 @@ export default function DecisionLog() {
   }
 
   return (
-    <div style={{ background: BG, minHeight: "100vh", fontFamily: "Inter, sans-serif", color: TEXT }}>
+    <div style={{ background: BG, minHeight: "100vh", fontFamily: "var(--font-sans)", color: TEXT }}>
       {/* Top bar */}
       <div style={{ position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center", gap: 20, padding: "16px 32px", borderBottom: `1px solid ${BORDER}`, background: "hsl(var(--background) / 0.95)", backdropFilter: "blur(8px)" }}>
         <button
