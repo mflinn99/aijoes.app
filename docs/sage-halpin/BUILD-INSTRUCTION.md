@@ -226,9 +226,10 @@ rates).
 - Symbol and favicon: six dots, each a different colour, seated around one
   oval table. People are green and AI agents white wherever the two are
   distinguished. No robots, brains or circuit boards.
-- Motion: an oval boardroom table whose seats slowly change between people
-  and agents, one seat at a time at a steady rhythm, with faded years drifting
-  2020 to 2030 and back at a constant speed; respect `prefers-reduced-motion`.
+- Motion: the mark itself becomes the hero. Its six seats slowly change
+  between people (always green) and AI agents (the mark's other colours), one
+  seat at a time at a steady rhythm, while faded years roll forward from 2020
+  to 2030 and round again at a constant speed; respect `prefers-reduced-motion`.
 - Character: intelligent, assured, adaptable, quietly ambitious; more
   contemporary institution than software startup. Generous space, fine
   rules, structured timelines.

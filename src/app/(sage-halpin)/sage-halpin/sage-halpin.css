@@ -84,6 +84,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 300; letter-spacing: -0.0
 .dot { width: 11px; height: 11px; border-radius: 50%; flex: none; }
 .dot-person { background: var(--sage); box-shadow: 0 0 10px rgba(127, 182, 146, 0.6); }
 .dot-agent { background: var(--agent); box-shadow: 0 0 10px rgba(245, 241, 233, 0.5); }
+.dots { display: inline-flex; }
+.dots .dot { width: 9px; height: 9px; margin-left: -2px; box-shadow: 0 0 0 1.5px var(--ink); }
+.dots .dot:first-child { margin-left: 0; }
 @media (max-width: 900px) {
   .hero-inner { grid-template-columns: minmax(0, 1fr); padding-block: 40px 56px; }
   .stage { margin-right: 0; }
