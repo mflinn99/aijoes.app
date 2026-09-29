@@ -34,7 +34,8 @@ is no database: workspace data stays in each visitor's browser.
 ## Continuous deployment (GitHub Actions)
 
 `.github/workflows/sage-halpin.yml` runs the checks on every pull request that
-touches `sage-halpin/`, and on merge to `main` deploys with `infra/deploy.sh`.
+touches `sage-halpin/`, and on merge to the default branch deploys with `infra/deploy.sh`.
+The public website is separate; see `HOSTING.md`.
 
 One-time setup:
 1. Create an Entra app registration (or user-assigned identity) for GitHub.

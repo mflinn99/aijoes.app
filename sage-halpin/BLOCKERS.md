@@ -11,4 +11,5 @@ Each needs a person. None is a code defect.
 | **Name consent** | Written consent from Bryn Sage and Mark Halpin to the name and its public association | Bryn Sage, Mark Halpin |
 | **Trade mark and domain** | Checks in the relevant markets, then a custom domain on the Container App (or Front Door) | Mark Halpin |
 | **Enquiry address** | An address for the bespoke-challenge waitlist (`VITE_ENQUIRY_EMAIL`); the link is hidden until one exists | Mark Halpin |
+| **Publishing the website** | Merge PR #2, turn on GitHub Pages (Source: GitHub Actions), add the DNS record `sagehalpin` CNAME `mflinn99.github.io` for aigogo.ai, then set the custom domain. Steps in `docs/HOSTING.md` | Repository owner; whoever manages aigogo.ai DNS |
 | **Retiring sixonic.replit.app** | Once production is live: a "Sage Halpin, formerly Sixonic" notice, then a redirect | Owner of the Sixonic Repl |

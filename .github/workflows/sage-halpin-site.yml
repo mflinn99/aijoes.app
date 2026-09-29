@@ -1,12 +1,14 @@
 name: Sage Halpin site
 
 # Publishes sage-halpin/site (the landing page and the interactive demo) to
-# GitHub Pages, served at sagehalpin.aigogo.ai once the custom domain is set in
-# Settings → Pages and the DNS record points at GitHub Pages.
+# GitHub Pages. Served at sagehalpin.aigogo.ai once the custom domain is set in
+# Settings → Pages and the DNS record points at GitHub Pages; until then at
+# https://mflinn99.github.io/aijoes.app/. See sage-halpin/docs/HOSTING.md.
 
 on:
   push:
-    branches: [claude/aiogo-metamsp-build-directive-2lsui2]
+    # The repository's default branch today, and main if it is renamed.
+    branches: [main, claude/aiogo-metamsp-build-directive-2lsui2]
     paths: ["sage-halpin/site/**", ".github/workflows/sage-halpin-site.yml"]
   workflow_dispatch:
 
@@ -21,6 +23,8 @@ concurrency:
 
 jobs:
   deploy:
+    # Pages only accepts deployments from the default branch.
+    if: github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     environment:
       name: github-pages

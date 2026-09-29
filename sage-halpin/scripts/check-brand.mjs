@@ -1,10 +1,11 @@
 // Fails if the retired Sixonic brand, or the word "roster", appears in anything
-// that ships: source, the HTML shell, public assets and (when built) dist.
+// that ships: the app source, its HTML shell, public assets, the build output
+// and the public website in site/.
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 
 const root = path.dirname(path.dirname(new URL(import.meta.url).pathname));
-const SHIPPED = ["src", "server", "public", "index.html", "dist"];
+const SHIPPED = ["src", "server", "public", "index.html", "dist", "site"];
 const BANNED = [/sixonic/i, /\broster\b/i];
 const TEXT = /\.(tsx?|mjs|js|css|html|svg|json|txt)$/;
 

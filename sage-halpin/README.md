@@ -62,7 +62,15 @@ That provisions everything in `infra/main.bicep` (Container Apps, Container
 Registry, managed identity, Key Vault and Log Analytics, in UK South), builds the
 image in the registry, rolls it out and waits for `/api/readyz`. The GitHub
 Actions workflow (`.github/workflows/sage-halpin.yml`) does the same on merge to
-`main` once its repository variables are set.
+the default branch once its repository variables are set.
+
+## The website
+
+`site/` is the public website: the landing page (`site/index.html`) and the
+interactive demo (`site/demo/index.html`), plain HTML with no build step. It
+publishes to GitHub Pages at sagehalpin.aigogo.ai through
+`.github/workflows/sage-halpin-site.yml`. [`docs/HOSTING.md`](docs/HOSTING.md) has
+the publishing steps for both the website and this app.
 
 ## Documentation
 
@@ -73,6 +81,7 @@ Actions workflow (`.github/workflows/sage-halpin.yml`) does the same on merge to
 | [`docs/MAPPING.md`](docs/MAPPING.md) | Every Sixonic feature, its Sage Halpin name, and the test that proves it |
 | [`docs/RENAME-EXCEPTIONS.md`](docs/RENAME-EXCEPTIONS.md) | Old identifiers kept on purpose, and why |
 | [`docs/BACKLOG.md`](docs/BACKLOG.md) | Proposal capabilities Sixonic never had, deliberately not built yet |
+| [`docs/HOSTING.md`](docs/HOSTING.md) | What runs where, and how to publish the website and the app |
 | [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | Deploy, roll back, rotate, observe |
 | [`BLOCKERS.md`](BLOCKERS.md) | What needs a person before launch |
 

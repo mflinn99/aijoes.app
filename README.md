@@ -100,19 +100,22 @@ database file, and shared-store rate limiting. See `docs/security-model.md`.
 
 ## Sage Halpin
 
-`/sage-halpin` is the public landing page for Sage Halpin, the evolving board.
 Sage Halpin is the new name and brand for Sixonic: the functionality stays, and it
-remains a mixed people-and-AI platform. The capability registry shows it as
-Sage Halpin (its id is still `sixonic`, so stored plans and playbooks keep
-resolving). The page has its own root layout under `src/app/(sage-halpin)/`, so it
-needs no sign-in and shares nothing with the platform shell; the platform's screens
-live in `src/app/(platform)/` with their URLs unchanged.
+remains a mixed people-and-AI platform. In this platform's capability registry it
+shows as Sage Halpin (its id is still `sixonic`, so stored plans and playbooks keep
+resolving).
 
-`sage-halpin/` is that product: the Sixonic boardroom app, rebranded as Sage
-Halpin, calling Claude on Microsoft Foundry and deployable to Azure Container Apps
-from `sage-halpin/infra/`. It is self-contained (its own package, tests and
-pipeline, `.github/workflows/sage-halpin.yml`); start with `sage-halpin/README.md`.
-`docs/sage-halpin/BUILD-INSTRUCTION.md` is the instruction it was built from.
+Everything else about Sage Halpin lives in `sage-halpin/`, self-contained, with
+its own package, tests and pipelines:
+
+- the **website** (landing page and interactive demo) in `sage-halpin/site/`,
+  published by GitHub Pages at sagehalpin.aigogo.ai;
+- the **boardroom app** (the rebranded Sixonic, calling Claude on Microsoft
+  Foundry), published to Azure Container Apps from `sage-halpin/infra/`.
+
+`sage-halpin/docs/HOSTING.md` says how to publish each. Start with
+`sage-halpin/README.md`; `docs/sage-halpin/BUILD-INSTRUCTION.md` is the
+instruction it was built from.
 
 Before launch: Bryn Sage's and Mark Halpin's consent to the name, trade mark and
 domain checks, real photography, and an enquiry route for "Talk to Us", which

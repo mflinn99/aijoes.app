@@ -5,7 +5,8 @@ Rebrand Sixonic as Sage Halpin, keep its functionality, host it in Microsoft Azu
 Written 29 September 2026. Sources: the Sage Halpin rebrand proposal (revised
 23 September 2026), the direction that Sage Halpin replaces Sixonic's name and
 branding while keeping its functionality, and the landing page already built at
-`mflinn99/aijoes.app` → `src/app/(sage-halpin)/sage-halpin/`.
+`mflinn99/aijoes.app` → `sage-halpin/site/` (it was first built as a route in the
+MetaMSP app, since moved there).
 
 STATUS (29 September 2026): built from the Sixonic standalone export into
 `sage-halpin/` in this repository. See `sage-halpin/docs/BUILD-STATUS.md` for
@@ -140,7 +141,7 @@ its behaviour and move it onto this stack.
 | Contract | `lib/api-spec/openapi.yaml` is the source of truth; Orval generates React Query hooks and Zod schemas (`zod/v4`). Re-run codegen after any spec change |
 | Database | PostgreSQL 16 + Drizzle ORM; `drizzle-kit` migrations committed and applied by CI (no `push` in production) |
 | Web | React + Vite, wouter, TanStack Query, Tailwind + shadcn/ui, restyled to the Sage Halpin identity (section 6) |
-| Public site | Port the landing page from `mflinn99/aijoes.app` `src/app/(sage-halpin)/sage-halpin/`: copy, the `Constellation` hero animation, the `Mark` symbol and the CSS tokens. Keep its reduced-motion behaviour and phone-width layout. Adjust copy only where Sixonic's real functionality needs describing |
+| Public site | Port the landing page from `mflinn99/aijoes.app` `sage-halpin/site/`: copy, the `Constellation` hero animation, the `Mark` symbol and the CSS tokens. Keep its reduced-motion behaviour and phone-width layout. Adjust copy only where Sixonic's real functionality needs describing |
 | AI | Whatever Sixonic's AI features do, now via Claude on Microsoft Foundry (section 5) |
 | Build | esbuild CJS bundle for the API; Vite static build for the web |
 

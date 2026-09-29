@@ -30,6 +30,10 @@
   0.47. The deploy script passes a shell syntax check and the workflow passes
   actionlint.
 
+- **Website**: `site/` (landing page and demo) serves correctly as a static
+  site, with relative links so it works both at the GitHub Pages address and at
+  sagehalpin.aigogo.ai. The brand check covers it.
+
 ## Not yet verified
 
 - **Real Claude output.** No Foundry deployment or Claude API key was
@@ -42,6 +46,8 @@
   staging run.
 - **A real Azure deployment.** The template compiles against Azure's resource
   schemas, but it has not been applied to a subscription.
+- **The website on its domain.** GitHub Pages and the DNS record still need
+  setting up (`HOSTING.md`).
 - **The Foundry role** needed for managed-identity access (BLOCKERS).
 
 ## Changes in behaviour, by design
