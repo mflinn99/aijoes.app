@@ -9,7 +9,7 @@ import { Mark } from './Mark';
 
 const NAV = [
   { href: '#idea', label: 'The Idea' },
-  { href: '#roster', label: 'The Roster' },
+  { href: '#team', label: 'The Team' },
   { href: '#memory', label: 'The Memory' },
   { href: '#how', label: 'How It Works' },
   { href: '#boards', label: 'For Boards' },
@@ -55,7 +55,7 @@ const STEPS = [
   },
   {
     n: '02',
-    title: 'Assemble the right roster',
+    title: 'Assemble the right team',
     short: 'Select human and agentic advisers for the work at hand.',
     long: 'Each opportunity or decision gets relevant human expertise and agentic advisers. Their remit, access, duration and authority are explicit.',
   },
@@ -68,7 +68,7 @@ const STEPS = [
   {
     n: '04',
     title: 'Learn and carry forward',
-    short: 'Record the outcome and make authorised knowledge available to the next roster.',
+    short: 'Record the outcome and make authorised knowledge available to the next team.',
     long: 'What was decided, why, by whom, on what evidence and with what result — revisited against reality. When advisers or executives rotate, a successor receives the relevant authorised context and can trace it to source.',
   },
 ];
@@ -76,17 +76,17 @@ const STEPS = [
 const ENGAGEMENTS = [
   {
     name: 'First Decision',
-    assembled: 'A focused human and agent roster around one live board question.',
+    assembled: 'A focused team of human and agentic advisers around one live board question.',
     value: 'Decision brief, evidence map and an initial memory record.',
   },
   {
     name: 'Living Board',
-    assembled: 'A changing roster for recurring priorities, with agentic work between meetings.',
+    assembled: 'A team that flexes with recurring priorities, with agentic work between meetings.',
     value: 'Ongoing decision cycle, action follow-through and maintained company memory.',
   },
   {
     name: 'Group Intelligence',
-    assembled: 'Rosters across business units or portfolio companies with appropriate separation.',
+    assembled: 'Teams across business units or portfolio companies, with appropriate separation.',
     value: 'Shared patterns where permitted, local decision histories and group-level learning.',
   },
 ];
@@ -143,14 +143,14 @@ export default function SageHalpinPage() {
             <div className="sh-hero-copy">
               <p className="sh-eyebrow">SAGE HALPIN · THE EVOLVING BOARD</p>
               <h1>
-                The roster evolves.
+                The team evolves.
                 <br />
                 <em>The knowledge compounds.</em>
               </h1>
               <p className="sh-lede">
-                A continuously changing roster of human experts and agentic advisers. One enduring
-                institutional memory. Each decision benefits from the knowledge of those that came
-                before.
+                An evolving team of human experts and agentic advisers that scales and flexes with
+                the ever-changing needs of your organisation. One enduring institutional memory, so
+                each decision benefits from the knowledge of those that came before.
               </p>
               <div className="sh-ctas">
                 <a className="sh-btn sh-btn-primary" href="#idea">
@@ -198,7 +198,7 @@ export default function SageHalpinPage() {
                 </p>
                 <p>
                   Approved learning from each assignment becomes part of the company’s enduring
-                  knowledge base. The roster is fluid. The knowledge is continuous. Board authority
+                  knowledge base. The team is fluid. The knowledge is continuous. Board authority
                   remains with the client’s appointed directors and authorised decision makers.
                 </p>
               </div>
@@ -219,17 +219,17 @@ export default function SageHalpinPage() {
           </div>
         </section>
 
-        <section id="roster" className="sh-section sh-section-alt">
+        <section id="team" className="sh-section sh-section-alt">
           <div className="sh-wrap">
-            <p className="sh-kicker">The roster</p>
+            <p className="sh-kicker">The team</p>
             <div className="sh-split">
-              <h2>Expertise that moves with you.</h2>
+              <h2>A team that scales and flexes with you.</h2>
               <div className="sh-prose">
                 <p>
-                  The roster follows the work: a finance expert for a transaction, an operator for
-                  integration, a sector adviser for expansion, and specialist agents active between
-                  meetings. Contributors change. The context remains available to authorised
-                  successors.
+                  The team grows, contracts and changes shape with the ever-changing needs of your
+                  organisation: a finance expert for a transaction, an operator for integration, a
+                  sector adviser for expansion, and specialist agents active between meetings.
+                  Contributors change. The context remains available to authorised successors.
                 </p>
               </div>
             </div>
@@ -237,7 +237,7 @@ export default function SageHalpinPage() {
             <div className="sh-two">
               <article className="sh-card">
                 <p className="sh-card-tag">
-                  <span className="sh-key sh-key-human" /> The human roster
+                  <span className="sh-key sh-key-human" /> Human advisers
                 </p>
                 <h3>Board-level people, for a defined mandate.</h3>
                 <p>
@@ -249,7 +249,7 @@ export default function SageHalpinPage() {
               </article>
               <article className="sh-card">
                 <p className="sh-card-tag">
-                  <span className="sh-key sh-key-agent" /> The agentic roster
+                  <span className="sh-key sh-key-agent" /> Agentic advisers
                 </p>
                 <h3>Persistent advisers that work between meetings.</h3>
                 <p>
@@ -328,7 +328,7 @@ export default function SageHalpinPage() {
                 <p>
                   Sage Halpin identifies the expertise a question calls for, convenes the relevant
                   people and agents, prepares a board-ready view, records the decision and follows
-                  execution. The roster adapts when the company’s priorities change.
+                  execution. The team adapts when the company’s priorities change.
                 </p>
               </div>
             </div>
@@ -389,7 +389,7 @@ export default function SageHalpinPage() {
               <em>Understanding deepens.</em>
             </h2>
             <p>
-              A living roster connected to a durable record of what the organisation knows, decides
+              An evolving team connected to a durable record of what the organisation knows, decides
               and learns.
             </p>
             <a className="sh-btn sh-btn-primary" href="#how">

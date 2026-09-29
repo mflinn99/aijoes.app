@@ -7,7 +7,7 @@ import type { Metadata, Viewport } from 'next';
 export const metadata: Metadata = {
   title: 'Sage Halpin — The Evolving Board',
   description:
-    'A continuously evolving board of people and agentic advisers. The roster evolves. The knowledge compounds.',
+    'An evolving team of people and agentic advisers that scales and flexes with the ever-changing needs of your organisation. The team evolves. The knowledge compounds.',
 };
 
 export const viewport: Viewport = {

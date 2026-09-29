@@ -89,7 +89,7 @@ can act: an emergency stop that needs an administrator is not an emergency stop.
 ## Status
 
 Every AIGoGo opco capability (Toleron, SaleSonic, ListeningPost, SourcingAI, Buyonic,
-GrothOS, Sixonic, Strata/MetaMSP, Onward) is **simulated** — none is reachable as code
+GrothOS, Sage Halpin (formerly Sixonic), Strata/MetaMSP, Onward) is **simulated** — none is reachable as code
 or as a service. Each is registered with its real interface and a deterministic mock,
 so each becomes real by writing one adapter. Simulated value can reach `REALISED` in
 the ledger but never `VERIFIED`.
@@ -100,17 +100,20 @@ database file, and shared-store rate limiting. See `docs/security-model.md`.
 
 ## Sage Halpin
 
-`/sage-halpin` is the public landing page for Sage Halpin, the evolving board —
-the proposed rebrand of Sixonic (proposal revised 23 September 2026). It has its
-own root layout under `src/app/(sage-halpin)/`, so it needs no sign-in and shares
-nothing with the platform shell; the platform's screens live in `src/app/(platform)/`
-with their URLs unchanged.
+`/sage-halpin` is the public landing page for Sage Halpin, the evolving board.
+Sage Halpin is the new name and brand for Sixonic: the functionality stays, and it
+remains a mixed people-and-AI platform. The capability registry shows it as
+Sage Halpin (its id is still `sixonic`, so stored plans and playbooks keep
+resolving). The page has its own root layout under `src/app/(sage-halpin)/`, so it
+needs no sign-in and shares nothing with the platform shell; the platform's screens
+live in `src/app/(platform)/` with their URLs unchanged.
+
+`docs/sage-halpin/BUILD-INSTRUCTION.md` is the Claude Code instruction for
+rebuilding Sixonic as Sage Halpin on Azure.
 
 Before launch: Bryn Sage's and Mark Halpin's consent to the name, trade mark and
-domain checks, confirmation of what Sixonic actually is (in this codebase it is a
-process-automation capability, so the registry entry is deliberately unchanged),
-real photography, and an enquiry route for "Talk to Us", which currently lands on
-the closing panel.
+domain checks, real photography, and an enquiry route for "Talk to Us", which
+currently lands on the closing panel.
 
 ## Documentation
 
