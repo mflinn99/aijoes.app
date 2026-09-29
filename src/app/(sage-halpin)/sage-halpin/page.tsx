@@ -18,12 +18,12 @@ export default function SageHalpinPage() {
             <span><span className="wordmark-name">SAGE HALPIN</span><span className="wordmark-desc">THE EVOLVING BOARD</span></span>
           </a>
           <nav className="nav" aria-label="Primary">
-            <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#horizon">The Horizon</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a className="nav-cta" href="#contact">Talk to Us</a>
+            <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#horizon">The Horizon</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a href="/sage-halpin/demo">Demo</a><a className="nav-cta" href="#contact">Talk to Us</a>
           </nav>
           <details className="menu">
             <summary>Menu</summary>
             <nav aria-label="Primary, compact">
-              <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#horizon">The Horizon</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a href="#contact">Talk to Us</a>
+              <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#horizon">The Horizon</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a href="/sage-halpin/demo">Demo</a><a href="#contact">Talk to Us</a>
             </nav>
           </details>
         </div>
@@ -34,7 +34,7 @@ export default function SageHalpinPage() {
       <div className="hero-copy">
               <p className="label eyebrow">Sage Halpin · The evolving board</p>
               <h1 id="hero-title">The team evolves. <span className="second">The knowledge compounds.</span></h1>
-              <p className="lede">An evolving team of human experts and agentic advisers that scales and flexes with the ever-changing needs of your organisation. One enduring institutional memory, so each decision benefits from the knowledge of those that came before.</p>
+              <p className="lede">An evolving team of fractional human experts and agentic advisers that scales and flexes with the ever-changing needs of your organisation. One enduring institutional memory, so each decision benefits from the knowledge of those that came before.</p>
             </div>
       </BoardroomHero>
 
@@ -103,7 +103,7 @@ export default function SageHalpinPage() {
                 <p className="big">People</p>
                 <div>
                   <h3>Board-level people, for a defined mandate.</h3>
-                  <p>A curated bench of board-level operators, sector specialists, functional experts and independent challengers. Members join for a specific problem, period or mandate, and leave behind a structured handover. Their participation and availability are contracted and visible to the client.</p>
+                  <p>A curated bench of fractional board-level operators, sector specialists, functional experts and independent challengers. Members join for a specific problem, period or mandate, and leave behind a structured handover. Their participation and availability are contracted and visible to the client.</p>
                 </div>
               </article>
               <article className="tile tile-agents">
@@ -123,6 +123,18 @@ export default function SageHalpinPage() {
                   <li><span className="dot dot-agent" /><strong>Sector specialist agent</strong><span>Brings an industry's regulation and dynamics.</span></li>
                 </ul>
               </article>
+            </div>
+            <div className="fractional">
+              <div>
+                <p className="label kicker">Fractional expertise</p>
+                <h3 className="fractional-title">Fractional people. <span>Permanent knowledge.</span></h3>
+                <p className="fractional-lede">Much of the best board-level expertise is now fractional: a CFO for a transaction, a COO for a scale-up, a non-executive for a season. Sage Halpin makes that model work for you by keeping what they knew after they leave.</p>
+              </div>
+              <ul className="fractional-points">
+                <li><span className="dot dot-person" /><div><b>The right seniority, for the time you need.</b> Fractional CFOs, COOs, CMOs, CTOs and non-executives join for a mandate, a deal or a season, on terms that fit the work.</div></li>
+                <li><span className="dot dot-person" /><div><b>Their thinking is captured as they work.</b> Decisions, reasoning, models, sources and the context behind each call are recorded with the organisation, not left in one person's inbox.</div></li>
+                <li><span className="dot dot-person" /><div><b>When they move on, what they knew stays.</b> Whoever comes next, fractional, permanent or agentic, starts from a traceable handover, not from zero.</div></li>
+              </ul>
             </div>
           </div>
         </section>
@@ -213,7 +225,7 @@ export default function SageHalpinPage() {
             <div className="boards-head">
               <div>
                 <p className="label kicker">For boards</p>
-                <h2>Built for consequential change.</h2>
+                <h2>Built for change.</h2>
               </div>
               <div className="prose"><p>For founder-led companies, ambitious mid-market boards, PE-backed businesses and groups whose priorities, leadership and opportunities change faster than a fixed advisory structure can serve.</p></div>
             </div>
@@ -243,7 +255,7 @@ export default function SageHalpinPage() {
             <div>
               <Mark size={52} className="mark" />
               <p>An evolving team connected to a durable record of what the organisation knows, decides and learns.</p>
-              <a className="btn btn-primary" href="#how">Explore the model</a>
+              <a className="btn btn-primary" href="/sage-halpin/demo">Try the interactive demo</a>
             </div>
           </div>
         </section>
