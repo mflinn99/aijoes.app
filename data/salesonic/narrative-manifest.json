@@ -1,0 +1,380 @@
+{
+  "description": "Every narrative assertion from the SaleSonic Data Requirements document that MUST be present in the SaleSonic personas app. Phrases are normalised (straight quotes, ASCII hyphens, single spaces). The coverage test asserts each phrase is present in the demo dataset, and that the dataset invents nothing the document does not support.",
+  "sourceDocument": "docs/salesonic/SOURCE-DOCUMENT.txt",
+  "normalisation": "NFKC; curly quotes -> straight; en/em dash -> hyphen; arrows -> \"->\"; currency symbol stripped when matching; whitespace collapsed; case-insensitive",
+  "groups": [
+    {
+      "id": "deal-summary-table",
+      "label": "Section 1 - Deal Summary Table",
+      "phrases": [
+        "0%",
+        "100%",
+        "15 Jun 2025",
+        "15 Oct 2026",
+        "20 Dec 2026",
+        "28 Apr 2025",
+        "30 Jun 2027",
+        "30 Nov 2026",
+        "35%",
+        "40%",
+        "65%",
+        "80%",
+        "Andrew Fleming",
+        "Asda Stores",
+        "Barclays",
+        "Brian Greenbank",
+        "Contact Centre Modernisation",
+        "Contact Centre Platform",
+        "Coors",
+        "Des Hunt",
+        "Early / Pipeline",
+        "Enterprise Stores Rollout",
+        "Enterprise Stores Rollout Phase 2",
+        "Losing / At Risk",
+        "Lost",
+        "Morrison",
+        "Ralph Kelly",
+        "Sean Kearney",
+        "Software Upgrade - Core Banking",
+        "Software Upgrade - Customer Portal",
+        "TFL",
+        "United Utilities",
+        "Winning",
+        "Winning (late stage)",
+        "Won",
+        "£100K",
+        "£150K",
+        "£250K",
+        "£350K",
+        "£500K",
+        "£600K"
+      ]
+    },
+    {
+      "id": "deal-contacts",
+      "label": "Key contacts (EB / TB / UB / Champion / Influencer / Approver)",
+      "phrases": [
+        "Amir Khan",
+        "Amy Collins",
+        "Chief Architect",
+        "Chris Morgan",
+        "Commercial Director",
+        "Contact Centre Manager",
+        "Contact Centre Ops Manager",
+        "Customer Director",
+        "Customer Experience Director",
+        "David Crowther",
+        "Digital Delivery Manager",
+        "Digital Platforms Lead",
+        "Director of Customer Service",
+        "Elena Petrova",
+        "Finance Business Partner",
+        "Fiona McLeod",
+        "Head of Retail Banking Ops",
+        "Head of Retail Operations",
+        "Head of Technology",
+        "Helen Brooks",
+        "IT Delivery Lead",
+        "IT Infrastructure Lead",
+        "James O'Neill",
+        "James Okafor",
+        "Karen White",
+        "Lisa Patel",
+        "Managing Director, Technology",
+        "Mark Davies",
+        "Michael Grant",
+        "Nadia Hussain",
+        "Online Services Lead",
+        "Paul Rigby",
+        "Priya Sharma",
+        "Procurement",
+        "Rachel Forsyth",
+        "Raj Patel",
+        "Regional Ops Manager",
+        "Regulatory Affairs",
+        "Retail Transformation Director",
+        "Risk & Compliance",
+        "Sarah Thompson",
+        "Sophie Lane",
+        "Store Operations Director",
+        "Store Regional Managers",
+        "Tom Reid"
+      ]
+    },
+    {
+      "id": "account-managers",
+      "label": "Account managers",
+      "phrases": [
+        "Andrew Fleming",
+        "Brian Greenbank",
+        "Des Hunt",
+        "Ralph Kelly",
+        "Sean Kearney"
+      ]
+    },
+    {
+      "id": "deal-history",
+      "label": "Deal history / activity notes (9 months)",
+      "phrases": [
+        "Discovery call. Lisa flagged major stock-out issues across 120 stores.",
+        "Workshop - mapped current vs future process. Mark raised integration concerns with legacy POS.",
+        "Proposal presented. Sarah pushed hard on ROI and payback < 14 months.",
+        "Technical deep-dive. Mark signed off architecture after we agreed on phased API approach.",
+        "Commercial negotiation. Sarah asked for 8% discount + extended support. We held at 5% + free year-1 training.",
+        "Final board paper approved.",
+        "Contract signed.",
+        "Initial meeting - Helen described high agent attrition and poor CSAT.",
+        "Demo of new platform. Strong positive reaction from ops team.",
+        "Commercial proposal issued.",
+        "Procurement entered. Tom Reid insisted on 3-vendor RFP.",
+        "We came second on price to a lower-cost competitor.",
+        "David decided to go with the cheaper option \"to protect margin this year\".",
+        "Discovery - Sophie highlighted regulatory pressure on legacy system.",
+        "Architecture workshop with Amir. Positive technical feedback.",
+        "Business case presented. Rachel asked for clearer risk reduction narrative.",
+        "Security & compliance review passed (Michael Grant supportive).",
+        "Commercial terms agreed in principle.",
+        "Final internal governance in progress.",
+        "Phase 1 success referenced. Karen pushing hard for Phase 2 before Black Friday.",
+        "Scope workshop completed.",
+        "Proposal accepted in principle.",
+        "Budget confirmation delayed by internal re-forecast.",
+        "Budget now unlocked. Contract red-lines in legal.",
+        "Strong start - Chris very engaged.",
+        "Technical proof-of-concept successful.",
+        "Budget freeze announced across TFL.",
+        "Deal stalled. James now prioritising cost reduction over transformation.",
+        "Competitor offering 20% lower price entered discussions.",
+        "First meeting - Amy described poor self-service adoption.",
+        "Discovery workshop.",
+        "High-level proposal sent.",
+        "Waiting for internal prioritisation meeting in October."
+      ]
+    },
+    {
+      "id": "anecdotes",
+      "label": "Anecdotal information (human context)",
+      "phrases": [
+        "Lisa became our internal champion after the February workshop. She told Ralph 'If we don't fix stock accuracy before peak season, we'll lose another £2m'. That urgency drove the whole deal.",
+        "Helen was our champion until Procurement took control. She later told Andrew 'I still think your solution was better, but the CFO only looked at year-1 cost'.",
+        "Sophie told Brian 'If we miss the FCA timeline I'll be the one explaining it to the Board'. That personal risk is driving her sponsorship.",
+        "Karen said 'Phase 1 saved us 14 minutes per stock take. Multiply that by 600 stores and the business case writes itself'.",
+        "Chris told Des last week 'I still want your platform, but James has been told to cut 12% from the cost base. I'm losing the argument'.",
+        "Amy said 'Customers are still ringing us for things they should be able to do online. Every call costs us £6.40'."
+      ]
+    },
+    {
+      "id": "persona-salesman",
+      "label": "Salesman view - recommendations and today's priorities",
+      "phrases": [
+        "The individual seller logs in and immediately sees only their own deals, scored and prioritised against the company's Commercial DNA",
+        "Book final commercial call this week. Suggested talk track focused on risk reduction for Rachel. Probability now 80% - push for signature before internal governance slips.",
+        "Legal red-lines are the only blocker. Send the revised contract today and ask Karen to escalate to Paul if needed. Target close 30 Nov.",
+        "Deal is losing. Immediate action: re-engage James with a revised commercial option (lower year-1 cost + phased rollout) or recommend graceful exit to protect forecast accuracy.",
+        "Keep warm. Next step: get Amy to introduce you to Fiona before the October prioritisation meeting.",
+        "Re-engage James Okafor today - offer phased commercial option to counter 12% cost-cut pressure. Champion Chris is weakening.",
+        "Send revised contract to legal and ask Karen White to escalate to Paul Rigby if no response by EOD.",
+        "Confirm final governance date with Sophie Lane - reference her FCA personal risk comment from May.",
+        "Request introduction from Amy Collins to Fiona McLeod before October prioritisation meeting.",
+        "Help the individual seller prioritise and execute the right actions on their own deals today.",
+        "My Pipeline at a Glance",
+        "Today's Priorities",
+        "Deal Health & Risks",
+        "Quick Actions",
+        "Recent Activity Feed",
+        "Economic Buyer engagement weak on TFL",
+        "Daily prioritisation, next-best actions, deal progression and forecast accuracy on their own book."
+      ]
+    },
+    {
+      "id": "persona-manager",
+      "label": "Sales Manager view - coaching and risk",
+      "phrases": [
+        "The manager sees the whole team's pipeline with coaching signals and risk flags.",
+        "Coach the team, protect the forecast, and remove blockers.",
+        "Team Pipeline & Forecast Summary",
+        "Rep Performance & Coaching Signals",
+        "At-Risk & Winning Deals",
+        "Team Activity & Momentum",
+        "Deal Inspection needed on TFL (150K) - probability dropped, champion fading. Book 15-min coaching call with Des today.",
+        "Barclays (500K) and Asda (250K) are both in final stages - help Brian and Sean clear remaining governance/legal blockers this week.",
+        "Morrison loss (350K) learning: ensure Economic Buyer stays engaged earlier. Share insight with team in weekly meeting.",
+        "Pipeline gap: need another 180K of high-confidence opportunities this quarter.",
+        "Procurement took control late. Ensure Economic Buyer stays engaged earlier next time.",
+        "Schedule deal inspection this week. Focus on rebuilding urgency with James or de-risk the forecast.",
+        "Coaching focus for the day, forecast hygiene, resource allocation, and early intervention on slipping deals."
+      ]
+    },
+    {
+      "id": "persona-director",
+      "label": "Sales Director / Executive view - forecast and big calls",
+      "phrases": [
+        "Board-level lens. Focuses on risk, coverage, momentum and big calls.",
+        "Control overall business performance, risk and big decisions.",
+        "Calibrated Forecast & Revenue Gap",
+        "Strategic Deal Watchlist",
+        "Momentum & Trends",
+        "War Room & Decision Log",
+        "TFL 150K is the main downside risk - decide today whether to de-commit or support a revised commercial approach.",
+        "Barclays 500K is the largest near-term upside - confirm it remains on track for mid-October close.",
+        "Run War Room on TFL and Barclays this week for a single logged recommendation.",
+        "Morrison loss highlights a process gap (late Procurement involvement) - decide if methodology coaching is required across the team.",
+        "Two deals (Barclays + Asda) are on track to land before year-end. TFL is the main downside risk. Morrison loss highlights need for earlier Economic Buyer lock-in.",
+        "Barclays: accelerate to close in October - risk of governance delay is higher than competitive risk. TFL: protect forecast accuracy - move to 20% or de-commit",
+        "Six advisory personas review the deal",
+        "Win rate, average sales cycle, forecast accuracy trend over the last 9 months.",
+        "Overall forecast commitment, major deal strategy, resource focus, and board-level narrative."
+      ]
+    },
+    {
+      "id": "forecast-bands",
+      "label": "Calibrated forecast bands",
+      "phrases": [
+        "Won: 600K (Coors)",
+        "High confidence (80%+): Barclays 500K",
+        "weighted 400K",
+        "Medium: Asda 250K",
+        "weighted 160K",
+        "Low / at risk: TFL 150K",
+        "heavily discounted",
+        "Early: United Utilities 100K",
+        "low weighting",
+        "Revenue gap vs target and pipeline coverage ratio."
+      ]
+    },
+    {
+      "id": "non-academic-recommendations",
+      "label": "Why the data makes recommendations non-academic",
+      "phrases": [
+        "Call Sophie before Friday - reference the FCA timeline she mentioned in May.",
+        "Des - James is under 12% cost-cut pressure. Offer a phased commercial option or recommend forecast reduction.",
+        "Sean - Karen's 14-minute stock-take saving is your strongest proof point with Paul.",
+        "That is the difference between generic advice and calibrated, deal-specific next actions.",
+        "Clear contacts (EB / TB / UB / Champion etc.)",
+        "Nine months of meeting notes and correspondence",
+        "Realistic stage history and competitive notes"
+      ]
+    },
+    {
+      "id": "dashboard-summary",
+      "label": "How the three dashboards work together",
+      "phrases": [
+        "Salesman -> Executes the right actions on individual deals today.",
+        "Sales Manager -> Coaches, unblocks and protects the team forecast today.",
+        "Sales Director -> Makes the big calls and controls overall business trajectory.",
+        "All three views stay calibrated to the same Commercial DNA and the same underlying deal data, so everyone is working from one version of the truth.",
+        "Each dashboard is designed so the person can actually control business activity that day, not just look at reports."
+      ]
+    },
+    {
+      "id": "commercial-dna",
+      "label": "Commercial DNA",
+      "phrases": [
+        "4.2m annual, phased by quarter",
+        "Enterprise Rollout 250-600k, Contact Centre 150-350k",
+        "Quota, accelerators, commission structure",
+        "MEDDIC (primary) + Challenger elements",
+        "Enterprise retail, utilities, financial services",
+        "6-9 months",
+        "22-28%",
+        "UK national, focus North & London",
+        "Overall 28%, New logo 18%, Existing 41%",
+        "Discovery -> Proposal 62%, Proposal -> Close 34%",
+        "Creates the single source of truth that calibrates every forecast, recommendation, score and report to your business."
+      ]
+    },
+    {
+      "id": "capabilities",
+      "label": "What SaleSonic does - capability catalogue",
+      "phrases": [
+        "Commercial DNA Setup",
+        "Calibrated Forecasts",
+        "Methodology-Scored Deal Inspections",
+        "RFP Analyser - Go/No-Go Verdicts",
+        "Document Extract & Analysis",
+        "War Room",
+        "Board-Ready Reports & Decision Log",
+        "Forecast & Analysis Planner (9 frameworks) + Strategy Engine",
+        "Role-Optimised Dashboards & Today's Priorities",
+        "Executive Actions (one-click)",
+        "Pressure-tests a major deal or decision with six different advisory lenses and produces a single, logged recommendation.",
+        "Reads an RFP and gives a clear Go / No-Go recommendation with rationale.",
+        "Missing Economic Buyer or weak Champion is immediately flagged.",
+        "15+ pre-built actions"
+      ]
+    },
+    {
+      "id": "diagnostic-signals",
+      "label": "Diagnostic signals SaleSonic surfaces",
+      "phrases": [
+        "Win rates unusually high",
+        "Not enough competitive deals, weak qualification, or sandbagging",
+        "Closed-won vs closed-lost ratio, competitive mention rate",
+        "Large pipeline stuck at top of funnel",
+        "Poor qualification or slow early-stage progression",
+        "Stage age + conversion rates by stage",
+        "Thin geographic coverage",
+        "Under-penetrated territory or new market risk",
+        "Deals/wins by region vs target coverage",
+        "New territory low win rate",
+        "Learning curve or wrong ICP for that area",
+        "Win rate filtered by geography + deal age",
+        "High pipeline coverage but low confidence",
+        "Quantity without quality",
+        "Coverage ratio vs MEDDIC / methodology scores",
+        "Deals with missing EB or Champion",
+        "High risk of late-stage collapse",
+        "Contact roles on the opportunity"
+      ]
+    },
+    {
+      "id": "data-sources",
+      "label": "Data sources SaleSonic relies on",
+      "phrases": [
+        "Commercial DNA (entered once by leadership)",
+        "CRM (opportunities, contacts, stages, activities, closed history)",
+        "Uploaded documents (RFPs, proposals, notes)",
+        "Email / calendar (optional integration for richer history)",
+        "User activity inside SaleSonic (decision log, War Room outcomes)"
+      ]
+    },
+    {
+      "id": "checklist",
+      "label": "One-page data requirements checklist",
+      "phrases": [
+        "Coors Enterprise Stores Rollout - 600k - Closed Won",
+        "80% Commit, 65% Best Case, etc.",
+        "EB, TB, UB, Champion, Influencer, Approver",
+        "9 months of calls, emails, workshops",
+        "Competitor name, price position, strengths",
+        "Send revised contract - 12 Sep",
+        "Last 12-24 months with values & reasons",
+        "Price, features, relationship, timing, etc.",
+        "By product, territory, deal size, new vs existing",
+        "Full tender documents",
+        "Submitted versions",
+        "PDF, DOCX, TXT"
+      ]
+    },
+    {
+      "id": "minimum-viable-data",
+      "label": "Minimum viable data",
+      "phrases": [
+        "Commercial DNA completed",
+        "6-10 live + historical deals with contacts, values, stages and 6-9 months of activity notes",
+        "Basic win/loss history (even if only 12 months)",
+        "Once this data is loaded, the three personas (Salesman, Manager, Director) immediately produce concrete, non-academic recommendations and prioritised daily actions."
+      ]
+    },
+    {
+      "id": "how-to-use",
+      "label": "How to use this data",
+      "phrases": [
+        "Load the 6 deals into the demo environment with the contacts, stages, values and close dates above.",
+        "Attach the meeting notes/correspondence snippets as activity history.",
+        "The anecdotes give the LLM concrete \"human\" context so recommendations become specific rather than generic."
+      ]
+    }
+  ],
+  "phraseCount": 264
+}

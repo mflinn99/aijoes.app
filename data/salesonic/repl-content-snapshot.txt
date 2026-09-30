@@ -1,0 +1,234 @@
+Coors Ralph Kelly Enterprise Stores Rollout 600000 Won 15 Jun 2025 100
+Morrison Andrew Fleming Contact Centre Modernisation 350000 Lost 28 Apr 2025 0
+Barclays Brian Greenbank Software Upgrade – Core Banking 500000 Winning (late stage) 15 Oct 2026 80
+Asda Stores Sean Kearney Enterprise Stores Rollout Phase 2 250000 Winning 30 Nov 2026 65
+TFL Des Hunt Contact Centre Platform 150000 Losing / At Risk 20 Dec 2026 35
+United Utilities Ralph Kelly Software Upgrade – Customer Portal 100000 Early / Pipeline 30 Jun 2027 40
+100% 0% 80% 65% 35% 40%
+£600K £350K £500K £250K £150K £100K
+Economic Buyer EB Sarah Thompson Commercial Director
+Technical Buyer TB Mark Davies IT Infrastructure Lead
+User Buyer UB Lisa Patel Head of Retail Operations
+Champion Lisa Patel Head of Retail Operations
+Influencer James O'Neill Regional Ops Manager
+Approver Sarah Thompson Commercial Director
+Discovery call. Lisa flagged major stock-out issues across 120 stores.
+Workshop – mapped current vs future process. Mark raised integration concerns with legacy POS.
+Proposal presented. Sarah pushed hard on ROI and payback < 14 months.
+Technical deep-dive. Mark signed off architecture after we agreed on phased API approach.
+Commercial negotiation. Sarah asked for 8% discount + extended support. We held at 5% + free year-1 training.
+Final board paper approved.
+Contract signed.
+"Lisa became our internal champion after the February workshop. She told Ralph 'If we don't fix stock accuracy before peak season, we'll lose another £2m'. That urgency drove the whole deal."
+Economic Buyer EB David Crowther Customer Experience Director
+Technical Buyer TB Priya Sharma Head of Technology
+User Buyer UB Helen Brooks Contact Centre Ops Manager
+Champion Helen Brooks (early)
+Influencer Tom Reid Procurement
+Approver David Crowther
+Initial meeting – Helen described high agent attrition and poor CSAT.
+Demo of new platform. Strong positive reaction from ops team.
+Commercial proposal issued.
+Procurement entered. Tom Reid insisted on 3-vendor RFP.
+We came second on price to a lower-cost competitor.
+David decided to go with the cheaper option to protect margin this year.
+"Helen was our champion until Procurement took control. She later told Andrew 'I still think your solution was better, but the CFO only looked at year-1 cost'."
+Loss reason Price; came second to a lower-cost competitor after Procurement forced a 3-vendor RFP.
+Loss learning "Procurement took control late. Ensure Economic Buyer stays engaged earlier next time."
+Economic Buyer EB Rachel Forsyth Managing Director, Technology
+Technical Buyer TB Amir Khan Chief Architect
+User Buyer UB Sophie Lane Head of Retail Banking Ops
+Champion Sophie Lane Head of Retail Banking Ops
+Influencer Michael Grant Risk & Compliance
+Approver Rachel Forsyth
+Discovery – Sophie highlighted regulatory pressure on legacy system.
+Architecture workshop with Amir. Positive technical feedback.
+Business case presented. Rachel asked for clearer risk reduction narrative.
+Security & compliance review passed (Michael Grant supportive).
+Commercial terms agreed in principle.
+Final internal governance in progress.
+"Sophie told Brian 'If we miss the FCA timeline I'll be the one explaining it to the Board'. That personal risk is driving her sponsorship."
+Economic Buyer EB Paul Rigby Retail Transformation Director
+Technical Buyer TB Nadia Hussain IT Delivery Lead
+User Buyer UB Karen White Store Operations Director
+Champion Karen White
+Influencer Store Regional Managers
+Approver Paul Rigby
+Phase 1 success referenced. Karen pushing hard for Phase 2 before Black Friday.
+Scope workshop completed.
+Proposal accepted in principle.
+Budget confirmation delayed by internal re-forecast.
+Budget now unlocked. Contract red-lines in legal.
+"Karen said 'Phase 1 saved us 14 minutes per stock take. Multiply that by 600 stores and the business case writes itself'."
+Economic Buyer EB James Okafor Director of Customer Service
+Technical Buyer TB Elena Petrova Digital Platforms Lead
+User Buyer UB Chris Morgan Contact Centre Manager
+Champion Chris Morgan (weakening)
+Influencer Finance Business Partner
+Approver James Okafor
+Strong start – Chris very engaged.
+Technical proof-of-concept successful.
+Budget freeze announced across TFL.
+Deal stalled. James now prioritising cost reduction over transformation.
+Competitor offering 20% lower price entered discussions.
+"Chris told Des last week 'I still want your platform, but James has been told to cut 12% from the cost base. I'm losing the argument'."
+Economic Buyer EB Fiona McLeod Customer Director
+Technical Buyer TB Raj Patel Digital Delivery Manager
+User Buyer UB Amy Collins Online Services Lead
+Champion Amy Collins
+Influencer Regulatory Affairs
+Approver Fiona McLeod
+First meeting – Amy described poor self-service adoption.
+Discovery workshop.
+High-level proposal sent.
+Waiting for internal prioritisation meeting in October.
+"Amy said 'Customers are still ringing us for things they should be able to do online. Every call costs us £6.40'."
+Annual target £4.2m annual, phased by quarter.
+Products and average deal size: Enterprise Rollout £250–600k, Contact Centre £150–350k.
+Compensation plans: quota, accelerators, commission structure.
+Sales methodology: MEDDIC (primary) + Challenger elements.
+Ideal Customer Profile: enterprise retail, utilities, financial services.
+Average sales cycle 6–9 months.
+Target margins 22–28%.
+Geographic coverage: UK national, focus North & London.
+Historical win rates: Overall 28%, New logo 18%, Existing 41%.
+Stage conversion: Discovery → Proposal 62%, Proposal → Close 34%.
+Data sources: CRM, finance system, HR/comp plans, sales playbook, leadership input.
+What the salesman controls from here: daily prioritisation, next-best actions, deal progression and forecast accuracy on their own book.
+What the manager controls from here: coaching focus for the day, forecast hygiene, resource allocation, and early intervention on slipping deals.
+What the Sales Director controls from here: overall forecast commitment, major deal strategy, resource focus, and board-level narrative.
+My Pipeline at a Glance
+Today's Priorities
+Deal Health & Risks
+Quick Actions
+Recent Activity Feed
+Economic Buyer engagement weak on TFL
+Team Pipeline & Forecast Summary
+Rep Performance & Coaching Signals
+At-Risk & Winning Deals
+Calibrated Forecast & Revenue Gap
+Strategic Deal Watchlist
+Momentum & Trends
+War Room & Decision Log
+"Two deals (Barclays + Asda) are on track to land before year-end. TFL is the main downside risk. Morrison loss highlights need for earlier Economic Buyer lock-in."
+Won £600K (Coors)
+High Conf (80%+) Barclays £500K → £400K
+Medium Conf Asda £250K → £160K
+Low / At Risk TFL £150K → heavily discounted
+Early Pipeline UU £100K → low weighting
+Help the individual seller prioritise and execute the right actions on their own deals today.
+The individual seller logs in and immediately sees only their own deals, scored and prioritised against the company's Commercial DNA (targets, methodology, margin expectations, etc.).
+Re-engage James Okafor today – offer phased commercial option to counter 12% cost-cut pressure. Champion Chris is weakening.
+Send revised contract to legal and ask Karen White to escalate to Paul Rigby if no response by EOD.
+Confirm final governance date with Sophie Lane – reference her FCA personal risk comment from May.
+Request introduction from Amy Collins to Fiona McLeod before October prioritisation meeting.
+Barclays £500K (Brian) – High MEDDIC score, strong Champion (Sophie), clear Economic Buyer urgency around FCA deadline.
+Book final commercial call this week. Suggested talk track focused on risk reduction for Rachel. Probability now 80% – push for signature before internal governance slips.
+Asda £250K (Sean) – Good momentum, strong Champion (Karen).
+Legal red-lines are the only blocker. Send the revised contract today and ask Karen to escalate to Paul if needed. Target close 30 Nov.
+TFL £150K (Des) – At risk. Champion weakening, budget pressure, competitor price attack.
+Deal is losing. Immediate action: re-engage James with a revised commercial option (lower year-1 cost + phased rollout) or recommend graceful exit to protect forecast accuracy.
+United Utilities £100K (Ralph) – Early stage.
+Keep warm. Next step: get Amy to introduce you to Fiona before the October prioritisation meeting.
+Draft email Update MEDDIC scorecard Log decision Request War Room review
+Coach the team, protect the forecast, and remove blockers.
+The manager sees the whole team's pipeline with coaching signals and risk flags.
+Team Activity & Momentum
+Deal Inspection needed on TFL (£150K) – probability dropped, champion fading. Book 15-min coaching call with Des today.
+Barclays (£500K) and Asda (£250K) are both in final stages – help Brian and Sean clear remaining governance/legal blockers this week.
+Morrison loss (£350K) learning: ensure Economic Buyer stays engaged earlier. Share insight with team in weekly meeting.
+Pipeline gap: need another £180K of high-confidence opportunities this quarter.
+Procurement took control late. Ensure Economic Buyer stays engaged earlier next time.
+Schedule deal inspection this week. Focus on rebuilding urgency with James or de-risk the forecast.
+Pipeline coverage and forecast confidence calibrated to the team's target.
+TFL £150K is the main downside risk – decide today whether to de-commit or support a revised commercial approach.
+Barclays £500K is the largest near-term upside – confirm it remains on track for mid-October close.
+Run War Room on TFL and Barclays this week for a single logged recommendation.
+Morrison loss highlights a process gap (late Procurement involvement) – decide if methodology coaching is required across the team.
+Won: £600K (Coors)
+High confidence (80%+): Barclays £500K → weighted £400K
+Medium: Asda £250K → weighted £160K
+Low / at risk: TFL £150K → heavily discounted
+Early: United Utilities £100K → low weighting
+Revenue gap vs target and pipeline coverage ratio.
+War Room recommendation on the two biggest live deals (Barclays and TFL). Six advisory personas review the deal, producing a single logged recommendation.
+"Barclays: accelerate to close in October – risk of governance delay is higher than competitive risk. TFL: protect forecast accuracy – move to 20% or de-commit".
+Call Sophie before Friday – reference the FCA timeline she mentioned in May.
+Des – James is under 12% cost-cut pressure. Offer a phased commercial option or recommend forecast reduction.
+Sean – Karen's 14-minute stock-take saving is your strongest proof point with Paul.
+That is the difference between generic advice and calibrated, deal-specific next actions.
+because we gave it clear contacts (EB / TB / UB / Champion etc.), nine months of meeting notes and correspondence, specific anecdotes, and realistic stage history and competitive notes
+Salesman → Executes the right actions on individual deals today.
+Sales Manager → Coaches, unblocks and protects the team forecast today.
+Sales Director → Makes the big calls and controls overall business trajectory.
+All three views stay calibrated to the same Commercial DNA and the same underlying deal data, so everyone is working from one version of the truth.
+David decided to go with the cheaper option "to protect margin this year".
+SaleSonic – One-Page Data Requirements Checklist
+Annual/quarterly targets | £4.2m annual, phased by quarter | Finance / Leadership | Critical
+Products/services & avg deal size | Enterprise Rollout £250–600k, Contact Centre £150–350k | Product / Sales | Critical
+Compensation plans | Quota, accelerators, commission structure | HR / Finance | High
+Sales methodology | MEDDIC (primary) + Challenger elements | Sales Leadership | Critical
+Ideal Customer Profile | Enterprise retail, utilities, financial services | Sales / Marketing | High
+Average sales cycle | 6–9 months | CRM historical | High
+Target margins | 22–28% | Finance | Medium
+Geographic coverage/territories | UK national, focus North & London | Sales Ops | High
+Historical win rates | Overall 28%, New logo 18%, Existing 41% | CRM | Critical
+Opportunity name, value, close date, stage | Coors Enterprise Stores Rollout – £600k – Closed Won | CRM | Critical
+Probability / forecast category | 80% Commit, 65% Best Case, etc. | CRM / Rep input | Critical
+Key contacts & roles | EB, TB, UB, Champion, Influencer, Approver | CRM Contacts | Critical
+Meeting notes & activity history | 9 months of calls, emails, workshops | CRM Activities / Email | Critical
+Competitive information | Competitor name, price position, strengths | Rep notes / CRM | High
+Next steps & last activity date | "Send revised contract – 12 Sep" | CRM | High
+Closed Won & Closed Lost deals | Last 12–24 months with values & reasons | CRM | Critical
+Win / loss reasons | Price, features, relationship, timing, etc. | CRM or win/loss interviews | High
+Stage conversion rates | Discovery → Proposal 62%, Proposal → Close 34% | CRM reporting | High
+Win rates by segment | By product, territory, deal size, new vs existing | CRM | Critical
+RFPs | Full tender documents | Customer / Bid team | High (when active)
+Proposals & contracts | Submitted versions | Sales / Legal | Medium
+Meeting notes / board papers | PDF, DOCX, TXT | Reps / Leadership | Medium
+Minimum Viable Data to make demos powerful
+Commercial DNA completed
+6–10 live + historical deals with contacts, values, stages and 6–9 months of activity notes
+basic win/loss history (even if only 12 months)
+Once this data is loaded, the three personas (Salesman, Manager, Director) immediately produce concrete, non-academic recommendations and prioritised daily actions.
+Load the 6 deals into the demo environment with the contacts, stages, values and close dates above.
+Attach the meeting notes/correspondence snippets as activity history.
+The anecdotes give the LLM concrete "human" context so recommendations become specific rather than generic.
+1. Commercial DNA Setup (Foundation – done once)
+Creates the single source of truth that calibrates every forecast, recommendation, score and report to your business.
+2. Calibrated Forecasts
+Produces pipeline coverage, forecast confidence, revenue gap and momentum – all adjusted to your Commercial DNA.
+3. Methodology-Scored Deal Inspections (MEDDIC scorecard etc.)
+Scores every live deal against the chosen methodology and highlights gaps.
+Missing Economic Buyer or weak Champion is immediately flagged.
+Stuck deals at top of funnel show low scores on Metrics / Decision Criteria / Paper Process.
+4. RFP Analyser – Go/No-Go Verdicts
+Reads an RFP and gives a clear Go / No-Go recommendation with rationale.
+5. Document Extract & Analysis
+Pulls key commercial intelligence from proposals, contracts, meeting notes, board papers, etc.
+6. War Room (6 Advisory Personas → one logged recommendation)
+Pressure-tests a major deal or decision with six different advisory lenses and produces a single, logged recommendation.
+7. Board-Ready Reports & Decision Log
+Generates executive narratives and permanently logs every major commercial decision.
+8. Forecast & Analysis Planner (9 frameworks) + Strategy Engine
+Scenario planning, what-if analysis, milestone & campaign planning.
+9. Role-Optimised Dashboards & Today's Priorities
+Salesman / Manager / Director each see different views with concrete daily actions.
+10. Executive Actions (one-click)
+15+ pre-built actions (e.g. Inspect this deal, Run War Room, Generate board paper, Update forecast confidence).
+Win rates unusually high | Not enough competitive deals, weak qualification, or sandbagging | Closed-won vs closed-lost ratio, competitive mention rate
+Large pipeline stuck at top of funnel | Poor qualification or slow early-stage progression | Stage age + conversion rates by stage
+Thin geographic coverage | Under-penetrated territory or new market risk | Deals/wins by region vs target coverage
+New territory low win rate | Learning curve or wrong ICP for that area | Win rate filtered by geography + deal age
+High pipeline coverage but low confidence | Quantity without quality | Coverage ratio vs MEDDIC / methodology scores
+Deals with missing EB or Champion | High risk of late-stage collapse | Contact roles on the opportunity
+Commercial DNA (entered once by leadership)
+CRM (opportunities, contacts, stages, activities, closed history)
+Uploaded documents (RFPs, proposals, notes)
+Email / calendar (optional integration for richer history)
+User activity inside SaleSonic (decision log, War Room outcomes)
+Control overall business performance, risk and big decisions.
+Board-level lens. Focuses on risk, coverage, momentum and big calls.
+Win rate, average sales cycle, forecast accuracy trend over the last 9 months.
+Summary – How the three dashboards work together
+Each dashboard is designed so the person can actually control business activity that day, not just look at reports.

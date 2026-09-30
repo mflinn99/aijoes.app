@@ -1,0 +1,1462 @@
+{
+  "meta": {
+    "name": "SaleSonic Demonstration Dataset",
+    "sourceDocument": "SaleSonic Data Requirements for Demonstration.docx",
+    "currency": "GBP",
+    "currencySymbol": "£",
+    "locale": "en-GB",
+    "asOfDate": "2026-09-17",
+    "dealCount": 6,
+    "premise": "6 deals (one per client) with realistic history, contacts, stages, values and close dates so the SaleSonic LLM has rich context to work with.",
+    "howToUseThisData": [
+      "Load the 6 deals into the demo environment with the contacts, stages, values and close dates above.",
+      "Attach the meeting notes/correspondence snippets as activity history.",
+      "The anecdotes give the LLM concrete \"human\" context so recommendations become specific rather than generic."
+    ],
+    "bottomLine": "Load these six deals → the three personas immediately look and feel different: Salesman sees concrete next moves on his deals; Manager sees coaching and risk across the team; Director sees forecast health and big-call decisions."
+  },
+  "commercialDNA": {
+    "description": "The single source of truth that calibrates every forecast, recommendation, score and report to the business. Entered once by leadership.",
+    "annualTarget": {
+      "valueGbp": 4200000,
+      "display": "£4.2m annual, phased by quarter",
+      "source": "Finance / Leadership",
+      "priority": "Critical"
+    },
+    "productsAndAverageDealSize": {
+      "display": "Enterprise Rollout £250–600k, Contact Centre £150–350k",
+      "lines": [
+        {
+          "product": "Enterprise Stores Rollout",
+          "rangeGbp": [
+            250000,
+            600000
+          ],
+          "display": "£250–600k"
+        },
+        {
+          "product": "Contact Centre",
+          "rangeGbp": [
+            150000,
+            350000
+          ],
+          "display": "£150–350k"
+        },
+        {
+          "product": "Software Upgrade",
+          "rangeGbp": [
+            100000,
+            500000
+          ],
+          "display": "£100–500k"
+        }
+      ],
+      "source": "Product / Sales",
+      "priority": "Critical"
+    },
+    "compensationPlans": {
+      "display": "Quota, accelerators, commission structure",
+      "source": "HR / Finance",
+      "priority": "High"
+    },
+    "salesMethodology": {
+      "primary": "MEDDIC",
+      "secondary": "Challenger elements",
+      "display": "MEDDIC (primary) + Challenger elements",
+      "source": "Sales Leadership",
+      "priority": "Critical"
+    },
+    "idealCustomerProfile": {
+      "display": "Enterprise retail, utilities, financial services",
+      "segments": [
+        "Enterprise retail",
+        "Utilities",
+        "Financial services"
+      ],
+      "source": "Sales / Marketing",
+      "priority": "High"
+    },
+    "averageSalesCycle": {
+      "display": "6–9 months",
+      "minMonths": 6,
+      "maxMonths": 9,
+      "source": "CRM historical",
+      "priority": "High"
+    },
+    "targetMargins": {
+      "display": "22–28%",
+      "minPct": 22,
+      "maxPct": 28,
+      "source": "Finance",
+      "priority": "Medium"
+    },
+    "geographicCoverage": {
+      "display": "UK national, focus North & London",
+      "territories": [
+        "UK national",
+        "North",
+        "London"
+      ],
+      "source": "Sales Ops",
+      "priority": "High"
+    },
+    "historicalWinRates": {
+      "display": "Overall 28%, New logo 18%, Existing 41%",
+      "overallPct": 28,
+      "newLogoPct": 18,
+      "existingPct": 41,
+      "source": "CRM",
+      "priority": "Critical"
+    },
+    "stageConversionRates": {
+      "display": "Discovery → Proposal 62%, Proposal → Close 34%",
+      "discoveryToProposalPct": 62,
+      "proposalToClosePct": 34,
+      "source": "CRM reporting",
+      "priority": "High"
+    },
+    "dataSources": "CRM, finance system, HR/comp plans, sales playbook, leadership input."
+  },
+  "accountManagers": [
+    {
+      "id": "ralph-kelly",
+      "name": "Ralph Kelly",
+      "role": "Account Manager",
+      "dealIds": [
+        "coors-enterprise-stores-rollout",
+        "united-utilities-customer-portal"
+      ]
+    },
+    {
+      "id": "andrew-fleming",
+      "name": "Andrew Fleming",
+      "role": "Account Manager",
+      "dealIds": [
+        "morrison-contact-centre-modernisation"
+      ]
+    },
+    {
+      "id": "brian-greenbank",
+      "name": "Brian Greenbank",
+      "role": "Account Manager",
+      "dealIds": [
+        "barclays-core-banking-upgrade"
+      ]
+    },
+    {
+      "id": "sean-kearney",
+      "name": "Sean Kearney",
+      "role": "Account Manager",
+      "dealIds": [
+        "asda-enterprise-stores-rollout-phase-2"
+      ]
+    },
+    {
+      "id": "des-hunt",
+      "name": "Des Hunt",
+      "role": "Account Manager",
+      "dealIds": [
+        "tfl-contact-centre-platform"
+      ]
+    }
+  ],
+  "deals": [
+    {
+      "id": "coors-enterprise-stores-rollout",
+      "dealNumber": 1,
+      "client": "Coors",
+      "dealName": "Enterprise Stores Rollout",
+      "accountManager": "Ralph Kelly",
+      "accountManagerId": "ralph-kelly",
+      "valueGbp": 600000,
+      "valueDisplay": "£600K",
+      "stage": "Won",
+      "statusLabel": "Won",
+      "statusCategory": "won",
+      "closeDate": "2025-06-15",
+      "closeDateDisplay": "15 Jun 2025",
+      "probabilityPct": 100,
+      "productLine": "Enterprise Stores Rollout",
+      "headline": "Deal 1 – Coors | Enterprise Stores Rollout | £600K | WON (closed 15 Jun 2025)",
+      "historyWindow": "9-month history highlights",
+      "contacts": [
+        {
+          "role": "Economic Buyer",
+          "roleCode": "EB",
+          "name": "Sarah Thompson",
+          "title": "Commercial Director"
+        },
+        {
+          "role": "Technical Buyer",
+          "roleCode": "TB",
+          "name": "Mark Davies",
+          "title": "IT Infrastructure Lead"
+        },
+        {
+          "role": "User Buyer",
+          "roleCode": "UB",
+          "name": "Lisa Patel",
+          "title": "Head of Retail Operations"
+        },
+        {
+          "role": "Champion",
+          "roleCode": "Champion",
+          "name": "Lisa Patel",
+          "title": "Head of Retail Operations"
+        },
+        {
+          "role": "Influencer",
+          "roleCode": "Influencer",
+          "name": "James O'Neill",
+          "title": "Regional Ops Manager"
+        },
+        {
+          "role": "Approver",
+          "roleCode": "Approver",
+          "name": "Sarah Thompson",
+          "title": "Commercial Director"
+        }
+      ],
+      "history": [
+        {
+          "period": "Jan 2025",
+          "date": "2025-01-31",
+          "note": "Discovery call. Lisa flagged major stock-out issues across 120 stores."
+        },
+        {
+          "period": "Feb 2025",
+          "date": "2025-02-28",
+          "note": "Workshop – mapped current vs future process. Mark raised integration concerns with legacy POS."
+        },
+        {
+          "period": "Mar 2025",
+          "date": "2025-03-31",
+          "note": "Proposal presented. Sarah pushed hard on ROI and payback < 14 months."
+        },
+        {
+          "period": "Apr 2025",
+          "date": "2025-04-30",
+          "note": "Technical deep-dive. Mark signed off architecture after we agreed on phased API approach."
+        },
+        {
+          "period": "May 2025",
+          "date": "2025-05-31",
+          "note": "Commercial negotiation. Sarah asked for 8% discount + extended support. We held at 5% + free year-1 training."
+        },
+        {
+          "period": "12 Jun 2025",
+          "date": "2025-06-12",
+          "note": "Final board paper approved."
+        },
+        {
+          "period": "15 Jun 2025",
+          "date": "2025-06-15",
+          "note": "Contract signed."
+        }
+      ],
+      "anecdote": "Lisa became our internal champion after the February workshop. She told Ralph 'If we don't fix stock accuracy before peak season, we'll lose another £2m'. That urgency drove the whole deal.",
+      "championStatus": "strong",
+      "proofPoints": [
+        "Stock-out issues across 120 stores",
+        "Payback < 14 months",
+        "Held at 5% discount + free year-1 training"
+      ],
+      "probabilityDisplay": "100%"
+    },
+    {
+      "id": "morrison-contact-centre-modernisation",
+      "dealNumber": 2,
+      "client": "Morrison",
+      "dealName": "Contact Centre Modernisation",
+      "accountManager": "Andrew Fleming",
+      "accountManagerId": "andrew-fleming",
+      "valueGbp": 350000,
+      "valueDisplay": "£350K",
+      "stage": "Lost",
+      "statusLabel": "Lost",
+      "statusCategory": "lost",
+      "closeDate": "2025-04-28",
+      "closeDateDisplay": "28 Apr 2025",
+      "probabilityPct": 0,
+      "productLine": "Contact Centre",
+      "headline": "Deal 2 – Morrison | Contact Centre Modernisation | £350K | LOST (closed 28 Apr 2025)",
+      "historyWindow": "History",
+      "contacts": [
+        {
+          "role": "Economic Buyer",
+          "roleCode": "EB",
+          "name": "David Crowther",
+          "title": "Customer Experience Director"
+        },
+        {
+          "role": "Technical Buyer",
+          "roleCode": "TB",
+          "name": "Priya Sharma",
+          "title": "Head of Technology"
+        },
+        {
+          "role": "User Buyer",
+          "roleCode": "UB",
+          "name": "Helen Brooks",
+          "title": "Contact Centre Ops Manager"
+        },
+        {
+          "role": "Champion",
+          "roleCode": "Champion",
+          "name": "Helen Brooks",
+          "title": "Contact Centre Ops Manager",
+          "qualifier": "early"
+        },
+        {
+          "role": "Influencer",
+          "roleCode": "Influencer",
+          "name": "Tom Reid",
+          "title": "Procurement"
+        },
+        {
+          "role": "Approver",
+          "roleCode": "Approver",
+          "name": "David Crowther",
+          "title": "Customer Experience Director"
+        }
+      ],
+      "history": [
+        {
+          "period": "Sep 2024",
+          "date": "2024-09-30",
+          "note": "Initial meeting – Helen described high agent attrition and poor CSAT."
+        },
+        {
+          "period": "Nov 2024",
+          "date": "2024-11-30",
+          "note": "Demo of new platform. Strong positive reaction from ops team."
+        },
+        {
+          "period": "Jan 2025",
+          "date": "2025-01-31",
+          "note": "Commercial proposal issued."
+        },
+        {
+          "period": "Feb 2025",
+          "date": "2025-02-28",
+          "note": "Procurement entered. Tom Reid insisted on 3-vendor RFP."
+        },
+        {
+          "period": "Mar 2025",
+          "date": "2025-03-31",
+          "note": "We came second on price to a lower-cost competitor."
+        },
+        {
+          "period": "Apr 2025",
+          "date": "2025-04-30",
+          "note": "David decided to go with the cheaper option \"to protect margin this year\"."
+        }
+      ],
+      "anecdote": "Helen was our champion until Procurement took control. She later told Andrew 'I still think your solution was better, but the CFO only looked at year-1 cost'.",
+      "championStatus": "lost-to-procurement",
+      "lossReason": "Price – came second to a lower-cost competitor after Procurement forced a 3-vendor RFP.",
+      "lossLearning": "Procurement took control late. Ensure Economic Buyer stays engaged earlier next time.",
+      "competitive": {
+        "competitor": "Lower-cost competitor",
+        "pricePosition": "We were second on price",
+        "outcome": "Lost"
+      },
+      "probabilityDisplay": "0%"
+    },
+    {
+      "id": "barclays-core-banking-upgrade",
+      "dealNumber": 3,
+      "client": "Barclays",
+      "dealName": "Software Upgrade – Core Banking",
+      "accountManager": "Brian Greenbank",
+      "accountManagerId": "brian-greenbank",
+      "valueGbp": 500000,
+      "valueDisplay": "£500K",
+      "stage": "Winning (late stage)",
+      "statusLabel": "Winning (late stage)",
+      "statusCategory": "winning",
+      "closeDate": "2026-10-15",
+      "closeDateDisplay": "15 Oct 2026",
+      "probabilityPct": 80,
+      "weightedValueGbp": 400000,
+      "weightedValueDisplay": "£400K",
+      "forecastCategory": "Commit",
+      "productLine": "Software Upgrade",
+      "headline": "Deal 3 – Barclays | Software Upgrade – Core Banking | £500K | Winning (close 15 Oct 2026)",
+      "historyWindow": "History (last 9 months)",
+      "contacts": [
+        {
+          "role": "Economic Buyer",
+          "roleCode": "EB",
+          "name": "Rachel Forsyth",
+          "title": "Managing Director, Technology"
+        },
+        {
+          "role": "Technical Buyer",
+          "roleCode": "TB",
+          "name": "Amir Khan",
+          "title": "Chief Architect"
+        },
+        {
+          "role": "User Buyer",
+          "roleCode": "UB",
+          "name": "Sophie Lane",
+          "title": "Head of Retail Banking Ops"
+        },
+        {
+          "role": "Champion",
+          "roleCode": "Champion",
+          "name": "Sophie Lane",
+          "title": "Head of Retail Banking Ops"
+        },
+        {
+          "role": "Influencer",
+          "roleCode": "Influencer",
+          "name": "Michael Grant",
+          "title": "Risk & Compliance"
+        },
+        {
+          "role": "Approver",
+          "roleCode": "Approver",
+          "name": "Rachel Forsyth",
+          "title": "Managing Director, Technology"
+        }
+      ],
+      "history": [
+        {
+          "period": "Jan 2026",
+          "date": "2026-01-31",
+          "note": "Discovery – Sophie highlighted regulatory pressure on legacy system."
+        },
+        {
+          "period": "Mar 2026",
+          "date": "2026-03-31",
+          "note": "Architecture workshop with Amir. Positive technical feedback."
+        },
+        {
+          "period": "May 2026",
+          "date": "2026-05-31",
+          "note": "Business case presented. Rachel asked for clearer risk reduction narrative."
+        },
+        {
+          "period": "Jul 2026",
+          "date": "2026-07-31",
+          "note": "Security & compliance review passed (Michael Grant supportive)."
+        },
+        {
+          "period": "Aug 2026",
+          "date": "2026-08-31",
+          "note": "Commercial terms agreed in principle."
+        },
+        {
+          "period": "Sep 2026",
+          "date": "2026-09-30",
+          "note": "Final internal governance in progress."
+        }
+      ],
+      "anecdote": "Sophie told Brian 'If we miss the FCA timeline I'll be the one explaining it to the Board'. That personal risk is driving her sponsorship.",
+      "championStatus": "strong",
+      "blocker": "Final internal governance in progress",
+      "proofPoints": [
+        "Regulatory pressure on legacy system",
+        "FCA timeline personal risk for Sophie",
+        "Security & compliance review passed"
+      ],
+      "probabilityDisplay": "80%"
+    },
+    {
+      "id": "asda-enterprise-stores-rollout-phase-2",
+      "dealNumber": 4,
+      "client": "Asda Stores",
+      "dealName": "Enterprise Stores Rollout Phase 2",
+      "accountManager": "Sean Kearney",
+      "accountManagerId": "sean-kearney",
+      "valueGbp": 250000,
+      "valueDisplay": "£250K",
+      "stage": "Winning",
+      "statusLabel": "Winning",
+      "statusCategory": "winning",
+      "closeDate": "2026-11-30",
+      "closeDateDisplay": "30 Nov 2026",
+      "probabilityPct": 65,
+      "weightedValueGbp": 160000,
+      "weightedValueDisplay": "£160K",
+      "forecastCategory": "Best Case",
+      "productLine": "Enterprise Stores Rollout",
+      "headline": "Deal 4 – Asda Stores | Enterprise Stores Rollout Phase 2 | £250K | Winning (close 30 Nov 2026)",
+      "historyWindow": "History",
+      "contacts": [
+        {
+          "role": "Economic Buyer",
+          "roleCode": "EB",
+          "name": "Paul Rigby",
+          "title": "Retail Transformation Director"
+        },
+        {
+          "role": "Technical Buyer",
+          "roleCode": "TB",
+          "name": "Nadia Hussain",
+          "title": "IT Delivery Lead"
+        },
+        {
+          "role": "User Buyer",
+          "roleCode": "UB",
+          "name": "Karen White",
+          "title": "Store Operations Director"
+        },
+        {
+          "role": "Champion",
+          "roleCode": "Champion",
+          "name": "Karen White",
+          "title": "Store Operations Director"
+        },
+        {
+          "role": "Influencer",
+          "roleCode": "Influencer",
+          "name": "Store Regional Managers",
+          "title": "Regional Management"
+        },
+        {
+          "role": "Approver",
+          "roleCode": "Approver",
+          "name": "Paul Rigby",
+          "title": "Retail Transformation Director"
+        }
+      ],
+      "history": [
+        {
+          "period": "Mar 2026",
+          "date": "2026-03-31",
+          "note": "Phase 1 success referenced. Karen pushing hard for Phase 2 before Black Friday."
+        },
+        {
+          "period": "May 2026",
+          "date": "2026-05-31",
+          "note": "Scope workshop completed."
+        },
+        {
+          "period": "Jul 2026",
+          "date": "2026-07-31",
+          "note": "Proposal accepted in principle."
+        },
+        {
+          "period": "Aug 2026",
+          "date": "2026-08-31",
+          "note": "Budget confirmation delayed by internal re-forecast."
+        },
+        {
+          "period": "Sep 2026",
+          "date": "2026-09-30",
+          "note": "Budget now unlocked. Contract red-lines in legal."
+        }
+      ],
+      "anecdote": "Karen said 'Phase 1 saved us 14 minutes per stock take. Multiply that by 600 stores and the business case writes itself'.",
+      "championStatus": "strong",
+      "blocker": "Legal red-lines are the only blocker",
+      "proofPoints": [
+        "Phase 1 saved 14 minutes per stock take",
+        "600 stores",
+        "Phase 2 wanted before Black Friday"
+      ],
+      "probabilityDisplay": "65%"
+    },
+    {
+      "id": "tfl-contact-centre-platform",
+      "dealNumber": 5,
+      "client": "TFL",
+      "dealName": "Contact Centre Platform",
+      "accountManager": "Des Hunt",
+      "accountManagerId": "des-hunt",
+      "valueGbp": 150000,
+      "valueDisplay": "£150K",
+      "stage": "Losing / At Risk",
+      "statusLabel": "Losing / At Risk",
+      "statusCategory": "at-risk",
+      "closeDate": "2026-12-20",
+      "closeDateDisplay": "20 Dec 2026",
+      "probabilityPct": 35,
+      "weightedValueGbp": 52500,
+      "weightedValueDisplay": "heavily discounted",
+      "forecastCategory": "At risk",
+      "productLine": "Contact Centre",
+      "headline": "Deal 5 – TFL | Contact Centre Platform | £150K | Losing / At Risk (close 20 Dec 2026)",
+      "historyWindow": "History",
+      "contacts": [
+        {
+          "role": "Economic Buyer",
+          "roleCode": "EB",
+          "name": "James Okafor",
+          "title": "Director of Customer Service"
+        },
+        {
+          "role": "Technical Buyer",
+          "roleCode": "TB",
+          "name": "Elena Petrova",
+          "title": "Digital Platforms Lead"
+        },
+        {
+          "role": "User Buyer",
+          "roleCode": "UB",
+          "name": "Chris Morgan",
+          "title": "Contact Centre Manager"
+        },
+        {
+          "role": "Champion",
+          "roleCode": "Champion",
+          "name": "Chris Morgan",
+          "title": "Contact Centre Manager",
+          "qualifier": "weakening"
+        },
+        {
+          "role": "Influencer",
+          "roleCode": "Influencer",
+          "name": "Finance Business Partner",
+          "title": "Finance"
+        },
+        {
+          "role": "Approver",
+          "roleCode": "Approver",
+          "name": "James Okafor",
+          "title": "Director of Customer Service"
+        }
+      ],
+      "history": [
+        {
+          "period": "Feb 2026",
+          "date": "2026-02-28",
+          "note": "Strong start – Chris very engaged."
+        },
+        {
+          "period": "Apr 2026",
+          "date": "2026-04-30",
+          "note": "Technical proof-of-concept successful."
+        },
+        {
+          "period": "Jun 2026",
+          "date": "2026-06-30",
+          "note": "Budget freeze announced across TFL."
+        },
+        {
+          "period": "Aug 2026",
+          "date": "2026-08-31",
+          "note": "Deal stalled. James now prioritising cost reduction over transformation."
+        },
+        {
+          "period": "Sep 2026",
+          "date": "2026-09-30",
+          "note": "Competitor offering 20% lower price entered discussions."
+        }
+      ],
+      "anecdote": "Chris told Des last week 'I still want your platform, but James has been told to cut 12% from the cost base. I'm losing the argument'.",
+      "championStatus": "weakening",
+      "blocker": "Budget freeze, 12% cost-cut mandate, competitor at 20% lower price",
+      "competitive": {
+        "competitor": "Unnamed competitor",
+        "pricePosition": "20% lower price",
+        "outcome": "Live threat"
+      },
+      "riskFlags": [
+        "Champion weakening",
+        "Budget pressure",
+        "Competitor price attack",
+        "Economic Buyer engagement weak"
+      ],
+      "probabilityDisplay": "35%"
+    },
+    {
+      "id": "united-utilities-customer-portal",
+      "dealNumber": 6,
+      "client": "United Utilities",
+      "dealName": "Software Upgrade – Customer Portal",
+      "accountManager": "Ralph Kelly",
+      "accountManagerId": "ralph-kelly",
+      "valueGbp": 100000,
+      "valueDisplay": "£100K",
+      "stage": "Early / Pipeline",
+      "statusLabel": "Early / Pipeline",
+      "statusCategory": "early",
+      "closeDate": "2027-06-30",
+      "closeDateDisplay": "30 Jun 2027",
+      "probabilityPct": 40,
+      "weightedValueGbp": 40000,
+      "weightedValueDisplay": "low weighting",
+      "forecastCategory": "Pipeline",
+      "productLine": "Software Upgrade",
+      "headline": "Deal 6 – United Utilities | Software Upgrade – Customer Portal | £100K | Early Pipeline (close 30 Jun 2027)",
+      "historyWindow": "History",
+      "contacts": [
+        {
+          "role": "Economic Buyer",
+          "roleCode": "EB",
+          "name": "Fiona McLeod",
+          "title": "Customer Director"
+        },
+        {
+          "role": "Technical Buyer",
+          "roleCode": "TB",
+          "name": "Raj Patel",
+          "title": "Digital Delivery Manager"
+        },
+        {
+          "role": "User Buyer",
+          "roleCode": "UB",
+          "name": "Amy Collins",
+          "title": "Online Services Lead"
+        },
+        {
+          "role": "Champion",
+          "roleCode": "Champion",
+          "name": "Amy Collins",
+          "title": "Online Services Lead"
+        },
+        {
+          "role": "Influencer",
+          "roleCode": "Influencer",
+          "name": "Regulatory Affairs",
+          "title": "Regulatory Affairs"
+        },
+        {
+          "role": "Approver",
+          "roleCode": "Approver",
+          "name": "Fiona McLeod",
+          "title": "Customer Director"
+        }
+      ],
+      "history": [
+        {
+          "period": "Jun 2026",
+          "date": "2026-06-30",
+          "note": "First meeting – Amy described poor self-service adoption."
+        },
+        {
+          "period": "Jul 2026",
+          "date": "2026-07-31",
+          "note": "Discovery workshop."
+        },
+        {
+          "period": "Aug 2026",
+          "date": "2026-08-31",
+          "note": "High-level proposal sent."
+        },
+        {
+          "period": "Sep 2026",
+          "date": "2026-09-30",
+          "note": "Waiting for internal prioritisation meeting in October."
+        }
+      ],
+      "anecdote": "Amy said 'Customers are still ringing us for things they should be able to do online. Every call costs us £6.40'.",
+      "championStatus": "early",
+      "blocker": "Waiting for internal prioritisation meeting in October",
+      "proofPoints": [
+        "Poor self-service adoption",
+        "Every call costs £6.40"
+      ],
+      "probabilityDisplay": "40%"
+    }
+  ],
+  "personas": {
+    "salesman": {
+      "id": "salesman",
+      "title": "Salesman",
+      "dashboardTitle": "Salesman Dashboard",
+      "who": "Ralph Kelly, Sean Kearney, Des Hunt, Brian Greenbank, Andrew Fleming",
+      "purpose": "Help the individual seller prioritise and execute the right actions on their own deals today.",
+      "lens": "The individual seller logs in and immediately sees only their own deals, scored and prioritised against the company's Commercial DNA (targets, methodology, margin expectations, etc.).",
+      "controls": "Daily prioritisation, next-best actions, deal progression and forecast accuracy on their own book.",
+      "sections": [
+        {
+          "id": "my-pipeline",
+          "title": "My Pipeline at a Glance",
+          "description": "List of their deals with current stage, value, probability, close date and MEDDIC health score."
+        },
+        {
+          "id": "todays-priorities",
+          "title": "Today's Priorities",
+          "description": "Ranked list of 3–5 concrete next actions, generated from the deal history and Commercial DNA.",
+          "placement": "top of screen, action-focused"
+        },
+        {
+          "id": "deal-health",
+          "title": "Deal Health & Risks",
+          "description": "Traffic-light MEDDIC scores + specific gaps (e.g. \"Economic Buyer engagement weak on TFL\")."
+        },
+        {
+          "id": "quick-actions",
+          "title": "Quick Actions",
+          "description": "One-click: Draft email, Log activity, Update probability, Request Manager / War Room review."
+        },
+        {
+          "id": "recent-activity",
+          "title": "Recent Activity Feed",
+          "description": "Last meetings, emails and notes so the seller has full context without leaving the screen."
+        }
+      ],
+      "todaysPriorities": [
+        {
+          "rank": 1,
+          "owner": "Des Hunt",
+          "dealId": "tfl-contact-centre-platform",
+          "dealLabel": "TFL £150K – At Risk",
+          "action": "Re-engage James Okafor today – offer phased commercial option to counter 12% cost-cut pressure. Champion Chris is weakening.",
+          "severity": "critical"
+        },
+        {
+          "rank": 2,
+          "owner": "Sean Kearney",
+          "dealId": "asda-enterprise-stores-rollout-phase-2",
+          "dealLabel": "Asda £250K",
+          "action": "Send revised contract to legal and ask Karen White to escalate to Paul Rigby if no response by EOD.",
+          "severity": "high"
+        },
+        {
+          "rank": 3,
+          "owner": "Brian Greenbank",
+          "dealId": "barclays-core-banking-upgrade",
+          "dealLabel": "Barclays £500K",
+          "action": "Confirm final governance date with Sophie Lane – reference her FCA personal risk comment from May.",
+          "severity": "high"
+        },
+        {
+          "rank": 4,
+          "owner": "Ralph Kelly",
+          "dealId": "united-utilities-customer-portal",
+          "dealLabel": "United Utilities £100K",
+          "action": "Request introduction from Amy Collins to Fiona McLeod before October prioritisation meeting.",
+          "severity": "medium"
+        }
+      ],
+      "recommendations": [
+        {
+          "dealId": "barclays-core-banking-upgrade",
+          "summary": "Barclays £500K (Brian) – High MEDDIC score, strong Champion (Sophie), clear Economic Buyer urgency around FCA deadline.",
+          "recommendation": "Book final commercial call this week. Suggested talk track focused on risk reduction for Rachel. Probability now 80% – push for signature before internal governance slips."
+        },
+        {
+          "dealId": "asda-enterprise-stores-rollout-phase-2",
+          "summary": "Asda £250K (Sean) – Good momentum, strong Champion (Karen).",
+          "recommendation": "Legal red-lines are the only blocker. Send the revised contract today and ask Karen to escalate to Paul if needed. Target close 30 Nov."
+        },
+        {
+          "dealId": "tfl-contact-centre-platform",
+          "summary": "TFL £150K (Des) – At risk. Champion weakening, budget pressure, competitor price attack.",
+          "recommendation": "Deal is losing. Immediate action: re-engage James with a revised commercial option (lower year-1 cost + phased rollout) or recommend graceful exit to protect forecast accuracy."
+        },
+        {
+          "dealId": "united-utilities-customer-portal",
+          "summary": "United Utilities £100K (Ralph) – Early stage.",
+          "recommendation": "Keep warm. Next step: get Amy to introduce you to Fiona before the October prioritisation meeting."
+        }
+      ],
+      "quickActions": [
+        "Draft email",
+        "Update MEDDIC scorecard",
+        "Log decision",
+        "Request War Room review",
+        "Log activity",
+        "Update probability",
+        "Request Manager review"
+      ]
+    },
+    "manager": {
+      "id": "manager",
+      "title": "Sales Manager",
+      "dashboardTitle": "Sales Manager Dashboard",
+      "who": "Looks across the whole team – Ralph, Andrew, Brian, Sean, Des",
+      "purpose": "Coach the team, protect the forecast, and remove blockers.",
+      "lens": "The manager sees the whole team's pipeline with coaching signals and risk flags.",
+      "controls": "Coaching focus for the day, forecast hygiene, resource allocation, and early intervention on slipping deals.",
+      "sections": [
+        {
+          "id": "team-pipeline",
+          "title": "Team Pipeline & Forecast Summary",
+          "description": "Total pipeline, weighted forecast, coverage ratio vs target, and confidence score – all calibrated to Commercial DNA."
+        },
+        {
+          "id": "todays-priorities",
+          "title": "Today's Priorities (manager-level)",
+          "description": "Manager-level actions for today."
+        },
+        {
+          "id": "rep-performance",
+          "title": "Rep Performance & Coaching Signals",
+          "description": "Heatmap of each rep's deals by stage and risk. Flags who needs support (e.g. Des on TFL)."
+        },
+        {
+          "id": "at-risk-winning",
+          "title": "At-Risk & Winning Deals",
+          "description": "Clear list of deals that need intervention or acceleration."
+        },
+        {
+          "id": "team-activity",
+          "title": "Team Activity & Momentum",
+          "description": "Meetings held, next steps completed, forecast changes in the last 7 days."
+        }
+      ],
+      "todaysPriorities": [
+        {
+          "rank": 1,
+          "action": "Deal Inspection needed on TFL (£150K) – probability dropped, champion fading. Book 15-min coaching call with Des today.",
+          "dealId": "tfl-contact-centre-platform",
+          "severity": "critical"
+        },
+        {
+          "rank": 2,
+          "action": "Barclays (£500K) and Asda (£250K) are both in final stages – help Brian and Sean clear remaining governance/legal blockers this week.",
+          "dealIds": [
+            "barclays-core-banking-upgrade",
+            "asda-enterprise-stores-rollout-phase-2"
+          ],
+          "severity": "high"
+        },
+        {
+          "rank": 3,
+          "action": "Morrison loss (£350K) learning: ensure Economic Buyer stays engaged earlier. Share insight with team in weekly meeting.",
+          "dealId": "morrison-contact-centre-modernisation",
+          "severity": "medium"
+        },
+        {
+          "rank": 4,
+          "action": "Pipeline gap: need another £180K of high-confidence opportunities this quarter.",
+          "severity": "high"
+        }
+      ],
+      "highlights": [
+        {
+          "label": "Pipeline coverage and forecast confidence",
+          "detail": "Calibrated to the team's target."
+        },
+        {
+          "dealId": "coors-enterprise-stores-rollout",
+          "label": "Coors £600K – Already won",
+          "detail": "Positive momentum contribution."
+        },
+        {
+          "dealId": "morrison-contact-centre-modernisation",
+          "label": "Morrison £350K – Lost",
+          "detail": "Learning point: \"Procurement took control late. Ensure Economic Buyer stays engaged earlier next time.\""
+        },
+        {
+          "dealId": "tfl-contact-centre-platform",
+          "label": "TFL £150K – Red flag",
+          "detail": "Low probability, champion fading. Coaching prompt for Des: \"Schedule deal inspection this week. Focus on rebuilding urgency with James or de-risk the forecast.\""
+        },
+        {
+          "dealIds": [
+            "barclays-core-banking-upgrade",
+            "asda-enterprise-stores-rollout-phase-2"
+          ],
+          "label": "Barclays & Asda – Both in \"Winning\" zone",
+          "detail": "Manager is prompted to help remove final blockers (governance / legal)."
+        },
+        {
+          "label": "Overall forecast gap and suggested actions",
+          "detail": "e.g. \"You need another £180K of high-confidence pipeline this quarter\"."
+        }
+      ],
+      "pipelineGapGbp": 180000,
+      "pipelineGapDisplay": "£180K",
+      "tools": [
+        "Team-level MEDDIC heatmaps",
+        "One-click \"Deal Inspection\" reports"
+      ]
+    },
+    "director": {
+      "id": "director",
+      "title": "Sales Director / Executive",
+      "dashboardTitle": "Sales Director / Executive Dashboard",
+      "who": "Board/leadership level",
+      "purpose": "Control overall business performance, risk and big decisions.",
+      "lens": "Board-level lens. Focuses on risk, coverage, momentum and big calls.",
+      "controls": "Overall forecast commitment, major deal strategy, resource focus, and board-level narrative.",
+      "sections": [
+        {
+          "id": "calibrated-forecast",
+          "title": "Calibrated Forecast & Revenue Gap",
+          "description": "Won + weighted pipeline vs target. Clear revenue gap and coverage ratio shown. Revenue gap vs target and pipeline coverage ratio."
+        },
+        {
+          "id": "todays-priorities",
+          "title": "Today's Priorities (executive)",
+          "description": "Executive decisions required today."
+        },
+        {
+          "id": "watchlist",
+          "title": "Strategic Deal Watchlist",
+          "description": "Top 5 deals by value/risk with one-line status and recommended executive action."
+        },
+        {
+          "id": "momentum",
+          "title": "Momentum & Trends",
+          "description": "Win rate, average sales cycle, forecast accuracy trend over the last 9 months."
+        },
+        {
+          "id": "war-room-log",
+          "title": "War Room & Decision Log",
+          "description": "Quick access to pressure-test big calls and see every previous commercial decision."
+        }
+      ],
+      "todaysPriorities": [
+        {
+          "rank": 1,
+          "action": "TFL £150K is the main downside risk – decide today whether to de-commit or support a revised commercial approach.",
+          "dealId": "tfl-contact-centre-platform",
+          "severity": "critical"
+        },
+        {
+          "rank": 2,
+          "action": "Barclays £500K is the largest near-term upside – confirm it remains on track for mid-October close.",
+          "dealId": "barclays-core-banking-upgrade",
+          "severity": "high"
+        },
+        {
+          "rank": 3,
+          "action": "Run War Room on TFL and Barclays this week for a single logged recommendation.",
+          "dealIds": [
+            "tfl-contact-centre-platform",
+            "barclays-core-banking-upgrade"
+          ],
+          "severity": "high"
+        },
+        {
+          "rank": 4,
+          "action": "Morrison loss highlights a process gap (late Procurement involvement) – decide if methodology coaching is required across the team.",
+          "dealId": "morrison-contact-centre-modernisation",
+          "severity": "medium"
+        }
+      ],
+      "calibratedForecast": [
+        {
+          "band": "Won",
+          "dealId": "coors-enterprise-stores-rollout",
+          "label": "Won: £600K (Coors)",
+          "valueGbp": 600000,
+          "weightedGbp": 600000,
+          "executiveDashboardLabel": "Closed Won: £600K (Coors)"
+        },
+        {
+          "band": "High confidence (80%+)",
+          "dealId": "barclays-core-banking-upgrade",
+          "label": "High confidence (80%+): Barclays £500K → weighted £400K",
+          "valueGbp": 500000,
+          "weightedGbp": 400000,
+          "executiveDashboardLabel": "High confidence: Barclays £500K (80%)"
+        },
+        {
+          "band": "Medium",
+          "dealId": "asda-enterprise-stores-rollout-phase-2",
+          "label": "Medium: Asda £250K → weighted £160K",
+          "valueGbp": 250000,
+          "weightedGbp": 160000,
+          "executiveDashboardLabel": "High confidence: Asda £250K (65%)"
+        },
+        {
+          "band": "Low / at risk",
+          "dealId": "tfl-contact-centre-platform",
+          "label": "Low / at risk: TFL £150K → heavily discounted",
+          "valueGbp": 150000,
+          "weightedGbp": 52500,
+          "executiveDashboardLabel": "At risk: TFL £150K (35%)"
+        },
+        {
+          "band": "Early",
+          "dealId": "united-utilities-customer-portal",
+          "label": "Early: United Utilities £100K → low weighting",
+          "valueGbp": 100000,
+          "weightedGbp": 40000,
+          "executiveDashboardLabel": "Early: United Utilities £100K"
+        }
+      ],
+      "boardNarrative": "Two deals (Barclays + Asda) are on track to land before year-end. TFL is the main downside risk. Morrison loss highlights need for earlier Economic Buyer lock-in.",
+      "warRoomRecommendation": {
+        "scope": "War Room recommendation on the two biggest live deals (Barclays and TFL)",
+        "mechanism": "Six advisory personas review the deal → single logged recommendation",
+        "example": "Barclays: accelerate to close in October – risk of governance delay is higher than competitive risk. TFL: protect forecast accuracy – move to 20% or de-commit"
+      },
+      "revenueGapNote": "Revenue gap vs target and pipeline coverage ratio."
+    }
+  },
+  "howSaleSonicUsesTheData": {
+    "because": [
+      "Clear contacts (EB / TB / UB / Champion etc.)",
+      "Nine months of meeting notes and correspondence",
+      "Specific anecdotes (\"Lisa said we'll lose another £2m…\", \"Sophie is personally on the hook for the FCA deadline…\")",
+      "Realistic stage history and competitive notes"
+    ],
+    "nonAcademicRecommendations": [
+      "Call Sophie before Friday – reference the FCA timeline she mentioned in May.",
+      "Des – James is under 12% cost-cut pressure. Offer a phased commercial option or recommend forecast reduction.",
+      "Sean – Karen's 14-minute stock-take saving is your strongest proof point with Paul."
+    ],
+    "difference": "That is the difference between generic advice and calibrated, deal-specific next actions."
+  },
+  "dashboardSummary": {
+    "title": "Summary – How the three dashboards work together",
+    "lines": [
+      "Salesman → Executes the right actions on individual deals today.",
+      "Sales Manager → Coaches, unblocks and protects the team forecast today.",
+      "Sales Director → Makes the big calls and controls overall business trajectory."
+    ],
+    "principle": "All three views stay calibrated to the same Commercial DNA and the same underlying deal data, so everyone is working from one version of the truth.",
+    "designPrinciple": "Each dashboard is designed so the person can actually control business activity that day, not just look at reports."
+  },
+  "capabilities": [
+    {
+      "number": 1,
+      "id": "commercial-dna-setup",
+      "name": "Commercial DNA Setup",
+      "subtitle": "Foundation – done once",
+      "whatItDoes": "Creates the single source of truth that calibrates every forecast, recommendation, score and report to your business.",
+      "infoNeeded": [
+        "Annual/quarterly revenue targets",
+        "Services / products sold and typical deal sizes",
+        "Compensation plans (quotas, accelerators, commission structure)",
+        "Chosen sales methodology (MEDDIC, Challenger, SPIN, Sandler or mix)",
+        "Ideal Customer Profile, average sales cycle, target margins",
+        "Geographic coverage / territories",
+        "Historical win rates (overall + by segment / new vs existing)"
+      ],
+      "dataSources": "CRM, finance system, HR/comp plans, sales playbook, leadership input.",
+      "notes": [
+        "If win rates look unrealistically high → system flags \"possible lack of competitive deals or weak pipeline quality\".",
+        "If geographic coverage is thin in a territory → flags \"new territory risk / under-penetration\"."
+      ]
+    },
+    {
+      "number": 2,
+      "id": "calibrated-forecasts",
+      "name": "Calibrated Forecasts",
+      "whatItDoes": "Produces pipeline coverage, forecast confidence, revenue gap and momentum – all adjusted to your Commercial DNA.",
+      "infoNeeded": [
+        "Current pipeline (deals, values, stages, close dates, probabilities)",
+        "Historical conversion rates by stage",
+        "Win rates by segment, product, territory, deal size",
+        "Seasonality and target phasing"
+      ],
+      "dataSources": "CRM opportunity data + historical closed-won/lost + Commercial DNA targets.",
+      "notes": [
+        "High win rates + low competitive losses → \"May indicate not enough competitive deals or sandbagging\".",
+        "Large pipeline stuck at top of funnel → \"Early-stage bloat – conversion risk high, coverage overstated\"."
+      ]
+    },
+    {
+      "number": 3,
+      "id": "methodology-scored-deal-inspections",
+      "name": "Methodology-Scored Deal Inspections",
+      "subtitle": "MEDDIC scorecard etc.",
+      "whatItDoes": "Scores every live deal against the chosen methodology and highlights gaps.",
+      "infoNeeded": [
+        "Deal contacts (Economic Buyer, Technical Buyer, User Buyer, Champion, Influencer, Approver)",
+        "Meeting notes, emails, call summaries",
+        "Competitive situation, decision process, metrics, pain, budget, timeline",
+        "Current stage and next steps"
+      ],
+      "dataSources": "CRM contacts & activities, uploaded documents, email/calendar integration, manual notes.",
+      "notes": [
+        "Missing Economic Buyer or weak Champion is immediately flagged.",
+        "Stuck deals at top of funnel show low scores on Metrics / Decision Criteria / Paper Process."
+      ]
+    },
+    {
+      "number": 4,
+      "id": "rfp-analyser",
+      "name": "RFP Analyser – Go/No-Go Verdicts",
+      "whatItDoes": "Reads an RFP and gives a clear Go / No-Go recommendation with rationale.",
+      "infoNeeded": [
+        "Full RFP document (PDF, DOCX, TXT)",
+        "Your capabilities, win themes, commercial constraints (from Commercial DNA)",
+        "Historical win rates on similar RFPs"
+      ],
+      "dataSources": "Uploaded RFP + Commercial DNA + past RFP outcomes in CRM.",
+      "notes": []
+    },
+    {
+      "number": 5,
+      "id": "document-extract-analysis",
+      "name": "Document Extract & Analysis",
+      "whatItDoes": "Pulls key commercial intelligence from proposals, contracts, meeting notes, board papers, etc.",
+      "infoNeeded": [
+        "Any PDF / DOCX / TXT document related to a deal or opportunity."
+      ],
+      "dataSources": "User upload or linked document store.",
+      "notes": []
+    },
+    {
+      "number": 6,
+      "id": "war-room",
+      "name": "War Room",
+      "subtitle": "6 Advisory Personas → one logged recommendation",
+      "whatItDoes": "Pressure-tests a major deal or decision with six different advisory lenses and produces a single, logged recommendation.",
+      "infoNeeded": [
+        "Full deal history, contacts, competitive notes, commercial terms, risk factors, methodology scores."
+      ],
+      "dataSources": "Everything already in the deal record + Commercial DNA.",
+      "notes": [
+        "Especially powerful when win rates are high (to stress-test whether the deal is truly competitive) or when pipeline is stuck (to decide accelerate vs de-commit)."
+      ]
+    },
+    {
+      "number": 7,
+      "id": "board-ready-reports",
+      "name": "Board-Ready Reports & Decision Log",
+      "whatItDoes": "Generates executive narratives and permanently logs every major commercial decision.",
+      "infoNeeded": [
+        "Forecast data, deal inspections, War Room outcomes, targets, momentum trends."
+      ],
+      "dataSources": "All of the above + Decision Log entries.",
+      "notes": []
+    },
+    {
+      "number": 8,
+      "id": "forecast-analysis-planner",
+      "name": "Forecast & Analysis Planner (9 frameworks) + Strategy Engine",
+      "whatItDoes": "Scenario planning, what-if analysis, milestone & campaign planning.",
+      "infoNeeded": [
+        "Targets, current pipeline, historical conversion, geographic coverage, new territory plans, product mix."
+      ],
+      "dataSources": "CRM + Commercial DNA + manual planning inputs.",
+      "notes": [
+        "Highlights \"new territory\" risk if coverage or historical win rates in that geography are low.",
+        "Flags \"too much pipeline not moving\" when stage velocity is poor."
+      ]
+    },
+    {
+      "number": 9,
+      "id": "role-optimised-dashboards",
+      "name": "Role-Optimised Dashboards & Today's Priorities",
+      "whatItDoes": "Salesman / Manager / Director each see different views with concrete daily actions.",
+      "infoNeeded": [
+        "All deal and activity data above, plus user role and territory assignment."
+      ],
+      "dataSources": "CRM + user profile + Commercial DNA.",
+      "notes": []
+    },
+    {
+      "number": 10,
+      "id": "executive-actions",
+      "name": "Executive Actions (one-click)",
+      "whatItDoes": "15+ pre-built actions (e.g. \"Inspect this deal\", \"Run War Room\", \"Generate board paper\", \"Update forecast confidence\").",
+      "infoNeeded": [
+        "Whatever the specific action requires (usually already in the system)."
+      ],
+      "dataSources": "",
+      "notes": []
+    }
+  ],
+  "diagnosticSignals": [
+    {
+      "signal": "Win rates unusually high",
+      "meaning": "Not enough competitive deals, weak qualification, or sandbagging",
+      "trigger": "Closed-won vs closed-lost ratio, competitive mention rate"
+    },
+    {
+      "signal": "Large pipeline stuck at top of funnel",
+      "meaning": "Poor qualification or slow early-stage progression",
+      "trigger": "Stage age + conversion rates by stage"
+    },
+    {
+      "signal": "Thin geographic coverage",
+      "meaning": "Under-penetrated territory or new market risk",
+      "trigger": "Deals/wins by region vs target coverage"
+    },
+    {
+      "signal": "New territory low win rate",
+      "meaning": "Learning curve or wrong ICP for that area",
+      "trigger": "Win rate filtered by geography + deal age"
+    },
+    {
+      "signal": "High pipeline coverage but low confidence",
+      "meaning": "Quantity without quality",
+      "trigger": "Coverage ratio vs MEDDIC / methodology scores"
+    },
+    {
+      "signal": "Deals with missing EB or Champion",
+      "meaning": "High risk of late-stage collapse",
+      "trigger": "Contact roles on the opportunity"
+    }
+  ],
+  "diagnosticSignalsShortForm": [
+    "Win rates unusually high → possible lack of competitive deals or weak qualification",
+    "Large volume of pipeline stuck at top of funnel → early-stage bloat / poor conversion",
+    "Thin geographic coverage → under-penetrated or new territory risk",
+    "New territory low win rate → learning curve or ICP mismatch",
+    "High coverage but low confidence → quantity without quality",
+    "Missing Economic Buyer or Champion → late-stage collapse risk"
+  ],
+  "dataSourceSummary": [
+    "Commercial DNA (entered once by leadership)",
+    "CRM (opportunities, contacts, stages, activities, closed history)",
+    "Uploaded documents (RFPs, proposals, notes)",
+    "Email / calendar (optional integration for richer history)",
+    "User activity inside SaleSonic (decision log, War Room outcomes)"
+  ],
+  "dataRequirementsChecklist": {
+    "title": "SaleSonic – One-Page Data Requirements Checklist",
+    "sections": [
+      {
+        "number": 1,
+        "title": "Commercial DNA (Entered once – the foundation)",
+        "rows": [
+          {
+            "dataItem": "Annual/quarterly targets",
+            "example": "£4.2m annual, phased by quarter",
+            "source": "Finance / Leadership",
+            "priority": "Critical"
+          },
+          {
+            "dataItem": "Products/services & avg deal size",
+            "example": "Enterprise Rollout £250–600k, Contact Centre £150–350k",
+            "source": "Product / Sales",
+            "priority": "Critical"
+          },
+          {
+            "dataItem": "Compensation plans",
+            "example": "Quota, accelerators, commission structure",
+            "source": "HR / Finance",
+            "priority": "High"
+          },
+          {
+            "dataItem": "Sales methodology",
+            "example": "MEDDIC (primary) + Challenger elements",
+            "source": "Sales Leadership",
+            "priority": "Critical"
+          },
+          {
+            "dataItem": "Ideal Customer Profile",
+            "example": "Enterprise retail, utilities, financial services",
+            "source": "Sales / Marketing",
+            "priority": "High"
+          },
+          {
+            "dataItem": "Average sales cycle",
+            "example": "6–9 months",
+            "source": "CRM historical",
+            "priority": "High"
+          },
+          {
+            "dataItem": "Target margins",
+            "example": "22–28%",
+            "source": "Finance",
+            "priority": "Medium"
+          },
+          {
+            "dataItem": "Geographic coverage/territories",
+            "example": "UK national, focus North & London",
+            "source": "Sales Ops",
+            "priority": "High"
+          },
+          {
+            "dataItem": "Historical win rates",
+            "example": "Overall 28%, New logo 18%, Existing 41%",
+            "source": "CRM",
+            "priority": "Critical"
+          }
+        ]
+      },
+      {
+        "number": 2,
+        "title": "Live Pipeline & Deal Data (Ongoing)",
+        "rows": [
+          {
+            "dataItem": "Opportunity name, value, close date, stage",
+            "example": "Coors Enterprise Stores Rollout – £600k – Closed Won",
+            "source": "CRM",
+            "priority": "Critical"
+          },
+          {
+            "dataItem": "Probability / forecast category",
+            "example": "80% Commit, 65% Best Case, etc.",
+            "source": "CRM / Rep input",
+            "priority": "Critical"
+          },
+          {
+            "dataItem": "Key contacts & roles",
+            "example": "EB, TB, UB, Champion, Influencer, Approver",
+            "source": "CRM Contacts",
+            "priority": "Critical"
+          },
+          {
+            "dataItem": "Meeting notes & activity history",
+            "example": "9 months of calls, emails, workshops",
+            "source": "CRM Activities / Email",
+            "priority": "Critical"
+          },
+          {
+            "dataItem": "Competitive information",
+            "example": "Competitor name, price position, strengths",
+            "source": "Rep notes / CRM",
+            "priority": "High"
+          },
+          {
+            "dataItem": "Next steps & last activity date",
+            "example": "\"Send revised contract – 12 Sep\"",
+            "source": "CRM",
+            "priority": "High"
+          }
+        ]
+      },
+      {
+        "number": 3,
+        "title": "Historical Closed Data (for calibration)",
+        "rows": [
+          {
+            "dataItem": "Closed Won & Closed Lost deals",
+            "example": "Last 12–24 months with values & reasons",
+            "source": "CRM",
+            "priority": "Critical"
+          },
+          {
+            "dataItem": "Win / loss reasons",
+            "example": "Price, features, relationship, timing, etc.",
+            "source": "CRM or win/loss interviews",
+            "priority": "High"
+          },
+          {
+            "dataItem": "Stage conversion rates",
+            "example": "Discovery → Proposal 62%, Proposal → Close 34%",
+            "source": "CRM reporting",
+            "priority": "High"
+          },
+          {
+            "dataItem": "Win rates by segment",
+            "example": "By product, territory, deal size, new vs existing",
+            "source": "CRM",
+            "priority": "Critical"
+          }
+        ]
+      },
+      {
+        "number": 4,
+        "title": "Documents (as needed)",
+        "rows": [
+          {
+            "dataItem": "RFPs",
+            "example": "Full tender documents",
+            "source": "Customer / Bid team",
+            "priority": "High (when active)"
+          },
+          {
+            "dataItem": "Proposals & contracts",
+            "example": "Submitted versions",
+            "source": "Sales / Legal",
+            "priority": "Medium"
+          },
+          {
+            "dataItem": "Meeting notes / board papers",
+            "example": "PDF, DOCX, TXT",
+            "source": "Reps / Leadership",
+            "priority": "Medium"
+          }
+        ]
+      }
+    ]
+  },
+  "minimumViableData": {
+    "title": "Minimum Viable Data to make demos powerful",
+    "items": [
+      "Commercial DNA completed",
+      "6–10 live + historical deals with contacts, values, stages and 6–9 months of activity notes",
+      "Basic win/loss history (even if only 12 months)"
+    ],
+    "outcome": "Once this data is loaded, the three personas (Salesman, Manager, Director) immediately produce concrete, non-academic recommendations and prioritised daily actions."
+  }
+}
