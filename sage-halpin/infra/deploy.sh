@@ -6,7 +6,9 @@
 #   RESOURCE_GROUP=rg-sagehalpin-prod FOUNDRY_RESOURCE_NAME=my-foundry ./infra/deploy.sh
 #
 # Optional: ENVIRONMENT_NAME (default prod), LOCATION (default uksouth),
-# AI_MODEL, VITE_ENQUIRY_EMAIL.
+# AI_MODEL, VITE_ENQUIRY_EMAIL, PUBLIC_BASE_URL (address in emailed links),
+# EMAIL_ENDPOINT and EMAIL_SENDER (Azure Communication Services, to email
+# questionnaires; without them the lead sends each link themselves).
 set -euo pipefail
 
 : "${RESOURCE_GROUP:?Set RESOURCE_GROUP}"
@@ -31,6 +33,7 @@ OUTPUTS="$(az deployment group create \
   --parameters environmentName="$ENVIRONMENT_NAME" location="$LOCATION" \
                foundryResourceName="$FOUNDRY_RESOURCE_NAME" aiModel="$AI_MODEL" \
                containerImage="$CURRENT_IMAGE" \
+               publicBaseUrl="${PUBLIC_BASE_URL:-}" emailEndpoint="${EMAIL_ENDPOINT:-}" emailSender="${EMAIL_SENDER:-}" \
   --query properties.outputs -o json)"
 
 REGISTRY="$(echo "$OUTPUTS" | python3 -c 'import json,sys; print(json.load(sys.stdin)["registryName"]["value"])')"

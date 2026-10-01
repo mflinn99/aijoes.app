@@ -98,13 +98,31 @@ export default function Dashboard() {
             New Analysis
           </button>
           <button
+            onClick={() => setLocation("/organisation")}
+            style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, color: TEXT_SECONDARY, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", padding: "8px 16px", cursor: "pointer", transition: "all 0.18s", fontWeight: 600 }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "hsl(var(--muted))"; (e.currentTarget as HTMLButtonElement).style.color = TEXT_PRIMARY; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.color = TEXT_SECONDARY; }}
+            data-testid="button-your-board"
+          >
+            Your Board
+          </button>
+          <button
+            onClick={() => setLocation("/questions")}
+            style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, color: TEXT_SECONDARY, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", padding: "8px 16px", cursor: "pointer", transition: "all 0.18s", fontWeight: 600 }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "hsl(var(--muted))"; (e.currentTarget as HTMLButtonElement).style.color = TEXT_PRIMARY; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.color = TEXT_SECONDARY; }}
+            data-testid="button-board-questions"
+          >
+            Board Questions
+          </button>
+          <button
             onClick={() => setLocation("/boardroom")}
             style={{ background: "none", border: `1px solid ${BORDER}`, borderRadius: 4, color: TEXT_SECONDARY, fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase", padding: "8px 16px", cursor: "pointer", transition: "all 0.18s", fontWeight: 600 }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "hsl(var(--muted))"; (e.currentTarget as HTMLButtonElement).style.color = TEXT_PRIMARY; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "none"; (e.currentTarget as HTMLButtonElement).style.color = TEXT_SECONDARY; }}
             data-testid="button-enter-boardroom"
           >
-            Open Boardroom
+            Shadow Board
           </button>
         </div>
       </motion.div>

@@ -5,8 +5,11 @@
 One Azure Container App (`ca-sagehalpin-<env>`) serves the web app and the
 boardroom API on port 8080. It pulls its image from Azure Container Registry
 with a user-assigned managed identity, and uses the same identity (Microsoft
-Entra ID) to call Claude on Microsoft Foundry. Logs go to Log Analytics. There
-is no database: workspace data stays in each visitor's browser.
+Entra ID) to call Claude on Microsoft Foundry and to reach Azure Table Storage.
+Logs go to Log Analytics. Workspace data stays in each visitor's browser; board
+questions (the question, the people asked and their answers) are kept in the
+`consultations` table of the storage account (`stsh…`), whose shared keys are
+turned off.
 
 `infra/main.bicep` defines all of it. Region: UK South.
 
@@ -48,7 +51,8 @@ One-time setup:
    required reviewers if you want a manual approval before each deploy.
 4. Set these repository variables: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`,
    `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `FOUNDRY_RESOURCE_NAME`, and
-   optionally `SAGE_HALPIN_ENV`, `AI_MODEL`, `VITE_ENQUIRY_EMAIL`.
+   optionally `SAGE_HALPIN_ENV`, `AI_MODEL`, `VITE_ENQUIRY_EMAIL`,
+   `PUBLIC_BASE_URL`, `EMAIL_ENDPOINT`, `EMAIL_SENDER`.
 
 No Azure secrets are stored in GitHub; sign-in uses OIDC.
 
@@ -62,7 +66,34 @@ No Azure secrets are stored in GitHub; sign-in uses OIDC.
 | Waitlist address | build argument `VITE_ENQUIRY_EMAIL` | none, so the link is hidden |
 
 Each full board session makes six model calls, and each scenario analysis makes
-eight. Watch Foundry usage when you change limits or replicas.
+eight. On a board question, drafting the questionnaire makes one, convening the
+shadow board makes one per seated agent, and each summary makes one. Watch Foundry usage when you change limits or replicas.
+
+## Board questions: storage, email and retention
+
+- **Storage.** The template creates the storage account, the `consultations`
+  table and a *Storage Table Data Contributor* role for the app's identity. With
+  `STORE=table` the app fails at start-up unless `TABLE_ENDPOINT` is set.
+- **Retention.** Questions and answers are deleted after
+  `consultationRetentionDays` (default 90): checked when a question is opened,
+  and swept every six hours. The lead can delete one at any time.
+- **Email.** Without email settings the lead is given each person's link and a
+  ready-written email to send from their own mailbox. To have the app email
+  people itself:
+  1. Create an *Email Communication Services* resource, add and verify a sending
+     domain (for example `mail.sentinel8.ai`; DNS records for SPF, DKIM and
+     domain verification), and connect it to an *Azure Communication Services*
+     resource.
+  2. Grant the app's managed identity (`identityPrincipalId` output) a role on
+     the Communication Services resource that can send email (Contributor works;
+     a custom role with only the email send action is narrower).
+  3. Redeploy with `EMAIL_ENDPOINT=https://<acs-name>.<region>.communication.azure.com`
+     and `EMAIL_SENDER=DoNotReply@mail.sentinel8.ai`, and
+     `PUBLIC_BASE_URL=https://app.sentinel8.ai` once that address works (it
+     defaults to the Container App's own address).
+- **Limits.** AI steps (drafting a questionnaire, the shadow board, the
+  summaries) share `RATE_LIMIT_CONSULT_AI_PER_10_MIN` (20); answering a
+  questionnaire is limited to 60 requests per client per 10 minutes.
 
 ## Using a Foundry API key instead of managed identity
 

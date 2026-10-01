@@ -43,7 +43,8 @@ jobs:
   # Deploys on merge to the default branch once the repository variables below are set:
   #   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID  (OIDC federated credential)
   #   AZURE_RESOURCE_GROUP, FOUNDRY_RESOURCE_NAME
-  #   optional: SAGE_HALPIN_ENV (default prod), AI_MODEL, VITE_ENQUIRY_EMAIL
+  #   optional: SAGE_HALPIN_ENV (default prod), AI_MODEL, VITE_ENQUIRY_EMAIL,
+  #             PUBLIC_BASE_URL, EMAIL_ENDPOINT, EMAIL_SENDER
   deploy:
     needs: ci
     if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch && vars.AZURE_CLIENT_ID != ''
@@ -58,6 +59,9 @@ jobs:
       ENVIRONMENT_NAME: ${{ vars.SAGE_HALPIN_ENV || 'prod' }}
       AI_MODEL: ${{ vars.AI_MODEL || 'claude-opus-5-5' }}
       VITE_ENQUIRY_EMAIL: ${{ vars.VITE_ENQUIRY_EMAIL }}
+      PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
+      EMAIL_ENDPOINT: ${{ vars.EMAIL_ENDPOINT }}
+      EMAIL_SENDER: ${{ vars.EMAIL_SENDER }}
     steps:
       - uses: actions/checkout@v4
       - uses: azure/login@v2

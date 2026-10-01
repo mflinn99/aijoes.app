@@ -1,6 +1,8 @@
-// Sage Halpin on Azure: one Container App (web + boardroom API) that calls
-// Claude on Microsoft Foundry with its managed identity. No database: the
-// workspace data lives in each visitor's browser, as it did in Sixonic.
+// Sentinel8 on Azure: one Container App (web + boardroom API) that calls
+// Claude on Microsoft Foundry with its managed identity. The workspace data
+// lives in each visitor's browser, as it did in Sixonic; board questions put to
+// people by questionnaire live in Azure Table Storage, reached with the same
+// managed identity (no storage keys).
 //
 // Deploy into a resource group in UK South:
 //   az deployment group create -g <rg> -f infra/main.bicep -p infra/main.parameters.json
@@ -44,6 +46,20 @@ param maxReplicas int = 3
 param rateLimitChat int = 20
 param rateLimitAnalysis int = 10
 
+@description('Public address used in emailed questionnaire links, for example https://app.sentinel8.ai. Defaults to the Container App\'s own address.')
+param publicBaseUrl string = ''
+
+@description('Optional: Azure Communication Services endpoint (https://<name>.<region>.communication.azure.com) for emailing questionnaires. Leave empty and the lead sends each link from their own mailbox.')
+param emailEndpoint string = ''
+
+@description('Sender address on a verified Azure Communication Services email domain, for example DoNotReply@mail.sentinel8.ai. Required with emailEndpoint.')
+param emailSender string = ''
+
+@description('Days a board question and its answers are kept before automatic deletion.')
+@minValue(1)
+@maxValue(730)
+param consultationRetentionDays int = 90
+
 var suffix = uniqueString(resourceGroup().id, environmentName)
 var tags = {
   application: 'sage-halpin'
@@ -53,6 +69,7 @@ var tags = {
 // Built-in role definitions.
 var acrPullRoleId = '7f951dda-4ed3-4680-a7ca-43fe172d538d'
 var keyVaultSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
+var storageTableDataContributorRoleId = '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
 
 resource logs 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: 'log-sagehalpin-${environmentName}-${suffix}'
@@ -116,6 +133,43 @@ resource vaultSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' =
   }
 }
 
+// Board questions, invitations and answers. Entra ID only: shared keys are off.
+resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: 'stsh${environmentName}${take(suffix, 8)}' // at most 24 lowercase letters and digits
+  location: location
+  tags: tags
+  sku: { name: 'Standard_LRS' }
+  kind: 'StorageV2'
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
+    supportsHttpsTrafficOnly: true
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: false
+    defaultToOAuthAuthentication: true
+    publicNetworkAccess: 'Enabled'
+  }
+}
+
+resource tableService 'Microsoft.Storage/storageAccounts/tableServices@2023-05-01' = {
+  parent: storage
+  name: 'default'
+}
+
+resource consultationsTable 'Microsoft.Storage/storageAccounts/tableServices/tables@2023-05-01' = {
+  parent: tableService
+  name: 'consultations'
+}
+
+resource tableAccess 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(storage.id, identity.id, storageTableDataContributorRoleId)
+  scope: storage
+  properties: {
+    principalId: identity.properties.principalId
+    principalType: 'ServicePrincipal'
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageTableDataContributorRoleId)
+  }
+}
+
 resource foundry 'Microsoft.CognitiveServices/accounts@2024-10-01' existing = if (assignFoundryRole) {
   name: foundryResourceName
 }
@@ -146,6 +200,9 @@ resource environment 'Microsoft.App/managedEnvironments@2024-03-01' = {
 }
 
 var useApiKey = !empty(foundryApiKeySecretName)
+var appName = 'ca-sagehalpin-${environmentName}'
+var appBaseUrl = empty(publicBaseUrl) ? 'https://${appName}.${environment.properties.defaultDomain}' : publicBaseUrl
+var useEmail = !empty(emailEndpoint)
 
 var baseEnv = [
   { name: 'NODE_ENV', value: 'production' }
@@ -158,17 +215,25 @@ var baseEnv = [
   { name: 'AZURE_CLIENT_ID', value: identity.properties.clientId }
   { name: 'RATE_LIMIT_CHAT_PER_10_MIN', value: string(rateLimitChat) }
   { name: 'RATE_LIMIT_ANALYSIS_PER_10_MIN', value: string(rateLimitAnalysis) }
+  { name: 'STORE', value: 'table' }
+  { name: 'TABLE_ENDPOINT', value: storage.properties.primaryEndpoints.table }
+  { name: 'TABLE_NAME', value: consultationsTable.name }
+  { name: 'CONSULTATION_RETENTION_DAYS', value: string(consultationRetentionDays) }
+  { name: 'PUBLIC_BASE_URL', value: appBaseUrl }
+  { name: 'EMAIL_PROVIDER', value: useEmail ? 'acs' : 'manual' }
+  { name: 'ACS_ENDPOINT', value: emailEndpoint }
+  { name: 'EMAIL_SENDER', value: emailSender }
 ]
 
 resource app 'Microsoft.App/containerApps@2024-03-01' = {
-  name: 'ca-sagehalpin-${environmentName}'
+  name: appName
   location: location
   tags: union(tags, { 'azd-service-name': 'web' })
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: { '${identity.id}': {} }
   }
-  dependsOn: [acrPull, vaultSecretsUser]
+  dependsOn: [acrPull, vaultSecretsUser, tableAccess]
   properties: {
     managedEnvironmentId: environment.id
     configuration: {
@@ -239,3 +304,5 @@ output registryName string = registry.name
 output registryLoginServer string = registry.properties.loginServer
 output identityClientId string = identity.properties.clientId
 output keyVaultName string = vault.name
+output storageAccountName string = storage.name
+output identityPrincipalId string = identity.properties.principalId
