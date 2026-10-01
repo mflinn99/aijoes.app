@@ -35,7 +35,7 @@ export default function Home() {
           <Mark size={30} />
           <div className="flex flex-col">
             <span style={{ fontSize: 15, letterSpacing: "0.24em", fontWeight: 600, textTransform: "uppercase" }}>
-              Sage Halpin
+              SENTINEL<span className="sentinel-eight">8</span>
             </span>
             <span
               style={{
@@ -88,14 +88,14 @@ export default function Home() {
               <PrimaryButton label="Ask the Board" onClick={() => setLocation("/boardroom")} testId="button-ask-board" />
             </div>
 
-            {/* Sage Halpin point of view */}
+            {/* Sentinel8 point of view */}
             <div className="bg-card border border-border p-6 rounded-md shadow-sm w-full relative overflow-hidden group">
               <div className="absolute top-0 left-0 w-1 h-full bg-accent" />
               <h3 className="text-sm font-semibold text-foreground mb-1">
                 Six perspectives. One accountable decision.
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                Sage Halpin brings governance, risk, commercial value, innovation, culture and performance into one boardroom view, so growth is considered alongside the people and systems that sustain it.
+                Sentinel<span className="sentinel-eight">8</span> brings governance, risk, commercial value, innovation, culture and performance into one boardroom view, so growth is considered alongside the people and systems that sustain it.
               </p>
               <div className="flex flex-wrap gap-x-4 gap-y-2 border-t border-border pt-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 <span>Evidence</span><span>Accountability</span><span>Long-term value</span>
@@ -125,7 +125,7 @@ export default function Home() {
         <p className="mx-auto mb-3 max-w-2xl leading-relaxed" data-testid="disclosure">
           Human advisers and AI agents support the board. AI agents are not statutory directors and do not exercise voting rights. The client's authorised people retain decision authority. Data access, retention and deletion follow the agreed terms.
         </p>
-        © {new Date().getFullYear()} Sage Halpin. All rights reserved.
+        © {new Date().getFullYear()} Sentinel<span className="sentinel-eight">8</span>. All rights reserved.
       </footer>
     </div>
   );

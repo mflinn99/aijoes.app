@@ -212,11 +212,11 @@ const CAPABILITIES: Capability[] = [
     mockReason: NOT_REACHABLE,
   },
   {
-    // Rebranded from Sixonic to Sage Halpin; the id stays 'sixonic' so stored
+    // Rebranded from Sixonic to Sentinel8; the id stays 'sixonic' so stored
     // plans, playbooks and engine references keep resolving.
     id: 'sixonic',
-    name: 'Sage Halpin',
-    opco: 'Sage Halpin',
+    name: 'Sentinel8',
+    opco: 'Sentinel8',
     type: 'automation',
     description: 'Process automation and agent delivery, by people and AI agents together (formerly Sixonic).',
     supportedActions: [

@@ -64,7 +64,7 @@ export default function Dashboard() {
             onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = ACCENT)}
             onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_MUTED)}
           >
-            SAGE HALPIN
+            SENTINEL<span className="sentinel-eight">8</span>
           </button>
           <span style={{ color: BORDER, fontSize: 12 }}>|</span>
           <span style={{ color: TEXT_SECONDARY, fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 500 }}>

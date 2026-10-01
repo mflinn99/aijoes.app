@@ -50,7 +50,10 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Sage Halpin — midnight ink, warm ivory, muted brass, slate.
+/* The 8 in the Sentinel8 wordmark lies on its side, as the infinity sign. */
+.sentinel-eight { display: inline-block; transform: rotate(90deg); font-size: 1.12em; line-height: 1; margin: 0 0.16em 0 0.2em; letter-spacing: 0; }
+
+/* Sentinel8 — midnight ink, warm ivory, muted brass, slate.
    #13232B = 200 39% 12%, #F5F1E9 = 40 38% 94%, #B28A56 = 34 37% 52%, #65737A = 200 9% 44%. */
 :root {
   --button-outline: rgba(19,35,43,0.10);
