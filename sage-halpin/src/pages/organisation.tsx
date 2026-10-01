@@ -20,7 +20,7 @@ import { AGENT_PERSONAS, CHAIR_AGENT, LIMITS, isEmail, type BoardPerson } from "
 // Onboarding: the lead enters the organisation, the real people who take part
 // in its decisions, and how the shadow board of AI agents is seated.
 
-const BLANK_PERSON: Omit<BoardPerson, "id"> = { name: "", role: "", email: "", phone: "", expertise: "", cv: "" };
+const BLANK_PERSON: Omit<BoardPerson, "id"> = { name: "", role: "", email: "", phone: "", expertise: "", cv: "", permanent: false };
 
 function Field({ id, label, hint, children }: { id: string; label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -74,6 +74,13 @@ function PersonForm({ initial, onSave, onCancel }: { initial: BoardPerson; onSav
         <Field id="p-phone" label="Phone (optional)">
           <Input id="p-phone" type="tel" value={p.phone ?? ""} maxLength={40} onChange={set("phone")} autoComplete="off" />
         </Field>
+      </div>
+      <div className="flex items-start gap-3 rounded-md border border-border bg-card p-3">
+        <Switch id="p-permanent" checked={p.permanent === true} onCheckedChange={(on) => setP({ ...p, permanent: on })} data-testid="switch-permanent" />
+        <Label htmlFor="p-permanent" className="text-sm font-normal">
+          <span className="font-semibold">Permanent member.</span> Takes part in every decision that involves people: always asked, and you are
+          warned before deciding without their answer. Leave off for people you invite as a question needs them, such as a fractional adviser.
+        </Label>
       </div>
       <Field id="p-expertise" label="Expertise" hint="What they bring to the board's decisions.">
         <Input id="p-expertise" value={p.expertise ?? ""} maxLength={LIMITS.expertise} onChange={set("expertise")} />
@@ -184,17 +191,25 @@ export default function OrganisationPage() {
       </Section>
 
       <Section
-        title={`2. The people (${org.people.length})`}
-        intro="The real people included in decision making: executives, non-executives and fractional advisers. Each is asked for their input by email and questionnaire when a question involves them."
+        title={`2. The people (${org.people.filter((p) => p.permanent).length} permanent, ${org.people.filter((p) => !p.permanent).length} as needed)`}
+        intro="The real people included in decision making. Permanent members take part in every decision that involves people; others, such as fractional advisers, are invited when a question needs them. Each is asked for their input by email and questionnaire."
       >
         {org.people.length > 0 && (
           <ul className="mb-4 divide-y divide-border rounded-md border border-border" data-testid="people-list">
-            {org.people.map((p) => (
+            {[...org.people].sort((a, b) => Number(b.permanent === true) - Number(a.permanent === true)).map((p) => (
               <li key={p.id} className="flex flex-wrap items-start justify-between gap-3 p-4">
                 <div className="flex min-w-0 items-start gap-3">
                   <span aria-hidden className="mt-1 inline-block h-3 w-3 shrink-0 rounded-full bg-[#7FB692]" />
                   <div className="min-w-0">
-                    <p className="font-semibold">{p.name}</p>
+                    <p className="font-semibold">
+                      {p.name}{" "}
+                      <span
+                        className={`ml-1 rounded px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${p.permanent ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground"}`}
+                        data-testid={`member-${p.permanent ? "permanent" : "as-needed"}`}
+                      >
+                        {p.permanent ? "Permanent" : "As needed"}
+                      </span>
+                    </p>
                     <p className="text-sm text-muted-foreground">
                       {p.role} · {p.email}
                       {p.phone ? ` · ${p.phone}` : ""}

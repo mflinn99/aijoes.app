@@ -40,6 +40,8 @@ interface Invitee {
   tokenHash: string | null;
   invitedAt: string | null;
   emailStatus: "sent" | "manual" | "failed" | null;
+  /** A permanent member of the board, who takes part in every decision involving people. */
+  permanent?: boolean;
 }
 
 interface Consultation {
@@ -71,6 +73,8 @@ interface DecisionTaken {
   position: Position;
   rationale: string;
   decidedAt: string;
+  /** Permanent members who had not answered when the chair decided. */
+  withoutPermanent?: string[];
 }
 
 interface Feedback {
@@ -338,8 +342,9 @@ function responsesBlock(c: Consultation, responses: Record<string, StoredRespons
   const lines: string[] = [];
   for (const invitee of c.invitees) {
     const r = responses[invitee.personId];
+    const member = invitee.permanent ? ` member="permanent"` : "";
     if (!r) {
-      lines.push(`<person name="${invitee.name}" role="${invitee.role}">No response yet.</person>`);
+      lines.push(`<person name="${invitee.name}" role="${invitee.role}"${member}>No response yet.</person>`);
       continue;
     }
     const answers = c.questionnaire
@@ -349,7 +354,7 @@ function responsesBlock(c: Consultation, responses: Record<string, StoredRespons
       })
       .filter(Boolean)
       .join("\n");
-    lines.push(`<person name="${invitee.name}" role="${invitee.role}">\n${answers}\n</person>`);
+    lines.push(`<person name="${invitee.name}" role="${invitee.role}"${member}>\n${answers}\n</person>`);
   }
   return `<people_responses>\n${lines.join("\n")}\n</people_responses>`;
 }
@@ -480,7 +485,8 @@ router.post("/consultations", async (req, res, next) => {
         return bad(res, "each person needs an id, name, role and a valid email");
       }
       if (invitees.some((i) => i.personId === personId)) return bad(res, "duplicate person id");
-      invitees.push({ personId, name, role, email: p.email as string, tokenHash: null, invitedAt: null, emailStatus: null });
+      if (p.permanent !== undefined && typeof p.permanent !== "boolean") return bad(res, "permanent must be true or false");
+      invitees.push({ personId, name, role, email: p.email as string, tokenHash: null, invitedAt: null, emailStatus: null, permanent: p.permanent === true });
     }
 
     const id = randomBytes(12).toString("base64url");
@@ -723,7 +729,7 @@ router.post("/consultations/:id/synthesis", requireLead, async (req, res) => {
         ? await complete({
             purpose: "synthesis-people",
             system: `You are the board secretary for Sentinel8. Summarise what the people on this board said in their questionnaires, faithfully and neutrally. You add no opinion of your own and no recommendation: this is the people's view only.
-Structure: "Where people agree", "Where people differ" (name the people and roles on each side), "Conditions people set", "Open questions and missing information", "Who has not answered". Keep it concise and attribute every point.
+Structure: "Where people agree", "Where people differ" (name the people and roles on each side), "Conditions people set", "Open questions and missing information", "Who has not answered". Keep it concise and attribute every point. People marked member="permanent" are permanent members of the board: say where they stand, and flag any who have not answered.
 ${DATA_RULE}`,
             messages: [{ role: "user", content: `${questionBlock(c)}\n\n${responsesBlock(c, responses)}` }],
             maxTokens: 2048,
@@ -820,7 +826,29 @@ router.post("/consultations/:id/decision", requireLead, async (req, res, next) =
     if (rationale === null) return bad(res, "rationale too long");
     if (!(POSITIONS as readonly string[]).includes(body.position as string)) return bad(res, "choose what the decision means: go ahead, go ahead with conditions, do not, or defer");
 
-    const taken: DecisionTaken = { decision, position: body.position as Position, rationale, decidedAt: new Date().toISOString() };
+    // Permanent members take part in every decision involving people: the chair
+    // must knowingly decide without any who have not answered.
+    let missingNames: string[] = [];
+    if (c.mode !== "agents") {
+      const answeredIds = Object.keys(await responsesOf(store, c));
+      const missing = c.invitees.filter((i) => i.permanent && !answeredIds.includes(i.personId));
+      if (missing.length && body.proceedWithoutPermanent !== true) {
+        res.status(409).json({
+          error: `Waiting for permanent members: ${missing.map((m) => m.name).join(", ")}. Confirm to decide without them.`,
+          missingPermanent: missing.map((m) => ({ personId: m.personId, name: m.name, role: m.role })),
+        });
+        return;
+      }
+      missingNames = missing.map((m) => `${m.name} (${m.role})`);
+    }
+
+    const taken: DecisionTaken = {
+      decision,
+      position: body.position as Position,
+      rationale,
+      decidedAt: new Date().toISOString(),
+      ...(missingNames.length ? { withoutPermanent: missingNames } : {}),
+    };
     await store.put(partition(c.id), DECISION, taken);
     c.status = "closed";
     await store.put(partition(c.id), META, c);

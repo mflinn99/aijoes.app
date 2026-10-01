@@ -360,3 +360,54 @@ describe("looking outward", () => {
     expect(scanDue({ ...ws, webSearch: false, feeds: [] })).toBe(false);
   });
 });
+
+describe("permanent members", () => {
+  const people = [
+    { id: "person-chair1", name: "Jo Reyes", role: "Chair", email: "jo@example.com", permanent: true },
+    { id: "person-cfo1", name: "Sam Patel", role: "Fractional CFO", email: "sam@example.com" },
+  ];
+
+  it("records who is a permanent member", async () => {
+    const app = createApp();
+    const { id, admin } = await question(app, null, { people });
+    const view = await request(app).get(`/api/consultations/${id}`).set(bearer(admin)).expect(200);
+    expect(view.body.invitees.map((i: { permanent: boolean }) => i.permanent)).toEqual([true, false]);
+    await request(app)
+      .post("/api/consultations")
+      .send({ organisation: "O", leadName: "L", question: "Q?", people: [{ ...people[0], permanent: "yes" }] })
+      .expect(400);
+  });
+
+  it("will not decide without a permanent member's answer unless the chair confirms", async () => {
+    const app = createApp();
+    const { id, admin } = await question(app, null, { people, mode: "people" });
+    await answer(app, id, admin, "person-cfo1", "support");
+    const blocked = await request(app).post(`/api/consultations/${id}/decision`).set(bearer(admin)).send({ decision: "Go", position: "support" }).expect(409);
+    expect(blocked.body.missingPermanent).toEqual([{ personId: "person-chair1", name: "Jo Reyes", role: "Chair" }]);
+
+    const decided = await request(app)
+      .post(`/api/consultations/${id}/decision`)
+      .set(bearer(admin))
+      .send({ decision: "Go", position: "support", proceedWithoutPermanent: true })
+      .expect(200);
+    expect(decided.body.withoutPermanent).toEqual(["Jo Reyes (Chair)"]);
+  });
+
+  it("decides normally once every permanent member has answered", async () => {
+    const app = createApp();
+    const { id, admin } = await question(app, null, { people, mode: "people" });
+    await answer(app, id, admin, "person-chair1", "support");
+    const decided = await request(app).post(`/api/consultations/${id}/decision`).set(bearer(admin)).send({ decision: "Go", position: "support" }).expect(200);
+    expect(decided.body).not.toHaveProperty("withoutPermanent");
+  });
+
+  it("marks permanent members for the summary of the people's view", async () => {
+    const app = createApp();
+    const { id, admin } = await question(app, null, { people, mode: "people" });
+    await answer(app, id, admin, "person-cfo1", "oppose");
+    const seen: CompletionRequest[] = [];
+    setCompletionObserver((r) => seen.push(r));
+    await request(app).post(`/api/consultations/${id}/synthesis`).set(bearer(admin)).send({ view: "people" }).expect(200);
+    expect(seen[0].messages[0].content).toContain('<person name="Jo Reyes" role="Chair" member="permanent">No response yet.</person>');
+  });
+});
