@@ -32,7 +32,7 @@
 
 - **Website**: `site/` (landing page and demo) serves correctly as a static
   site, with relative links so it works both at the GitHub Pages address and at
-  sagehalpin.aigogo.ai. The brand check covers it.
+  www.sentinel8.ai. The brand check covers it.
 
 ## Not yet verified
 
