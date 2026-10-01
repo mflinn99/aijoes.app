@@ -95,6 +95,30 @@ shadow board makes one per seated agent, and each summary makes one. Watch Found
   summaries) share `RATE_LIMIT_CONSULT_AI_PER_10_MIN` (20); answering a
   questionnaire is limited to 60 requests per client per 10 minutes.
 
+## Agent learning and horizon scanning
+
+- **Workspace.** Each organisation has a workspace in the same `consultations`
+  table (partition `w-<id>`): profile, agent lessons, decisions and outcomes,
+  signals and the landscape briefing. People's details and CVs are not stored
+  there. Workspaces have no automatic expiry; the lead deletes one by clearing
+  the board.
+- **Scanner.** The server checks every 30 minutes for workspaces due a scan
+  (each sets its own interval) and scans them. `HORIZON_SCANNER=off` stops it.
+  With several replicas a scan is claimed before it runs, so duplicates are
+  rare and harmless (signals are de-duplicated).
+- **Feeds** must be public `https` addresses; the fetcher refuses private,
+  loopback, link-local and metadata addresses (checked at connection time),
+  caps each response at 1.5 MB and 10 seconds, and follows at most 3 redirects.
+- **Web search** uses Claude's server-side web search tool. Foundry deployments
+  hosted on Azure support only `web_search_20250305` (the default); set
+  `WEB_SEARCH_TOOL=web_search_20260209` for deployments hosted on Anthropic.
+  `WEB_SEARCH=off` turns web search off everywhere. Web search is billed per
+  search on top of tokens; each scan allows up to 5 searches.
+- **Cost.** A scan makes one triage call per 20 new feed items, one web search
+  call and one landscape call. Studying material, reviewing an outcome and the
+  collaborative challenge round each make one call per agent involved (the
+  challenge round) or one call (the others).
+
 ## Using a Foundry API key instead of managed identity
 
 Not recommended. If needed: store the key in the deployed Key Vault

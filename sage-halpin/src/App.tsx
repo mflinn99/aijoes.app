@@ -11,6 +11,8 @@ import OrganisationPage from "@/pages/organisation";
 import { QuestionList, NewQuestion } from "@/pages/questions";
 import QuestionRoom from "@/pages/question-room";
 import Respond from "@/pages/respond";
+import AgentsPage from "@/pages/agents";
+import HorizonPage from "@/pages/horizon";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ function Router() {
       <Route path="/questions/new" component={NewQuestion} />
       <Route path="/questions/:id" component={QuestionRoom} />
       <Route path="/respond/:token" component={Respond} />
+      <Route path="/agents" component={AgentsPage} />
+      <Route path="/horizon" component={HorizonPage} />
       <Route path="/reset-password">
         <Redirect to="/" />
       </Route>

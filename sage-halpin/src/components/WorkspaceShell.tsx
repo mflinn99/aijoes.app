@@ -8,6 +8,8 @@ import { Mark } from "@/components/Mark";
 const NAV = [
   { href: "/dashboard", label: "Workspace" },
   { href: "/organisation", label: "Your board" },
+  { href: "/agents", label: "Agents" },
+  { href: "/horizon", label: "Horizon" },
   { href: "/questions", label: "Board questions" },
   { href: "/boardroom", label: "Shadow board" },
   { href: "/log", label: "Decision log" },

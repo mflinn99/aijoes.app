@@ -58,6 +58,47 @@ export function mockCompletion(req: CompletionRequest): string {
       return "Mock summary of the people's input. This is a mock reply for testing.";
     case "synthesis-mixed":
       return "Mock combined view of people and agents. RECOMMENDED RESOLUTION: mock. This is a mock reply for testing.";
+    case "shadow-challenge":
+      return "Mock challenge of the people's answers. This is a mock reply for testing.\nPOSITION: support_with_conditions\nCONFIDENCE: 4";
+    case "agent-study":
+      return JSON.stringify([{ kind: "fact", text: "Mock lesson from the material studied." }]);
+    case "agent-reflection":
+      return JSON.stringify([{ agentId: "grimm", text: "Mock lesson from the outcome of a decision." }]);
+    case "horizon-triage": {
+      // Keep every item the scanner offered, so tests can count them.
+      const count = (req.messages.at(-1)?.content.match(/<item index=/g) ?? []).length;
+      return JSON.stringify(
+        Array.from({ length: count }, (_, index) => ({
+          index,
+          category: "economic",
+          impact: "high",
+          horizon: "now",
+          summary: "Mock summary of an external development.",
+          implication: "Mock implication for the organisation.",
+          agents: ["solara", "grimm"],
+        })),
+      );
+    }
+    case "horizon-search":
+      return JSON.stringify([
+        {
+          title: "Mock development found by web search",
+          url: "https://example.com/mock-development",
+          publishedAt: "2026-09-30",
+          category: "legal",
+          impact: "medium",
+          horizon: "next_12_months",
+          summary: "Mock summary.",
+          implication: "Mock implication.",
+          agents: ["orion"],
+        },
+      ]);
+    case "horizon-landscape":
+      return JSON.stringify({
+        briefing: "Mock landscape briefing. This is a mock reply for testing.",
+        trends: [{ title: "Mock trend", direction: "rising", detail: "Mock detail." }],
+        lessons: [{ agentId: "solara", text: "Mock lesson from horizon scanning." }],
+      });
     case "chat-chair":
       return "Mock response. Board alignment points: none yet. Board conflict points: none yet. RECOMMENDED RESOLUTION: gather evidence before deciding.";
     case "chat":

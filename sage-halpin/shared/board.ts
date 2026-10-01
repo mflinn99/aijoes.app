@@ -169,3 +169,147 @@ const EMAIL = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]+$
 export function isEmail(value: unknown): value is string {
   return typeof value === "string" && value.length <= LIMITS.email && EMAIL.test(value);
 }
+
+// ─── Who decides ────────────────────────────────────────────────────────────
+
+/** The chair chooses, per question, whose input the decision rests on. */
+export const DECISION_MODES = ["people", "agents", "collaborative"] as const;
+export type DecisionMode = (typeof DECISION_MODES)[number];
+
+export const DECISION_MODE_LABELS: Record<DecisionMode, string> = {
+  people: "People",
+  agents: "Agents",
+  collaborative: "Collaborative",
+};
+
+export const DECISION_MODE_DESCRIPTIONS: Record<DecisionMode, string> = {
+  people: "The people asked decide. They answer a questionnaire; no AI opinion is added.",
+  agents: "The shadow board of AI agents forms the view, through their personas. The chair adopts or rejects it.",
+  collaborative:
+    "People and agents deliberate in two rounds: both give independent views, then the agents challenge the people's answers and the people can revise theirs. The chair sets how much weight each side carries.",
+};
+
+/** Positions grouped by what they mean for the decision. */
+export function direction(p: Position | null): "for" | "against" | "defer" | null {
+  if (p === "support" || p === "support_with_conditions") return "for";
+  if (p === "oppose") return "against";
+  if (p === "need_more_information") return "defer";
+  return null;
+}
+
+/**
+ * The combined weight behind each position: the people's share of their votes
+ * times their weight, plus the agents' share times theirs. Weights are
+ * percentages; people + agents = 100.
+ */
+export function weightedTally(people: (Position | null)[], agents: (Position | null)[], peopleWeight: number) {
+  const share = (list: (Position | null)[], p: Position) => {
+    const stated = list.filter(Boolean);
+    return stated.length ? stated.filter((x) => x === p).length / stated.length : 0;
+  };
+  const w = Math.min(100, Math.max(0, peopleWeight)) / 100;
+  const hasPeople = people.some(Boolean);
+  const hasAgents = agents.some(Boolean);
+  // If one side has not spoken, the other carries the whole weight.
+  const wp = hasPeople && hasAgents ? w : hasPeople ? 1 : 0;
+  const wa = hasPeople && hasAgents ? 1 - w : hasAgents ? 1 : 0;
+  return POSITIONS.map((p) => ({ position: p, score: Math.round((share(people, p) * wp + share(agents, p) * wa) * 100) }));
+}
+
+// ─── How agents learn ───────────────────────────────────────────────────────
+
+export const LESSON_KINDS = ["principle", "fact", "preference", "correction", "context"] as const;
+export type LessonKind = (typeof LESSON_KINDS)[number];
+
+export const LESSON_KIND_LABELS: Record<LessonKind, string> = {
+  principle: "Principle",
+  fact: "Fact about us",
+  preference: "Board preference",
+  correction: "Correction",
+  context: "External context",
+};
+
+/** Where a lesson came from: the four ways an agent learns in the company. */
+export const LESSON_SOURCES = ["chair", "study", "feedback", "outcome", "horizon"] as const;
+export type LessonSource = (typeof LESSON_SOURCES)[number];
+
+export const LESSON_SOURCE_LABELS: Record<LessonSource, string> = {
+  chair: "Taught by the chair",
+  study: "From material it studied",
+  feedback: "From feedback on its opinions",
+  outcome: "From decision outcomes",
+  horizon: "From horizon scanning",
+};
+
+export interface Lesson {
+  id: string;
+  agentId: AgentId;
+  kind: LessonKind;
+  text: string;
+  source: LessonSource;
+  /** Proposed lessons wait for the chair; only active lessons reach the agent. */
+  status: "proposed" | "active" | "retired";
+  createdAt: string;
+  decidedAt: string | null;
+  /** What it came from: a question, a document title or a signal. */
+  ref: string | null;
+}
+
+export const LESSON_LIMITS = { text: 500, activePerAgent: 30, studyText: 20000, studyTitle: 200 } as const;
+
+export const OUTCOMES = ["better", "as_expected", "worse", "failed"] as const;
+export type Outcome = (typeof OUTCOMES)[number];
+
+export const OUTCOME_LABELS: Record<Outcome, string> = {
+  better: "Better than expected",
+  as_expected: "As expected",
+  worse: "Worse than expected",
+  failed: "It failed",
+};
+
+/** Whether an outcome shows the decision was right. */
+export const outcomeWasRight = (o: Outcome) => o === "better" || o === "as_expected";
+
+// ─── Looking outward ────────────────────────────────────────────────────────
+
+export const SIGNAL_CATEGORIES = ["political", "economic", "social", "technological", "legal", "environmental", "competitive"] as const;
+export type SignalCategory = (typeof SIGNAL_CATEGORIES)[number];
+
+export const SIGNAL_IMPACTS = ["high", "medium", "low"] as const;
+export type SignalImpact = (typeof SIGNAL_IMPACTS)[number];
+
+export const SIGNAL_HORIZONS = ["now", "next_12_months", "long_term"] as const;
+export type SignalHorizon = (typeof SIGNAL_HORIZONS)[number];
+
+export const SIGNAL_HORIZON_LABELS: Record<SignalHorizon, string> = {
+  now: "Now",
+  next_12_months: "Next 12 months",
+  long_term: "Longer term",
+};
+
+export interface Signal {
+  id: string;
+  title: string;
+  url: string;
+  source: string;
+  publishedAt: string | null;
+  foundAt: string;
+  category: SignalCategory;
+  impact: SignalImpact;
+  horizon: SignalHorizon;
+  summary: string;
+  implication: string;
+  agents: AgentId[];
+  via: "feed" | "web";
+}
+
+export interface Landscape {
+  updatedAt: string;
+  briefing: string;
+  trends: { title: string; direction: "rising" | "steady" | "falling"; detail: string }[];
+  signalCount: number;
+}
+
+export const SCAN_INTERVALS_HOURS = [6, 12, 24, 72, 168] as const;
+
+export const HORIZON_LIMITS = { feeds: 12, watchTopics: 12, topic: 80, feedLabel: 80, url: 500 } as const;

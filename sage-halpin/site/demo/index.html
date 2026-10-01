@@ -339,7 +339,7 @@ textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 14
     { t: 'Assemble the team', s: 'People and agents for this question' },
     { t: 'Board session', s: 'Every perspective, independently' },
     { t: 'Scenario analysis', s: 'Calibrate and stress-test' },
-    { t: 'Decide', s: 'People decide; agents advise' },
+    { t: 'Decide', s: 'People, agents or both' },
     { t: 'Follow through', s: 'Actions and measured outcome' },
     { t: 'Memory & handover', s: 'The knowledge compounds' }
   ];
@@ -586,7 +586,7 @@ textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 14
     step: 0, qid: null, agentsOn: {}, humansOn: {}, revealed: 0, filter: 'all',
     calib: { risk: 0.5, ambition: 0.5, time: 0.5, cost: 0.5 }, analysed: false, running: false, tab: 'experts',
     choice: null, rationale: '', owner: 'You (CEO)', locked: null, done: {}, lessonSaved: false,
-    memFilter: 'All', reviewed: {}, rotated: false, showTable: false, visited: {}
+    memFilter: 'All', reviewed: {}, rotated: false, showTable: false, visited: {}, mode: 'collaborative'
   };
   var timers = [];
   function clearTimers() { timers.forEach(clearTimeout); timers = []; }
@@ -796,9 +796,18 @@ textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 14
     var log = '<ul class="list log">' + (st.locked ? '<li><b>' + esc(cur.short) + ': ' + esc(st.locked.label) + '</b><span class="tag known">Locked</span><span class="when">' + st.locked.when + ' · ' + esc(st.locked.owner) + '</span></li>' : '') +
       '<li><b>Board pack schedule moved to monthly</b><span class="tag known">Locked</span><span class="when">Aug 2026 · Chair</span></li>' +
       '<li><b>Pause the South America distributor search</b><span class="tag known">Locked</span><span class="when">Jun 2026 · CEO</span></li></ul>';
-    return head('Decide', 'Agents recommend; the people accountable for the business decide. Choose how to respond, give your reasons, and lock it. Only a person can lock a decision.') +
+    var MODES = {
+      people: ['People', 'The people asked decide. Each answered a questionnaire by email: their position, their confidence and the questions that matter. Their view is summarised with no AI opinion added.'],
+      agents: ['Agents', 'The shadow board forms the view: each agent gives its opinion through its persona, and the Chair recommends. You adopt or reject it.'],
+      collaborative: ['Collaborative · people 70%, agents 30%', 'Two rounds. People and agents gave independent views; then the agents challenged the people\'s answers and the people could revise theirs. The recommendation reflects your weighting.']
+    };
+    var modeCard = '<div class="card"><h3>Who decides this question</h3><p class="muted" style="font-size:13.5px">The chair chooses, per question, whose input the decision rests on.</p>' +
+      '<div class="chips" role="group" aria-label="Who decides" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' +
+      ['people', 'agents', 'collaborative'].map(function (m) { return '<button type="button" class="chip-btn" data-mode="' + m + '" aria-pressed="' + (st.mode === m) + '"' + (st.locked ? ' disabled' : '') + '>' + MODES[m][0].split(' · ')[0] + '</button>'; }).join('') +
+      '</div><p style="margin-top:10px;font-size:14px"><b>' + esc(MODES[st.mode][0]) + '.</b> ' + esc(MODES[st.mode][1]) + '</p></div>';
+    return head('Decide', 'Agents recommend; the people accountable for the business decide. Choose who decides, how to respond, give your reasons, and lock it. Only a person can lock a decision.') +
       '<div class="grid g-wide" style="align-items:start">' +
-        '<div class="grid">' +
+        '<div class="grid">' + modeCard +
           '<div class="card ink"><p class="label" style="color:var(--brass)">The board recommends</p><p style="font-family:var(--display);font-weight:300;font-size:20px;margin-top:8px;line-height:1.3">' + esc(rec) + '</p><p style="font-size:13px;color:rgba(245,241,233,.7);margin-top:10px">From the ' + (st.analysed ? 'scenario analysis at your calibration' : 'board session') + '. Kill condition: ' + esc(cur.chair.kill) + '.</p></div>' +
           '<div class="card"><h3>Your decision</h3><div class="choices">' + choices + '</div>' +
             '<label class="field-label" for="rationale" style="margin-top:16px">Reasons (recorded with the decision)</label><textarea id="rationale" rows="3"' + (st.locked ? ' disabled' : '') + '>' + esc(st.rationale) + '</textarea>' +
@@ -824,7 +833,7 @@ textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 14
     var table = '<div class="table-scroll"><table class="tbl"><thead><tr><th>Month</th><th>Forecast</th><th>Actual</th></tr></thead><tbody>' +
       o.months.map(function (m, i) { return '<tr><td>' + m + '</td><td>' + fmt(o.forecast[i], o.unit) + '</td><td>' + fmt(o.actual[i], o.unit) + '</td></tr>'; }).join('') + '</tbody></table></div>';
     var lesson = st.lessonSaved
-      ? '<p class="note" style="margin-top:10px">Approved into memory by you.</p>'
+      ? '<p class="note" style="margin-top:10px">Approved by you: the agent applies it to every question from now on.</p>'
       : '<button type="button" class="btn small" data-action="lesson" style="margin-top:12px">Approve into memory</button>';
     return head('Follow through', 'Agents track the actions between meetings and compare the outcome with the forecast behind the decision. Tick actions off as they are done.') +
       (st.locked ? '' : '<p class="note">You have not locked a decision yet; the actions below follow the recommendation.</p>') +
@@ -837,7 +846,7 @@ textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 14
           '<button type="button" class="chip-btn" data-action="table" aria-pressed="' + st.showTable + '" style="margin-top:8px">' + (st.showTable ? 'Hide table' : 'Show as table') + '</button>' + (st.showTable ? table : '') +
         '</div>' +
       '</div>' +
-      '<div class="card ink"><p class="label" style="color:var(--brass)">Lesson proposed by the Performance & Strategy agent</p><p style="margin-top:8px;font-size:16px">' + cur.lesson + '</p>' + lesson + '</div>';
+      '<div class="card ink"><p class="label" style="color:var(--brass)">Learned from the outcome · proposed for the Performance & Strategy agent</p><p style="margin-top:8px;font-size:16px">' + cur.lesson + '</p>' + lesson + '</div>';
   }
 
   function fmt(v, unit) { return unit === '%' ? v.toFixed(1) + '%' : '£' + v + 'k'; }
@@ -967,6 +976,7 @@ textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 14
     if (t.dataset.tab) { st.tab = t.dataset.tab; render(); return; }
     if (t.dataset.choice) { st.choice = t.dataset.choice; render(); return; }
     if (t.dataset.mem) { st.memFilter = t.dataset.mem; render(); return; }
+    if (t.dataset.mode) { st.mode = t.dataset.mode; render(); return; }
     if (t.dataset.review) { st.reviewed[t.dataset.review] = true; render(); return; }
     var a = t.dataset.action;
     if (a === 'reveal-all') { clearTimers(); st.revealed = sessionItems().length; render(); }
@@ -978,7 +988,7 @@ textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 14
       var labels = { adopt: 'Adopted', amend: 'Adopted with changes', reject: 'Rejected' };
       var rec = st.analysed ? verdict().v.headline : q().chair.decision;
       var d = new Date();
-      st.locked = { label: labels[st.choice] + ': ' + rec, rationale: st.rationale || '(no reasons given)', owner: st.owner, when: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) };
+      st.locked = { label: labels[st.choice] + ': ' + rec, rationale: (st.rationale || '(no reasons given)') + ' Decided by: ' + ({ people: 'people', agents: 'agents', collaborative: 'people and agents, 70/30' })[st.mode] + '.', owner: st.owner, when: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) };
       render();
     }
     else if (a === 'lesson') { st.lessonSaved = true; render(); }

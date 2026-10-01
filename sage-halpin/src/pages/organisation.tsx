@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import {
   EMPTY_ORGANISATION,
   type Organisation,
 } from "@/lib/organisation";
+import { syncProfile, workspaceApi } from "@/lib/workspace";
 import { AGENT_PERSONAS, CHAIR_AGENT, LIMITS, isEmail, type BoardPerson } from "../../shared/board";
 
 // Onboarding: the lead enters the organisation, the real people who take part
@@ -128,6 +129,17 @@ export default function OrganisationPage() {
       update({ ...org, people: org.people.filter((p) => p.id !== id) });
     }
   }
+
+  // Keep the server's workspace (agent learning, horizon scanning) in step with the profile.
+  useEffect(() => {
+    if (!org.name.trim()) return;
+    const timer = window.setTimeout(() => {
+      syncProfile(loadOrganisation())
+        .then(() => setOrg(loadOrganisation()))
+        .catch(() => undefined);
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [org.name, org.sector, org.profile]);
 
   const seatedCount = org.agents.filter((a) => a.seated).length;
   const ready = org.name.trim() && org.leadName.trim() && org.people.length > 0;
@@ -286,7 +298,18 @@ export default function OrganisationPage() {
             );
           })}
         </div>
-        <p className="mt-4 text-xs text-muted-foreground">
+        <p className="mt-4 text-sm">
+          Develop each agent in{" "}
+          <Link href="/agents" className="font-semibold underline underline-offset-4">
+            Agent development
+          </Link>
+          , and set what the platform watches outside in{" "}
+          <Link href="/horizon" className="font-semibold underline underline-offset-4">
+            The horizon
+          </Link>
+          .
+        </p>
+        <p className="mt-2 text-xs text-muted-foreground">
           AI agents are not statutory directors and do not vote. The Chair always sits, so every question ends with a recommended resolution for
           your people to adopt or reject.
         </p>
@@ -295,13 +318,16 @@ export default function OrganisationPage() {
       <Section title="Your data">
         <p className="max-w-3xl text-sm text-muted-foreground">
           People's details and CVs stay in this browser. When you put a question to the board, the names, roles and emails of the people you
-          involve are stored with that question so they can answer it, and their CVs are sent to the AI model for that question only.
+          involve are stored with that question so they can answer it, and their CVs are sent to the AI model for that question only. Your
+          organisation's profile, what your agents have learned, your decisions and horizon scans are kept on the server for your workspace.
         </p>
         <Button
           variant="outline"
           className="mt-4"
           onClick={() => {
-            if (window.confirm("Clear your organisation, people and agent settings from this browser?")) {
+            if (window.confirm("Clear your organisation, people and agent settings from this browser, and delete what your agents have learned and the horizon scans from the server?")) {
+              const link = org.workspace;
+              if (link) workspaceApi.remove(link).catch(() => undefined);
               clearOrganisation();
               setOrg(EMPTY_ORGANISATION);
             }
