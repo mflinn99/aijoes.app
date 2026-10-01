@@ -7,6 +7,10 @@ import Dashboard from "@/pages/dashboard";
 import Boardroom from "@/pages/boardroom";
 import Analysis from "@/pages/analysis";
 import DecisionLog from "@/pages/decision-log";
+import OrganisationPage from "@/pages/organisation";
+import { QuestionList, NewQuestion } from "@/pages/questions";
+import QuestionRoom from "@/pages/question-room";
+import Respond from "@/pages/respond";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -19,6 +23,11 @@ function Router() {
       <Route path="/boardroom" component={Boardroom} />
       <Route path="/analysis" component={Analysis} />
       <Route path="/log" component={DecisionLog} />
+      <Route path="/organisation" component={OrganisationPage} />
+      <Route path="/questions" component={QuestionList} />
+      <Route path="/questions/new" component={NewQuestion} />
+      <Route path="/questions/:id" component={QuestionRoom} />
+      <Route path="/respond/:token" component={Respond} />
       <Route path="/reset-password">
         <Redirect to="/" />
       </Route>

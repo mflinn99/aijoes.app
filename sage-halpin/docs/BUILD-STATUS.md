@@ -30,6 +30,18 @@
   0.47. The deploy script passes a shell syntax check and the workflow passes
   actionlint.
 
+- **Board assembly and board questions** (1 October 2026): onboarding of the
+  organisation and its real people (name, role, email, phone, expertise, CV);
+  a persona for each of the six agents, which the lead can seat and brief; board
+  questions that email (or hand the lead) a questionnaire link for each person;
+  the respondent's questionnaire; and the decision seen as people only, shadow
+  board only, and people and agents together. 20 API tests cover creating,
+  inviting (manual and emailed), answering, access control, link replacement,
+  closing, the three views, deletion, retention and rate limits. A Chromium
+  walkthrough ran the whole flow (lead and a respondent on a phone-width
+  screen) with no page errors. Not yet run against real Azure Table Storage or
+  Azure Communication Services, which need a subscription.
+
 - **Website**: `site/` (landing page and demo) serves correctly as a static
   site, with relative links so it works both at the GitHub Pages address and at
   www.sentinel8.ai. The brand check covers it.

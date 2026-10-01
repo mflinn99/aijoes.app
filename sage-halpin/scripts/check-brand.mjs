@@ -5,7 +5,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import path from "node:path";
 
 const root = path.dirname(path.dirname(new URL(import.meta.url).pathname));
-const SHIPPED = ["src", "server", "public", "index.html", "dist", "site"];
+const SHIPPED = ["src", "server", "shared", "public", "index.html", "dist", "site"];
 const BANNED = [/sixonic/i, /\broster\b/i];
 const TEXT = /\.(tsx?|mjs|js|css|html|svg|json|txt)$/;
 

@@ -12,14 +12,26 @@ to run on Microsoft Azure with Claude on Microsoft Foundry.
 
 | | |
 | --- | --- |
-| **Boardroom** (`/boardroom`) | Put a question to the board; all six agents answer independently, and the chair agent recommends a resolution |
+| **Your board** (`/organisation`) | Onboarding: the organisation, the real people included in decisions (name, role, email, phone, expertise, CV), and the shadow board of six AI agents, each with a persona, which the lead can seat and brief |
+| **Board questions** (`/questions`) | Put a question to the board. Each person involved is emailed a questionnaire (their position, their confidence and tailored questions). The decision can then be seen three ways: **people only**, **shadow board** (agents only, each speaking through its persona, then the Chair) and **people and agents** together, with a recommended resolution. Record the decision on the decisions board |
+| **Questionnaire** (`/respond/<link>`) | What each person sees from their email: only their question and their own answers, which they can change until the lead closes it |
+| **Shadow board** (`/boardroom`) | A quick consult: put a question to the six agents only; all six answer independently, and the chair agent recommends a resolution |
 | **Scenario analysis** (`/analysis`) | Six board challenges, four calibration dials, per-agent SWOT and consequences, a DO / DON'T DO recommendation, a functional (sales, finance, HR, product, legal, governance) view, two feedback rounds, then you lock the decision |
 | **Executive workspace** (`/dashboard`) | KPI snapshot with an alert engine, decisions board, growth levers and risk register |
 | **Decision log** (`/log`) | Locked decisions with outcomes |
 
-Workspace data (KPIs, decisions, levers, risks, analyses, the log) is saved in
-each visitor's browser, exactly as Sixonic did. There is no database and no
-sign-in.
+Workspace data (KPIs, decisions, levers, risks, analyses, the log) and the
+board you assemble (people, CVs, agent settings) are saved in the lead's
+browser, as Sixonic did. There is no sign-in.
+
+Board questions are the exception, because people answer them from their own
+devices: the question, the names, roles and emails of the people asked, and
+their answers are kept on the server (Azure Table Storage in production) for
+90 days by default, then deleted automatically. The lead can delete a question
+and its answers at any time. CVs never leave the browser except to be read by
+the AI model when the board is consulted. Access works by unguessable links: the
+lead's browser holds the question's admin key, and each person's email holds
+their own link, which the lead can replace.
 
 ## Run locally
 
@@ -43,7 +55,7 @@ AI providers (`AI_PROVIDER` in `.env`):
 
 ```bash
 npm run typecheck
-npm test               # 31 tests: API contracts, validation, limits, brand
+npm test               # API contracts, consultations, validation, limits, brand
 npm run build
 npm run check:brand    # fails on any Sixonic branding or "roster" in shipped files
 ```

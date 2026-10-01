@@ -12,7 +12,17 @@ export type Provider = "foundry" | "anthropic" | "mock";
 export type Effort = "low" | "medium" | "high";
 
 /** Which call is being made. The mock uses it to shape its reply. */
-export type Purpose = "chat" | "chat-chair" | "analysis-persona" | "analysis-aggregate" | "analysis-functions";
+export type Purpose =
+  | "chat"
+  | "chat-chair"
+  | "analysis-persona"
+  | "analysis-aggregate"
+  | "analysis-functions"
+  | "questionnaire"
+  | "shadow"
+  | "shadow-chair"
+  | "synthesis-people"
+  | "synthesis-mixed";
 
 export interface CompletionRequest {
   purpose: Purpose;

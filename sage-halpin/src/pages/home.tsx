@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { Boardroom } from "@/components/Boardroom";
 import { Mark } from "@/components/Mark";
 import { scopedKey } from "@/lib/userScope";
+import { loadOrganisation } from "@/lib/organisation";
 
 const BG = "hsl(var(--background))";
 const TEXT_PRIMARY = "hsl(var(--foreground))";
@@ -85,7 +86,7 @@ export default function Home() {
 
             <div className="flex flex-wrap items-center gap-4 mb-12">
               <PrimaryButton label={hasSession ? "Resume Scenario" : "Start New Scenario"} onClick={() => setLocation("/analysis")} primary testId="button-start-scenario" />
-              <PrimaryButton label="Ask the Board" onClick={() => setLocation("/boardroom")} testId="button-ask-board" />
+              <PrimaryButton label="Ask the Board" onClick={() => setLocation(loadOrganisation().people.length ? "/questions/new" : "/organisation")} testId="button-ask-board" />
             </div>
 
             {/* Sentinel8 point of view */}

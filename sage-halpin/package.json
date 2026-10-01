@@ -18,6 +18,8 @@
   "dependencies": {
     "@anthropic-ai/foundry-sdk": "^0.5.0",
     "@anthropic-ai/sdk": "^0.129.0",
+    "@azure/communication-email": "^1.1.0",
+    "@azure/data-tables": "^13.3.2",
     "@azure/identity": "^4.13.3",
     "dotenv": "^16.6.1",
     "express": "^5.0.0",
@@ -91,5 +93,5 @@
     "wouter": "^3.3.5",
     "zod": "^3.25.76"
   },
-  "description": "Sentinel8 (formerly Sixonic) \u2014 the evolving board: six AI perspectives for the people who decide."
+  "description": "Sentinel8 (formerly Sixonic) — the evolving board: six AI perspectives for the people who decide."
 }

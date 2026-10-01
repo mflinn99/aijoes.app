@@ -2,6 +2,7 @@ import express from "express";
 import pinoHttp from "pino-http";
 import path from "node:path";
 import boardroom from "./routes/boardroom.js";
+import consultations from "./routes/consultations.js";
 import { aiProvider } from "./ai.js";
 import { limitFromEnv, rateLimit } from "./rate-limit.js";
 
@@ -17,6 +18,10 @@ const CONTENT_SECURITY_POLICY = [
   "form-action 'self'",
 ].join("; ");
 
+export function redactUrl(url: string): string {
+  return url.replace(/\/respond\/[^/?#]+/g, "/respond/[redacted]");
+}
+
 export function createApp({ publicDir = path.resolve(process.cwd(), "dist/public") } = {}) {
   const app = express();
 
@@ -29,7 +34,8 @@ export function createApp({ publicDir = path.resolve(process.cwd(), "dist/public
     pinoHttp({
       // Board questions can be commercially sensitive: never log bodies.
       serializers: {
-        req: (req: { method: string; url: string }) => ({ method: req.method, url: req.url }),
+        // Questionnaire links carry a person's access token: keep it out of the logs.
+        req: (req: { method: string; url: string }) => ({ method: req.method, url: redactUrl(req.url) }),
         res: (res: { statusCode: number }) => ({ statusCode: res.statusCode }),
       },
     }),
@@ -52,8 +58,26 @@ export function createApp({ publicDir = path.resolve(process.cwd(), "dist/public
   const windowMs = 10 * 60 * 1000;
   app.use("/api/boardroom/chat", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_CHAT_PER_10_MIN", 20) }));
   app.use("/api/boardroom/analysis", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_ANALYSIS_PER_10_MIN", 10) }));
+  // Consultations: the AI steps are limited like board sessions; creating,
+  // inviting and answering are cheap but still bounded per client.
+  const consult = rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_CONSULT_AI_PER_10_MIN", 20) });
+  app.use("/api/consultations/questionnaire", consult);
+  app.use(/^\/api\/consultations\/[^/]+\/(shadow-board|synthesis)$/, consult);
+  app.use("/api/consultations", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_CONSULT_PER_10_MIN", 120) }));
+  app.use("/api/respond", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_RESPOND_PER_10_MIN", 60) }));
+  app.use("/api/respond", (_req, res, next) => {
+    // Questionnaire links carry a token: never pass it on in a Referer header.
+    res.setHeader("Referrer-Policy", "no-referrer");
+    next();
+  });
+
   app.use("/api", boardroom);
+  app.use("/api", consultations);
   app.use("/api", (_req, res) => res.status(404).json({ error: "Not found" }));
+  app.use("/api", (err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    req.log.error({ err }, "request failed");
+    if (!res.headersSent) res.status(500).json({ error: "Something went wrong. Please try again." });
+  });
 
   app.use(express.static(publicDir, { index: false, maxAge: "1h" }));
   app.get(/.*/, (_req, res) => {

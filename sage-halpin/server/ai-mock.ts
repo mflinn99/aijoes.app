@@ -44,6 +44,20 @@ export function mockCompletion(req: CompletionRequest): string {
       return "```json\n" + JSON.stringify(AGGREGATE) + "\n```";
     case "analysis-functions":
       return JSON.stringify(FUNCTIONS);
+    case "questionnaire":
+      return JSON.stringify([
+        "Mock question: what evidence would change your view?",
+        "Mock question: what is the main risk you see?",
+        "Mock question: what would you need to be true to support this?",
+      ]);
+    case "shadow":
+      return "Mock shadow board opinion. Critical unknowns: this is a mock reply for testing.\nPOSITION: need_more_information\nCONFIDENCE: 3";
+    case "shadow-chair":
+      return "Mock chair view. Board alignment points: none yet. RECOMMENDED RESOLUTION: gather evidence before deciding.\nPOSITION: support_with_conditions\nCONFIDENCE: 3";
+    case "synthesis-people":
+      return "Mock summary of the people's input. This is a mock reply for testing.";
+    case "synthesis-mixed":
+      return "Mock combined view of people and agents. RECOMMENDED RESOLUTION: mock. This is a mock reply for testing.";
     case "chat-chair":
       return "Mock response. Board alignment points: none yet. Board conflict points: none yet. RECOMMENDED RESOLUTION: gather evidence before deciding.";
     case "chat":

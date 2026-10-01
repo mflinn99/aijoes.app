@@ -84,7 +84,7 @@ export default function Boardroom() {
             ← Workspace
           </button>
           <span style={{ color: BORDER, fontSize: 12 }}>|</span>
-          <span style={{ color: TEXT, fontSize: 11, letterSpacing: "0.3em", fontWeight: 500, textTransform: "uppercase" }}>BOARDROOM</span>
+          <span style={{ color: TEXT, fontSize: 11, letterSpacing: "0.3em", fontWeight: 500, textTransform: "uppercase" }}>SHADOW BOARD</span>
         </div>
 
         {/* Persona chips */}
@@ -110,7 +110,7 @@ export default function Boardroom() {
           {messages.length === 0 && !loading && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ textAlign: "center", paddingTop: "14vh" }}>
               <div style={{ fontSize: 36, marginBottom: 16 }}>◈</div>
-              <p style={{ color: TEXT_SECONDARY, fontSize: 11, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: 8 }}>The board is assembled</p>
+              <p style={{ color: TEXT_SECONDARY, fontSize: 11, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: 8 }}>The shadow board is assembled</p>
               <p style={{ color: TEXT_MUTED, fontSize: 10, letterSpacing: "0.1em", lineHeight: 1.8 }}>State your decision, challenge, or strategic question.<br />All six AI agents will respond independently.</p>
               <div className="mt-6 flex flex-wrap justify-center gap-2">
                 {DISCUSSION_STARTERS.map((starter) => (
@@ -124,6 +124,13 @@ export default function Boardroom() {
                 ))}
               </div>
               <p className="mt-4 text-xs text-muted-foreground">AI perspectives support judgement; they do not replace board oversight.</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                For a decision that needs your people's input too,{" "}
+                <button onClick={() => setLocation("/questions/new")} className="font-semibold text-primary underline underline-offset-4">
+                  ask a board question
+                </button>
+                : your people answer by questionnaire and you see their view, the agents' view, and both together.
+              </p>
             </motion.div>
           )}
 
