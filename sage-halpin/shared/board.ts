@@ -145,6 +145,8 @@ export interface BoardPerson {
   phone?: string;
   expertise?: string;
   cv?: string;
+  /** A permanent member takes part in every decision that involves people. */
+  permanent?: boolean;
 }
 
 export const LIMITS = {

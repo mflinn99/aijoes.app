@@ -15,6 +15,7 @@ export interface Invitee {
   invitedAt: string | null;
   emailStatus: "sent" | "manual" | "failed" | null;
   respondedAt: string | null;
+  permanent?: boolean;
 }
 
 export interface AgentOpinion {
@@ -54,7 +55,7 @@ export interface ConsultationView {
   peopleWeight: number;
   shareWithPeople: boolean;
   linkedToWorkspace: boolean;
-  decision: { decision: string; position: Position; rationale: string; decidedAt: string } | null;
+  decision: { decision: string; position: Position; rationale: string; decidedAt: string; withoutPermanent?: string[] } | null;
   feedback: { agentId: AgentId; rating: "helpful" | "off_target"; note: string; at: string }[];
 }
 
@@ -167,7 +168,7 @@ export const api = {
     dueDate: string;
     questions: string[];
     agents: AgentId[];
-    people: { id: string; name: string; role: string; email: string }[];
+    people: { id: string; name: string; role: string; email: string; permanent: boolean }[];
   }) => call<{ id: string; adminToken: string; expiresAt: string }>("/consultations", { method: "POST", body: JSON.stringify(body) }),
 
   get: (s: SavedConsultation) => call<ConsultationView>(`/consultations/${s.id}`, { token: s.adminToken }),
@@ -190,7 +191,7 @@ export const api = {
   challenge: (s: SavedConsultation, context: object) =>
     call<ConsultationView["challenge"]>(`/consultations/${s.id}/challenge`, { method: "POST", token: s.adminToken, body: JSON.stringify(context) }),
 
-  decide: (s: SavedConsultation, body: { decision: string; position: Position; rationale: string }) =>
+  decide: (s: SavedConsultation, body: { decision: string; position: Position; rationale: string; proceedWithoutPermanent?: boolean }) =>
     call<ConsultationView["decision"]>(`/consultations/${s.id}/decision`, { method: "POST", token: s.adminToken, body: JSON.stringify(body) }),
 
   feedback: (s: SavedConsultation, body: { agentId: AgentId; rating: "helpful" | "off_target"; note: string }) =>

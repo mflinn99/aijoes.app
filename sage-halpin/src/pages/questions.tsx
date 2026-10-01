@@ -66,7 +66,9 @@ export function NewQuestion() {
   const [question, setQuestion] = useState("");
   const [context, setContext] = useState("");
   const [dueDate, setDueDate] = useState("");
-  const [peopleIds, setPeopleIds] = useState<string[]>(org.people.map((p) => p.id));
+  const permanentIds = org.people.filter((p) => p.permanent).map((p) => p.id);
+  // Permanent members are always asked; others start ticked only when there are no permanent members.
+  const [peopleIds, setPeopleIds] = useState<string[]>(permanentIds.length ? permanentIds : org.people.map((p) => p.id));
   const [agents, setAgents] = useState<AgentId[]>(org.agents.filter((a) => a.seated).map((a) => a.id));
   const [questions, setQuestions] = useState<string[] | null>(null);
   const [drafting, setDrafting] = useState(false);
@@ -78,7 +80,7 @@ export function NewQuestion() {
   const [peopleWeight, setPeopleWeight] = useState(60);
   const [shareWithPeople, setShareWithPeople] = useState(true);
 
-  const people = mode === "agents" ? [] : org.people.filter((p) => peopleIds.includes(p.id));
+  const people = mode === "agents" ? [] : org.people.filter((p) => p.permanent || peopleIds.includes(p.id));
   const askPeople = mode !== "agents";
   const askAgents = mode !== "people";
   const ready = org.name.trim() && org.leadName.trim();
@@ -132,7 +134,7 @@ export function NewQuestion() {
         dueDate,
         questions: prompts,
         agents,
-        people: people.map((p) => ({ id: p.id, name: p.name, role: p.role, email: p.email })),
+        people: people.map((p) => ({ id: p.id, name: p.name, role: p.role, email: p.email, permanent: p.permanent === true })),
       });
       const saved = { id: created.id, adminToken: created.adminToken, question: question.trim(), createdAt: new Date().toISOString() };
       rememberConsultation(saved);
@@ -237,20 +239,31 @@ export function NewQuestion() {
           {askPeople && (
           <fieldset>
             <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.12em]">People ({people.length})</legend>
-            <ul className="space-y-2">
-              {org.people.map((p) => (
-                <li key={p.id} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`ask-${p.id}`}
-                    checked={peopleIds.includes(p.id)}
-                    onCheckedChange={(on) => setPeopleIds((ids) => (on ? [...ids, p.id] : ids.filter((x) => x !== p.id)))}
-                  />
-                  <Label htmlFor={`ask-${p.id}`} className="text-sm font-normal">
-                    <span className="font-semibold">{p.name}</span> · {p.role} · <span className="text-muted-foreground">{p.email}</span>
-                  </Label>
-                </li>
+            {[
+              { title: "Permanent members (always asked)", list: org.people.filter((p) => p.permanent) },
+              { title: "Invite as needed", list: org.people.filter((p) => !p.permanent) },
+            ]
+              .filter((g) => g.list.length)
+              .map((g) => (
+                <div key={g.title} className="mb-3">
+                  <p className="mb-1 text-xs text-muted-foreground">{g.title}</p>
+                  <ul className="space-y-2">
+                    {g.list.map((p) => (
+                      <li key={p.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`ask-${p.id}`}
+                          checked={p.permanent || peopleIds.includes(p.id)}
+                          disabled={p.permanent}
+                          onCheckedChange={(on) => setPeopleIds((ids) => (on ? [...ids, p.id] : ids.filter((x) => x !== p.id)))}
+                        />
+                        <Label htmlFor={`ask-${p.id}`} className="text-sm font-normal">
+                          <span className="font-semibold">{p.name}</span> · {p.role} · <span className="text-muted-foreground">{p.email}</span>
+                        </Label>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
           </fieldset>
           )}
           {askAgents && (

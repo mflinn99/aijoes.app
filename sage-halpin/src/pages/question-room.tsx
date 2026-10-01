@@ -242,6 +242,9 @@ function InviteRow({ invitee, c, link, onReissue, busy }: { invitee: Invitee; c:
         <div>
           <p className="font-semibold">
             {invitee.name} <span className="font-normal text-muted-foreground">· {invitee.role}</span>
+            {invitee.permanent && (
+              <span className="ml-2 rounded bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-primary-foreground">Permanent</span>
+            )}
           </p>
           <p className="text-sm text-muted-foreground">
             {invitee.email} · <span className="text-foreground">{status}</span>
@@ -288,6 +291,7 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
   const [recorded, setRecorded] = useState(false);
   const [direction, setDirection] = useState<Position>("support");
   const [rationale, setRationale] = useState("");
+  const [withoutPermanent, setWithoutPermanent] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!saved) return;
@@ -351,12 +355,13 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
   const feedbackFor = (id: AgentId) => c.feedback.find((f) => f.agentId === id);
   const sendFeedback = (agentId: AgentId) => (rating: Rating, note: string) => run(`fb-${agentId}`, () => api.feedback(saved, { agentId, rating, note }));
   const showPeople = c.mode !== "agents";
+  const missingPermanent = showPeople ? c.invitees.filter((i) => i.permanent && !i.respondedAt) : [];
   const showAgents = c.mode !== "people";
 
   async function recordDecision() {
     if (!decision.trim() || !c) return;
     await run("decide", async () => {
-      await api.decide(saved!, { decision: decision.trim(), position: direction, rationale: rationale.trim() });
+      await api.decide(saved!, { decision: decision.trim(), position: direction, rationale: rationale.trim(), proceedWithoutPermanent: withoutPermanent });
       store.setDecisions([
         {
           id: `d${Date.now()}`,
@@ -590,6 +595,9 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
               {POSITION_LABELS[c.decision.position]} · decided {new Date(c.decision.decidedAt).toLocaleDateString()}
             </p>
             {c.decision.rationale && <p className="mt-2 whitespace-pre-wrap text-sm">{c.decision.rationale}</p>}
+            {c.decision.withoutPermanent?.length ? (
+              <p className="mt-2 text-sm text-muted-foreground">Decided without the answers of permanent members: {c.decision.withoutPermanent.join(", ")}.</p>
+            ) : null}
             {c.linkedToWorkspace && (
               <p className="mt-3 text-sm">
                 When you know how it turned out,{" "}
@@ -640,9 +648,25 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
             />
           </>
         )}
+        {!c.decision && missingPermanent.length > 0 && (
+          <div className="mt-3 rounded-md border border-[#D9A15F] bg-[#D9A15F]/10 p-3 text-sm" data-testid="missing-permanent">
+            <p>
+              <span className="font-semibold">Waiting for permanent members:</span> {missingPermanent.map((m) => `${m.name} (${m.role})`).join(", ")}.
+              Permanent members take part in every decision that involves people.
+            </p>
+            <label className="mt-2 flex items-center gap-2">
+              <input type="checkbox" checked={withoutPermanent} onChange={(e) => setWithoutPermanent(e.target.checked)} data-testid="confirm-without-permanent" />
+              Decide without their answers (this is recorded with the decision)
+            </label>
+          </div>
+        )}
         <div className="mt-3 flex flex-wrap gap-2">
           {!c.decision && (
-            <Button onClick={recordDecision} disabled={!decision.trim() || recorded || busy === "decide"} data-testid="button-decide">
+            <Button
+              onClick={recordDecision}
+              disabled={!decision.trim() || recorded || busy === "decide" || (missingPermanent.length > 0 && !withoutPermanent)}
+              data-testid="button-decide"
+            >
               {recorded ? "Recorded" : "Record the decision"}
             </Button>
           )}
