@@ -4,8 +4,8 @@ Sage Halpin has two parts. Each has one source in this repository and one home.
 
 | Part | Source | Host | Address | Cost |
 | --- | --- | --- | --- | --- |
-| **Website**: landing page and interactive demo | `sage-halpin/site/` (static HTML, no build) | GitHub Pages | `sagehalpin.aigogo.ai` (demo at `/demo/`) | Free |
-| **Boardroom app**: the rebranded Sixonic, calling Claude | `sage-halpin/` (Node app, Docker image) | Azure Container Apps, UK South | suggested `app.sagehalpin.aigogo.ai` | Azure usage plus Claude usage |
+| **Website**: landing page and interactive demo | `sage-halpin/site/` (static HTML, no build) | GitHub Pages | `www.sentinel8.ai` (demo at `/demo/`; `sentinel8.ai` redirects there) | Free |
+| **Boardroom app**: the rebranded Sixonic, calling Claude | `sage-halpin/` (Node app, Docker image) | Azure Container Apps, UK South | suggested `app.sentinel8.ai` | Azure usage plus Claude usage |
 
 Both publish from GitHub Actions when changes reach the repository's **default
 branch** (today `claude/aiogo-metamsp-build-directive-2lsui2`; `main` also works if
@@ -24,16 +24,24 @@ shared from their own Share menu, but the website above is the public copy.
 3. **Run it once**: **Actions → Sage Halpin site → Run workflow** (on the
    default branch). Later changes to `sage-halpin/site/` publish on their own.
    The site is now live at `https://mflinn99.github.io/aijoes.app/`.
-4. **Add the domain in DNS**, wherever `aigogo.ai` is managed:
+4. **Add the domain in DNS**, wherever `sentinel8.ai` is managed:
 
    | Type | Name | Value |
    | --- | --- | --- |
-   | CNAME | `sagehalpin` | `mflinn99.github.io` |
+   | CNAME | `www` | `mflinn99.github.io` |
+   | A | `@` (the bare domain) | `185.199.108.153` |
+   | A | `@` | `185.199.109.153` |
+   | A | `@` | `185.199.110.153` |
+   | A | `@` | `185.199.111.153` |
+
+   The `www` record serves the site. The four `A` records let GitHub redirect
+   `sentinel8.ai` to `www.sentinel8.ai`. Optionally add the matching `AAAA`
+   records (`2606:50c0:8000::153`, `8001::153`, `8002::153`, `8003::153`).
 
 5. **Set the custom domain**: **Settings → Pages → Custom domain:
-   `sagehalpin.aigogo.ai` → Save**. When the DNS check passes, tick
+   `www.sentinel8.ai` → Save**. When the DNS check passes, tick
    **Enforce HTTPS**. Certificates usually take minutes, occasionally a few hours.
-6. Optional but recommended: verify `aigogo.ai` for GitHub Pages at the account
+6. Optional but recommended: verify `sentinel8.ai` for GitHub Pages at the account
    level (**GitHub Settings → Pages → Add a domain**), so no other GitHub
    account can claim a subdomain of it.
 
@@ -62,20 +70,20 @@ The app needs Azure and a Claude deployment on Microsoft Foundry.
 4. Custom domain (after the first deploy):
 
    ```bash
-   az containerapp hostname add -g rg-sagehalpin-prod -n ca-sagehalpin-prod --hostname app.sagehalpin.aigogo.ai
+   az containerapp hostname add -g rg-sagehalpin-prod -n ca-sagehalpin-prod --hostname app.sentinel8.ai
    ```
 
    Add the two DNS records the command asks for:
 
    | Type | Name | Value |
    | --- | --- | --- |
-   | CNAME | `app.sagehalpin` | the app's default address (`ca-sagehalpin-prod.<region-id>.uksouth.azurecontainerapps.io`) |
-   | TXT | `asuid.app.sagehalpin` | the verification ID the command prints |
+   | CNAME | `app` | the app's default address (`ca-sagehalpin-prod.<region-id>.uksouth.azurecontainerapps.io`) |
+   | TXT | `asuid.app` | the verification ID the command prints |
 
    Then bind a free managed certificate:
 
    ```bash
-   az containerapp hostname bind -g rg-sagehalpin-prod -n ca-sagehalpin-prod --hostname app.sagehalpin.aigogo.ai --environment cae-sagehalpin-prod --validation-method CNAME
+   az containerapp hostname bind -g rg-sagehalpin-prod -n ca-sagehalpin-prod --hostname app.sentinel8.ai --environment cae-sagehalpin-prod --validation-method CNAME
    ```
 
 5. When the app is live, a "Sign in" or "Open the boardroom" link can be added

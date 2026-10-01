@@ -250,7 +250,7 @@ export default function Analysis() {
       <div style={{ position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 32px", borderBottom: `1px solid ${BORDER}`, background: "hsl(var(--background) / 0.95)", backdropFilter: "blur(8px)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <button onClick={() => setLocation("/")} style={{ background: "none", border: "none", color: TEXT_SEC, fontSize: 13, letterSpacing: "0.2em", textTransform: "uppercase", cursor: "pointer", fontWeight: 700 }} onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "hsl(var(--primary))")} onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_SEC)}>
-            ← SAGE HALPIN
+            ← SENTINEL<span className="sentinel-eight">8</span>
           </button>
           <span style={{ color: BORDER_BRIGHT, fontSize: 12 }}>|</span>
           <span style={{ color: TEXT, fontSize: 11, letterSpacing: "0.3em", fontWeight: 500, textTransform: "uppercase" }}>Analysis Engine</span>
@@ -304,7 +304,7 @@ export default function Analysis() {
                   <div style={{ position: "absolute", bottom: 12, right: 14, display: "flex", alignItems: "center", gap: 10 }}>
                     <span style={{ color: TEXT_MUTED, fontSize: 9, letterSpacing: "0.1em" }}>Unlimited bespoke challenges — coming in the next release.</span>
                     {ENQUIRY_EMAIL && <a
-                      href={`mailto:${ENQUIRY_EMAIL}?subject=${encodeURIComponent("Sage Halpin bespoke challenge waitlist")}&body=${encodeURIComponent("Please add me to the waitlist for bespoke challenge analysis.")}`}
+                      href={`mailto:${ENQUIRY_EMAIL}?subject=${encodeURIComponent("Sentinel8 bespoke challenge waitlist")}&body=${encodeURIComponent("Please add me to the waitlist for bespoke challenge analysis.")}`}
                       style={{ background: "#b45309", border: "none", borderRadius: 5, color: "#ffffff", fontSize: 8, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700, padding: "6px 14px", cursor: "pointer", textDecoration: "none", whiteSpace: "nowrap" }}
                     >
                       Join Waitlist

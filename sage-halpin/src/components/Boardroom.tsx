@@ -117,7 +117,9 @@ export function Boardroom() {
         })}
         <ellipse cx="300" cy="195" rx="245" ry="135" fill="none" stroke="hsl(var(--border))" strokeWidth="2" />
         <ellipse cx="300" cy="195" rx="83" ry="47" fill="url(#tableCore)" stroke="hsl(var(--border))" strokeWidth="1.5" />
-        <text x="300" y="191" textAnchor="middle" fill="hsl(var(--foreground))" fontSize="11" fontWeight="700" letterSpacing="3">SAGE HALPIN</text>
+        <text x="294" y="191" textAnchor="middle" fill="hsl(var(--foreground))" fontSize="11" fontWeight="700" letterSpacing="3">SENTINEL</text>
+        {/* The 8 on its side: the infinity sign */}
+        <text x="342" y="187" textAnchor="middle" dominantBaseline="central" transform="rotate(90 342 187)" fill="hsl(var(--foreground))" fontSize="11" fontWeight="700">8</text>
         <text x="300" y="210" textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="7" letterSpacing="1.5">THE EVOLVING BOARD</text>
       </svg>
 

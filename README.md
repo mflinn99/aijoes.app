@@ -109,7 +109,7 @@ Everything else about Sage Halpin lives in `sage-halpin/`, self-contained, with
 its own package, tests and pipelines:
 
 - the **website** (landing page and interactive demo) in `sage-halpin/site/`,
-  published by GitHub Pages at sagehalpin.aigogo.ai;
+  published by GitHub Pages at www.sentinel8.ai;
 - the **boardroom app** (the rebranded Sixonic, calling Claude on Microsoft
   Foundry), published to Azure Container Apps from `sage-halpin/infra/`.
 

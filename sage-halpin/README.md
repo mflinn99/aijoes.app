@@ -68,7 +68,7 @@ the default branch once its repository variables are set.
 
 `site/` is the public website: the landing page (`site/index.html`) and the
 interactive demo (`site/demo/index.html`), plain HTML with no build step. It
-publishes to GitHub Pages at sagehalpin.aigogo.ai through
+publishes to GitHub Pages at www.sentinel8.ai through
 `.github/workflows/sage-halpin-site.yml`. [`docs/HOSTING.md`](docs/HOSTING.md) has
 the publishing steps for both the website and this app.
 

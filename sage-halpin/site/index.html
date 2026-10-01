@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="An evolving team of fractional human experts and AI agents that scales and flexes with your organisation. The team evolves. The knowledge compounds.">
 <meta name="theme-color" content="#13232B">
-<meta property="og:title" content="Sage Halpin — The Evolving Board">
+<meta property="og:title" content="Sentinel8 — The Evolving Board">
 <meta property="og:description" content="An evolving team of fractional human experts and AI agents that scales and flexes with your organisation. The team evolves. The knowledge compounds.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://sagehalpin.aigogo.ai/">
-<meta property="og:image" content="https://sagehalpin.aigogo.ai/og.jpg">
+<meta property="og:url" content="https://www.sentinel8.ai/">
+<meta property="og:image" content="https://www.sentinel8.ai/og.jpg">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<title>Sage Halpin — The Evolving Board</title>
+<title>Sentinel8 — The Evolving Board</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500&family=Figtree:ital,wght@0,400;0,500;0,600;1,400&display=swap">
@@ -66,6 +66,9 @@ h1, h2, h3 { font-family: var(--display); font-weight: 300; letter-spacing: -0.0
 .top-inner { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 72px; }
 .wordmark { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; }
 .wordmark-name { font-family: var(--display); font-weight: 400; font-size: 14px; letter-spacing: 0.2em; }
+/* The 8 in Sentinel8 lies on its side, as the infinity sign. */
+.eight { display: inline-block; transform: rotate(90deg); font-size: 1.12em; line-height: 1; margin: 0 0.16em 0 0.2em; letter-spacing: 0; }
+.label .eight { margin-left: -0.08em; }   /* the label's own letter-spacing already opens the gap */
 .wordmark-desc { display: block; font-size: 10px; letter-spacing: 0.3em; color: var(--brass); margin-top: 3px; }
 .nav { display: flex; align-items: center; gap: 4px; padding: 5px; border: 1px solid var(--line-ink); border-radius: var(--pill); }
 .nav a { text-decoration: none; font-size: 14px; padding: 8px 14px; border-radius: var(--pill); color: rgba(245, 241, 233, 0.78); transition: background 0.2s, color 0.2s; }
@@ -321,9 +324,9 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
 
 <header class="top">
   <div class="wrap top-inner">
-    <a class="wordmark" href="#top" aria-label="Sage Halpin, the evolving board">
-      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="11.5" ry="7" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="20" cy="7" r="3" fill="#7FB692"/><circle cx="34" cy="13" r="3" fill="#F2EEE4"/><circle cx="34" cy="27" r="3" fill="#D9A15F"/><circle cx="20" cy="33" r="3" fill="#6FA8D6"/><circle cx="6" cy="27" r="3" fill="#E07F6A"/><circle cx="6" cy="13" r="3" fill="#A99BDA"/></svg>
-      <span><span class="wordmark-name">SAGE HALPIN</span><span class="wordmark-desc">THE EVOLVING BOARD</span></span>
+    <a class="wordmark" href="#top" aria-label="Sentinel8, the evolving board">
+      <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="11.5" ry="7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M20 20C18 17.2 13.5 17.2 13.5 20C13.5 22.8 18 22.8 20 20C22 17.2 26.5 17.2 26.5 20C26.5 22.8 22 22.8 20 20Z" fill="none" stroke="#B28A56" stroke-width="1.4"/><circle cx="20" cy="7" r="3" fill="#7FB692"/><circle cx="34" cy="13" r="3" fill="#F2EEE4"/><circle cx="34" cy="27" r="3" fill="#D9A15F"/><circle cx="20" cy="33" r="3" fill="#6FA8D6"/><circle cx="6" cy="27" r="3" fill="#E07F6A"/><circle cx="6" cy="13" r="3" fill="#A99BDA"/></svg>
+      <span><span class="wordmark-name">SENTINEL<span class="eight">8</span></span><span class="wordmark-desc">THE EVOLVING BOARD</span></span>
     </a>
     <nav class="nav" aria-label="Primary">
       <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#horizon">The Horizon</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a href="demo/">Demo</a><a class="nav-cta" href="#contact">Talk to Us</a>
@@ -342,12 +345,12 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
     <div class="years" aria-hidden="true"><div class="years-track" id="years-track"></div></div>
     <div class="wrap hero-inner">
       <div class="hero-copy">
-        <p class="label eyebrow">Sage Halpin · The evolving board</p>
+        <p class="label eyebrow">Sentinel<span class="eight">8</span> · The evolving board</p>
         <h1 id="hero-title">The team evolves. <span class="second">The knowledge compounds.</span></h1>
         <p class="lede">An evolving team of fractional human experts and agentic advisers that scales and flexes with the ever-changing needs of your organisation. One enduring institutional memory, so each decision benefits from the knowledge of those that came before.</p>
       </div>
       <div class="stage">
-        <canvas id="boardroom" role="img" aria-label="The Sage Halpin mark as a boardroom: six seats around an oval table slowly change between people, shown green, and AI agents in other colours, as the years roll on from 2020 to 2030 and round again."></canvas>
+        <canvas id="boardroom" role="img" aria-label="The Sentinel8 mark as a boardroom: six seats around an oval table with the infinity sign at its centre, slowly change between people, shown green, and AI agents in other colours, as the years roll on from 2020 to 2030 and round again."></canvas>
         <div class="legend">
           <span class="chip"><span class="dot dot-person"></span>People</span>
           <span class="chip"><span class="dots" aria-hidden="true"><span class="dot" style="background:#F2EEE4"></span><span class="dot" style="background:#D9A15F"></span><span class="dot" style="background:#6FA8D6"></span><span class="dot" style="background:#E07F6A"></span><span class="dot" style="background:#A99BDA"></span></span>AI agents</span>
@@ -392,7 +395,7 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
       <div class="idea-grid">
         <h2>A living board, aligned to the decisions in front of it.</h2>
         <div class="prose">
-          <p>Sage Halpin is a changing combination of experienced people and specialist AI agents. Human expertise enters for an acquisition, an industry expansion or a leadership transition. Agentic advisers monitor evidence, prepare questions, challenge plans and follow actions through.</p>
+          <p>Sentinel<span class="eight">8</span> is a changing combination of experienced people and specialist AI agents. Human expertise enters for an acquisition, an industry expansion or a leadership transition. Agentic advisers monitor evidence, prepare questions, challenge plans and follow actions through.</p>
           <p>Approved learning from each assignment becomes part of the company's enduring knowledge base. The team is fluid. The knowledge is continuous. Board authority remains with the client's appointed directors and authorised decision makers.</p>
         </div>
       </div>
@@ -460,7 +463,7 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
         <div>
           <p class="label kicker">Fractional expertise</p>
           <h3 class="fractional-title">Fractional people. <span>Permanent knowledge.</span></h3>
-          <p class="fractional-lede">Much of the best board-level expertise is now fractional: a CFO for a transaction, a COO for a scale-up, a non-executive for a season. Sage Halpin makes that model work for you by keeping what they knew after they leave.</p>
+          <p class="fractional-lede">Much of the best board-level expertise is now fractional: a CFO for a transaction, a COO for a scale-up, a non-executive for a season. Sentinel<span class="eight">8</span> makes that model work for you by keeping what they knew after they leave.</p>
         </div>
         <ul class="fractional-points">
           <li><span class="dot dot-person"></span><div><b>The right seniority, for the time you need.</b> Fractional CFOs, COOs, CMOs, CTOs and non-executives join for a mandate, a deal or a season, on terms that fit the work.</div></li>
@@ -533,7 +536,7 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
         </div>
         <div>
           <h3>The orchestration.</h3>
-          <p>Sage Halpin identifies the expertise a question calls for, convenes the relevant people and agents, prepares a board-ready view, records the decision and follows execution. The team adapts when the company's priorities change.</p>
+          <p>Sentinel<span class="eight">8</span> identifies the expertise a question calls for, convenes the relevant people and agents, prepares a board-ready view, records the decision and follows execution. The team adapts when the company's priorities change.</p>
         </div>
       </div>
     </div>
@@ -585,7 +588,7 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
     <div class="wrap closing-inner">
       <h2>Expertise changes. <span>Understanding deepens.</span></h2>
       <div>
-        <svg class="mark" width="52" height="52" viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="11.5" ry="7" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="20" cy="7" r="3" fill="#7FB692"/><circle cx="34" cy="13" r="3" fill="#F2EEE4"/><circle cx="34" cy="27" r="3" fill="#D9A15F"/><circle cx="20" cy="33" r="3" fill="#6FA8D6"/><circle cx="6" cy="27" r="3" fill="#E07F6A"/><circle cx="6" cy="13" r="3" fill="#A99BDA"/></svg>
+        <svg class="mark" width="52" height="52" viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="11.5" ry="7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M20 20C18 17.2 13.5 17.2 13.5 20C13.5 22.8 18 22.8 20 20C22 17.2 26.5 17.2 26.5 20C26.5 22.8 22 22.8 20 20Z" fill="none" stroke="#B28A56" stroke-width="1.4"/><circle cx="20" cy="7" r="3" fill="#7FB692"/><circle cx="34" cy="13" r="3" fill="#F2EEE4"/><circle cx="34" cy="27" r="3" fill="#D9A15F"/><circle cx="20" cy="33" r="3" fill="#6FA8D6"/><circle cx="6" cy="27" r="3" fill="#E07F6A"/><circle cx="6" cy="13" r="3" fill="#A99BDA"/></svg>
         <p>An evolving team connected to a durable record of what the organisation knows, decides and learns.</p>
         <a class="btn btn-primary" href="demo/">Try the interactive demo</a>
       </div>
@@ -595,7 +598,7 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
 
 <footer>
   <div class="wrap footer-inner">
-    <span class="wordmark"><span><span class="wordmark-name">SAGE HALPIN</span><span class="wordmark-desc">THE EVOLVING BOARD</span></span></span>
+    <span class="wordmark"><span><span class="wordmark-name">SENTINEL<span class="eight">8</span></span><span class="wordmark-desc">THE EVOLVING BOARD</span></span></span>
     <p class="disclosure">Human advisers and AI agents support the board. AI agents are not statutory directors and do not exercise voting rights. The client's authorised people retain decision authority. Data access, retention and deletion follow the agreed terms.</p>
   </div>
 </footer>
@@ -622,10 +625,13 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
   var PERSON = '#7FB692';
   var AGENTS = ['#F2EEE4', '#D9A15F', '#6FA8D6', '#E07F6A', '#A99BDA'];
   var OVAL = 'rgba(245,241,233,0.9)';
+  var INFINITY = '#B28A56';
 
   // The mark's geometry, in its 40-unit grid: an oval and six seats.
   var CENTRE = 20, RX = 11.5, RY = 7, DOT = 3;
   var POSITIONS = [[20, 7], [34, 13], [34, 27], [20, 33], [6, 27], [6, 13]];
+  // The infinity sign at the centre of the table, as in the mark.
+  var INFINITY_PATH = window.Path2D ? new Path2D('M20 20C18 17.2 13.5 17.2 13.5 20C13.5 22.8 18 22.8 20 20C22 17.2 26.5 17.2 26.5 20C26.5 22.8 22 22.8 20 20Z') : null;
   // Start as the logo: one person at the head of the table, five agents.
   var START = [PERSON].concat(AGENTS);
 
@@ -726,6 +732,14 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
     ctx.beginPath();
     ctx.ellipse(px(CENTRE), py(CENTRE), RX * u, RY * u, 0, 0, Math.PI * 2);
     ctx.strokeStyle = OVAL; ctx.lineWidth = Math.max(1.5, 1.6 * u / 2.2); ctx.stroke();
+
+    if (INFINITY_PATH) {
+      ctx.save();
+      ctx.translate(ox, oy); ctx.scale(u, u);
+      ctx.strokeStyle = INFINITY; ctx.lineWidth = Math.max(1.3, 1.4 * u / 2.2) / u; ctx.lineJoin = 'round';
+      ctx.stroke(INFINITY_PATH);
+      ctx.restore();
+    }
 
     for (var k = 0; k < seats.length; k++) {
       var seat = seats[k], lvl = level(seat, clock);
