@@ -8,7 +8,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { WorkspaceShell, Section } from "@/components/WorkspaceShell";
 import { loadOrganisation } from "@/lib/organisation";
 import { api, rememberConsultation, savedConsultations } from "@/lib/consultations";
-import { AGENT_PERSONAS, LIMITS, STANDARD_QUESTIONS, type AgentId } from "../../shared/board";
+import { ensureWorkspace } from "@/lib/workspace";
+import {
+  AGENT_PERSONAS,
+  DECISION_MODES,
+  DECISION_MODE_DESCRIPTIONS,
+  DECISION_MODE_LABELS,
+  LIMITS,
+  STANDARD_QUESTIONS,
+  type AgentId,
+  type DecisionMode,
+} from "../../shared/board";
 
 // Board questions: the list of questions put to the board, and the flow for
 // asking a new one: the question, the people involved, the questionnaire, then
@@ -63,15 +73,21 @@ export function NewQuestion() {
   const [draftNote, setDraftNote] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  // With no people on the board yet, only the agents can be asked.
+  const [mode, setMode] = useState<DecisionMode>(org.people.length ? "collaborative" : "agents");
+  const [peopleWeight, setPeopleWeight] = useState(60);
+  const [shareWithPeople, setShareWithPeople] = useState(true);
 
-  const people = org.people.filter((p) => peopleIds.includes(p.id));
-  const ready = org.name.trim() && org.leadName.trim() && org.people.length > 0;
+  const people = mode === "agents" ? [] : org.people.filter((p) => peopleIds.includes(p.id));
+  const askPeople = mode !== "agents";
+  const askAgents = mode !== "people";
+  const ready = org.name.trim() && org.leadName.trim();
 
   if (!ready) {
     return (
       <WorkspaceShell title="Ask the board">
         <p className="text-sm">
-          Before asking a question, add your organisation, your name and at least one person in{" "}
+          Before asking a question, add your organisation and your name in{" "}
           <Link href="/organisation" className="font-semibold underline underline-offset-4">
             Your board
           </Link>
@@ -99,11 +115,16 @@ export function NewQuestion() {
   async function send() {
     setError("");
     if (!question.trim()) return setError("Write the question first.");
-    if (people.length === 0) return setError("Choose at least one person to ask.");
+    if (askPeople && people.length === 0) return setError("Choose at least one person to ask.");
     const prompts = (questions ?? []).map((q) => q.trim()).filter(Boolean);
     setSending(true);
     try {
+      const workspace = await ensureWorkspace(org).catch(() => null);
       const created = await api.create({
+        mode,
+        peopleWeight,
+        shareWithPeople,
+        workspace: workspace ? { id: workspace.id, token: workspace.adminToken } : null,
         organisation: org.name.trim(),
         leadName: org.leadName.trim(),
         question: question.trim(),
@@ -115,7 +136,7 @@ export function NewQuestion() {
       });
       const saved = { id: created.id, adminToken: created.adminToken, question: question.trim(), createdAt: new Date().toISOString() };
       rememberConsultation(saved);
-      await api.invite(saved);
+      if (askPeople) await api.invite(saved);
       setLocation(`/questions/${created.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "The question could not be sent.");
@@ -125,7 +146,53 @@ export function NewQuestion() {
 
   return (
     <WorkspaceShell title="Ask the board">
-      <Section title="1. The question">
+      <Section title="1. Who decides" intro="Choose whose input this decision rests on.">
+        <div role="radiogroup" aria-label="Who decides" className="grid gap-3 md:grid-cols-3">
+          {DECISION_MODES.map((m) => (
+            <label
+              key={m}
+              className={`cursor-pointer rounded-md border p-4 text-sm transition-colors ${mode === m ? "border-primary bg-muted" : "border-border hover:bg-muted/50"}`}
+              data-testid={`mode-${m}`}
+            >
+              <span className="flex items-center gap-2 font-semibold">
+                <input type="radio" name="mode" value={m} checked={mode === m} onChange={() => setMode(m)} disabled={m !== "agents" && org.people.length === 0} />
+                {DECISION_MODE_LABELS[m]}
+              </span>
+              <span className="mt-1 block text-muted-foreground">{DECISION_MODE_DESCRIPTIONS[m]}</span>
+            </label>
+          ))}
+        </div>
+        {mode === "collaborative" && (
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="q-weight" className="text-xs font-semibold uppercase tracking-[0.12em]">
+                Weighting: people {peopleWeight}% · agents {100 - peopleWeight}%
+              </Label>
+              <input
+                id="q-weight"
+                type="range"
+                min={0}
+                max={100}
+                step={10}
+                value={peopleWeight}
+                onChange={(e) => setPeopleWeight(Number(e.target.value))}
+                className="w-full accent-[hsl(var(--primary))]"
+                aria-valuetext={`People ${peopleWeight} percent, agents ${100 - peopleWeight} percent`}
+              />
+              <p className="text-xs text-muted-foreground">How much each side's views count in the combined view and the recommendation. Your people still decide.</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Checkbox id="q-share" checked={shareWithPeople} onCheckedChange={(on) => setShareWithPeople(on === true)} />
+              <Label htmlFor="q-share" className="text-sm font-normal">
+                <span className="font-semibold">Second round for people.</span> Once the shadow board has spoken, show people its positions and the Chair's
+                recommendation on their questionnaire, so they can revise their answers.
+              </Label>
+            </div>
+          </div>
+        )}
+      </Section>
+
+      <Section title="2. The question">
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="q-question" className="text-xs font-semibold uppercase tracking-[0.12em]">
@@ -156,8 +223,18 @@ export function NewQuestion() {
         </div>
       </Section>
 
-      <Section title="2. Who is asked" intro="Each person you choose is emailed a questionnaire. The agents you choose form the shadow board for this question.">
+      <Section
+        title="3. Who is asked"
+        intro={
+          mode === "people"
+            ? "Each person you choose is emailed a questionnaire."
+            : mode === "agents"
+              ? "The agents you choose form the shadow board for this question. No one is emailed."
+              : "Each person you choose is emailed a questionnaire. The agents you choose form the shadow board for this question."
+        }
+      >
         <div className="grid gap-6 md:grid-cols-2">
+          {askPeople && (
           <fieldset>
             <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.12em]">People ({people.length})</legend>
             <ul className="space-y-2">
@@ -175,6 +252,8 @@ export function NewQuestion() {
               ))}
             </ul>
           </fieldset>
+          )}
+          {askAgents && (
           <fieldset>
             <legend className="mb-2 text-xs font-semibold uppercase tracking-[0.12em]">Shadow board ({agents.length} agents)</legend>
             <ul className="space-y-2">
@@ -201,11 +280,13 @@ export function NewQuestion() {
               })}
             </ul>
           </fieldset>
+          )}
         </div>
       </Section>
 
+      {askPeople && (
       <Section
-        title="3. The questionnaire"
+        title="4. The questionnaire"
         intro="Every questionnaire asks for the person's position and confidence, so the people's view can be compared with the agents'. Add up to ten questions of your own."
       >
         <ol className="mb-4 list-decimal space-y-1 pl-5 text-sm">
@@ -250,6 +331,7 @@ export function NewQuestion() {
           </div>
         )}
       </Section>
+      )}
 
       {error && (
         <p role="alert" className="mb-4 text-sm text-destructive">
@@ -258,11 +340,13 @@ export function NewQuestion() {
       )}
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={send} disabled={sending} data-testid="button-send">
-          {sending ? "Sending…" : `Send to ${people.length} ${people.length === 1 ? "person" : "people"}`}
+          {sending ? "Sending…" : askPeople ? `Send to ${people.length} ${people.length === 1 ? "person" : "people"}` : "Put it to the shadow board"}
         </Button>
-        <p className="text-xs text-muted-foreground">
-          The names, roles and emails of the people asked are stored with this question so they can answer it.
-        </p>
+        {askPeople && (
+          <p className="text-xs text-muted-foreground">
+            The names, roles and emails of the people asked are stored with this question so they can answer it.
+          </p>
+        )}
       </div>
     </WorkspaceShell>
   );

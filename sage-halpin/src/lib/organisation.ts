@@ -22,6 +22,8 @@ export interface Organisation {
   people: BoardPerson[];
   agents: SeatedAgent[];
   updatedAt: string;
+  /** The organisation's workspace on the server: agent learning and horizon scanning. */
+  workspace?: { id: string; adminToken: string } | null;
 }
 
 export const EMPTY_ORGANISATION: Organisation = {

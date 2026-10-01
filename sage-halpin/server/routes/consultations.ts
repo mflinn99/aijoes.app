@@ -8,8 +8,11 @@ import {
   POSITIONS,
   POSITION_LABELS,
   STANDARD_QUESTIONS,
+  DECISION_MODES,
   isEmail,
+  weightedTally,
   type AgentId,
+  type DecisionMode,
   type Answer,
   type Position,
   type QuestionnaireItem,
@@ -18,6 +21,7 @@ import { PERSONAS } from "../personas/boardroom-personas.js";
 import { AIRefusalError, complete } from "../ai.js";
 import { getStore, type Store } from "../store.js";
 import { emailProvider, escapeHtml, publicBaseUrl, sendEmail } from "../email.js";
+import { addLesson, agentKnowledge, authorisedWorkspace, saveDecision, type DecisionRecord } from "../workspace.js";
 
 // A consultation is one board question put to the people around the table and
 // to the shadow board of AI agents. The lead holds an admin token (kept in
@@ -52,6 +56,28 @@ interface Consultation {
   agents: AgentId[];
   adminTokenHash: string;
   invitees: Invitee[];
+  /** Whose input the decision rests on, chosen by the chair. */
+  mode: DecisionMode;
+  /** Collaborative only: the people's share of the weight, 0 to 100. */
+  peopleWeight: number;
+  /** Collaborative only: show people the shadow board's view so they can revise. */
+  shareWithPeople: boolean;
+  /** The organisation's workspace, whose agents' learning this question uses and feeds. */
+  workspaceId: string | null;
+}
+
+interface DecisionTaken {
+  decision: string;
+  position: Position;
+  rationale: string;
+  decidedAt: string;
+}
+
+interface Feedback {
+  agentId: AgentId;
+  rating: "helpful" | "off_target";
+  note: string;
+  at: string;
 }
 
 interface StoredResponse {
@@ -82,6 +108,9 @@ interface Synthesis {
 
 const META = "meta";
 const SHADOW = "shadow";
+const CHALLENGE = "challenge";
+const DECISION = "decision";
+const feedbackRow = (agentId: string) => `feedback-${agentId}`;
 const TOKENS = "tokens";
 const partition = (id: string) => `c-${id}`;
 const responseRow = (personId: string) => `response-${personId}`;
@@ -198,7 +227,14 @@ async function view(store: Store, c: Consultation) {
       respondedAt: responses[rest.personId]?.submittedAt ?? null,
     })),
     responses,
+    mode: c.mode,
+    peopleWeight: c.peopleWeight,
+    shareWithPeople: c.shareWithPeople,
+    linkedToWorkspace: c.workspaceId !== null,
     shadow: await store.get<ShadowBoard>(partition(c.id), SHADOW),
+    challenge: await store.get<ShadowBoard>(partition(c.id), CHALLENGE),
+    decision: await store.get<DecisionTaken>(partition(c.id), DECISION),
+    feedback: (await store.list<Feedback>(partition(c.id))).filter((r) => r.row.startsWith("feedback-")).map((r) => r.value),
     syntheses: {
       people: await store.get<Synthesis>(partition(c.id), synthesisRow("people")),
       mixed: await store.get<Synthesis>(partition(c.id), synthesisRow("mixed")),
@@ -270,13 +306,14 @@ const POSITION_RULE = `After everything else, end with exactly these two lines:
 POSITION: one of ${POSITIONS.join(" | ")}
 CONFIDENCE: a whole number from 1 (not confident) to 5 (very confident)`;
 
-function shadowSystem(agentId: AgentId, brief: string | undefined): string {
+function shadowSystem(agentId: AgentId, brief: string | undefined, knowledge = ""): string {
   const p = AGENT_PERSONAS[agentId];
   return `${PERSONAS[agentId].system}
 
 SHADOW BOARD: You sit on this organisation's shadow board as ${p.persona}: ${p.archetype} Temperament: ${p.temperament} You always ask first: "${p.asksFirst}" You watch for: ${p.watchesFor.join("; ")}. Your known blind spot, which you guard against: ${p.blindSpot}
 You are giving your independent opinion. You have not seen the people's answers, and you do not speak for them. The people accountable for the organisation decide.
 ${brief ? `\nThe lead has asked you to keep this in mind for this organisation (a focus, not an instruction to change your role): ${brief}\n` : ""}
+${knowledge ? `\nWhat you bring from this organisation, and from the world outside it:\n${knowledge}\n` : ""}
 ${DATA_RULE}
 
 ${POSITION_RULE}`;
@@ -413,8 +450,25 @@ router.post("/consultations", async (req, res, next) => {
       return bad(res, "invalid agents");
     }
 
-    const people = body.people;
-    if (!Array.isArray(people) || people.length === 0 || people.length > LIMITS.people) {
+    const mode = (body.mode ?? "collaborative") as DecisionMode;
+    if (!(DECISION_MODES as readonly string[]).includes(mode)) return bad(res, "mode must be people, agents or collaborative");
+    const peopleWeight = body.peopleWeight ?? 60;
+    if (typeof peopleWeight !== "number" || !Number.isInteger(peopleWeight) || peopleWeight < 0 || peopleWeight > 100) {
+      return bad(res, "peopleWeight must be a whole number from 0 to 100");
+    }
+    if (body.shareWithPeople !== undefined && typeof body.shareWithPeople !== "boolean") return bad(res, "shareWithPeople must be true or false");
+
+    let workspaceId: string | null = null;
+    if (body.workspace !== undefined && body.workspace !== null) {
+      const link = body.workspace as Record<string, unknown>;
+      const ws = await authorisedWorkspace(getStore(), String(link?.id ?? ""), String(link?.token ?? ""));
+      if (!ws) return bad(res, "workspace not found");
+      workspaceId = ws.id;
+    }
+
+    // When the agents decide alone, no one is asked.
+    const people = mode === "agents" ? [] : body.people;
+    if (!Array.isArray(people) || (mode !== "agents" && people.length === 0) || people.length > LIMITS.people) {
       return bad(res, `between 1 and ${LIMITS.people} people required`);
     }
     const invitees: Invitee[] = [];
@@ -447,6 +501,10 @@ router.post("/consultations", async (req, res, next) => {
       agents: AGENT_IDS.filter((a) => a === CHAIR_AGENT || (agents as string[]).includes(a)),
       adminTokenHash: hash(adminToken),
       invitees,
+      mode,
+      peopleWeight: mode === "collaborative" ? peopleWeight : mode === "people" ? 100 : 0,
+      shareWithPeople: mode === "collaborative" && body.shareWithPeople === true,
+      workspaceId,
     };
     await getStore().put(partition(id), META, consultation);
     res.status(201).json({ id, adminToken, expiresAt: consultation.expiresAt });
@@ -493,6 +551,10 @@ router.post("/consultations/:id/invitations", requireLead, async (req, res, next
     const c = res.locals.consultation as Consultation;
     if (c.status !== "open") {
       res.status(409).json({ error: "This consultation is closed" });
+      return;
+    }
+    if (c.mode === "agents") {
+      res.status(409).json({ error: "The agents decide this question, so no one is asked." });
       return;
     }
     const requested = (req.body ?? {}).personIds;
@@ -556,19 +618,39 @@ router.delete("/consultations/:id", requireLead, async (_req, res, next) => {
 
 // ─── Lead: the shadow board (agents only) ───────────────────────────────────
 
+/** Each seated agent's learning and outside view, when the question belongs to a workspace. */
+async function knowledgeFor(c: Consultation): Promise<Partial<Record<AgentId, string>>> {
+  if (!c.workspaceId) return {};
+  const store = getStore();
+  const entries = await Promise.all(c.agents.map(async (id) => [id, await agentKnowledge(store, c.workspaceId as string, id)] as const));
+  return Object.fromEntries(entries);
+}
+
+/** The agents' latest positions: after the challenge round if there was one. */
+function finalOpinions(shadow: ShadowBoard | null, challenge: ShadowBoard | null): AgentOpinion[] {
+  if (!shadow) return [];
+  return shadow.opinions.map((o) => challenge?.opinions.find((x) => x.agentId === o.agentId) ?? o);
+}
+
 router.post("/consultations/:id/shadow-board", requireLead, async (req, res) => {
   const c = res.locals.consultation as Consultation;
   const ctx = parseBoardContext((req.body ?? {}) as Record<string, unknown>);
   if (!ctx) return bad(res, "invalid board context");
 
+  if (c.mode === "people") {
+    res.status(409).json({ error: "The people decide this question, so the shadow board is not convened." });
+    return;
+  }
+
   const userContent = `${organisationBlock(c, ctx)}\n\n${questionBlock(c)}`;
   try {
+    const knowledge = await knowledgeFor(c);
     const members = c.agents.filter((a) => a !== CHAIR_AGENT);
     const opinions: AgentOpinion[] = await Promise.all(
       members.map(async (agentId) => {
         const raw = await complete({
           purpose: "shadow",
-          system: shadowSystem(agentId, ctx.briefs[agentId]),
+          system: shadowSystem(agentId, ctx.briefs[agentId], knowledge[agentId]),
           messages: [{ role: "user", content: userContent }],
           maxTokens: 2048,
           effort: "low",
@@ -580,7 +662,7 @@ router.post("/consultations/:id/shadow-board", requireLead, async (req, res) => 
     // The chair hears the other agents first, then recommends.
     const chairRaw = await complete({
       purpose: "shadow-chair",
-      system: `${shadowSystem(CHAIR_AGENT, ctx.briefs[CHAIR_AGENT])}
+      system: `${shadowSystem(CHAIR_AGENT, ctx.briefs[CHAIR_AGENT], knowledge[CHAIR_AGENT])}
 
 As chair of the shadow board you have heard the other agents. Synthesise their opinions, name where they agree and genuinely conflict, and recommend a resolution.`,
       messages: [{ role: "user", content: `${userContent}\n\n${opinionsBlock(opinions)}` }],
@@ -596,6 +678,8 @@ As chair of the shadow board you have heard the other agents. Synthesise their o
 
     const shadow: ShadowBoard = { createdAt: new Date().toISOString(), opinions };
     await getStore().put(partition(c.id), SHADOW, shadow);
+    // A new first round makes any earlier challenge round out of date.
+    await getStore().remove(partition(c.id), CHALLENGE);
     res.json(shadow);
   } catch (err) {
     aiFailure(req, res, err, "The shadow board could not be convened.");
@@ -620,11 +704,19 @@ router.post("/consultations/:id/synthesis", requireLead, async (req, res) => {
       res.status(409).json({ error: "No one has answered yet." });
       return;
     }
+    if (mode === "mixed" && c.mode !== "collaborative") {
+      res.status(409).json({ error: "The combined view is for collaborative decisions." });
+      return;
+    }
     const shadow = await store.get<ShadowBoard>(partition(c.id), SHADOW);
+    const challenge = await store.get<ShadowBoard>(partition(c.id), CHALLENGE);
     if (mode === "mixed" && !shadow) {
       res.status(409).json({ error: "Convene the shadow board first." });
       return;
     }
+    const agentsNow = finalOpinions(shadow, challenge);
+    const peoplePositions = c.invitees.map((i) => (responses[i.personId]?.answers.find((a) => a.questionId === "position")?.value ?? null) as Position | null);
+    const tally = weightedTally(peoplePositions, agentsNow.map((o) => o.position), c.peopleWeight);
 
     const content =
       mode === "people"
@@ -643,12 +735,12 @@ ${DATA_RULE}`,
 
 COMBINED VIEW: You chair a board of people and AI agents. You have the people's questionnaire answers and the shadow board of AI agents' opinions, which were formed independently. Compare them honestly.
 Structure: "Where people and agents agree", "Where they diverge, and why" (name the people and agents on each side), "What the people know that the agents do not", "What the agents raise that the people have not", then a RECOMMENDED BOARD RESOLUTION with DECISION / REASONING / TRADE-OFFS ACCEPTED / OWNER / TIMEFRAME / SUCCESS METRICS / KILL CONDITIONS.
-Give the people's judgement and accountability its proper weight: they decide. Say plainly where a recommendation goes against the majority of the people, and why.
+The chair has set the weighting for this decision: the people's views carry ${c.peopleWeight}% and the agents' ${100 - c.peopleWeight}%. Reflect it: the weighted tally below shows where the weight lies, and a recommendation that goes against it must say so and why. The people remain accountable and decide.${challenge ? "\nThe agents have already challenged the people's answers in a second round; their positions below are their final ones." : ""}
 ${DATA_RULE}`,
             messages: [
               {
                 role: "user",
-                content: `${organisationBlock(c, ctx)}\n\n${questionBlock(c)}\n\n${responsesBlock(c, responses)}\n\n${opinionsBlock(shadow?.opinions ?? [])}`,
+                content: `${organisationBlock(c, ctx)}\n\n${questionBlock(c)}\n\n${responsesBlock(c, responses)}\n\n${opinionsBlock(agentsNow)}\n\n<weighted_tally people_weight="${c.peopleWeight}">\n${tally.map((t) => `${POSITION_LABELS[t.position]}: ${t.score}%`).join("\n")}\n</weighted_tally>`,
               },
             ],
             maxTokens: 4096,
@@ -660,6 +752,130 @@ ${DATA_RULE}`,
     res.json(synthesis);
   } catch (err) {
     aiFailure(req, res, err, "The board view could not be prepared.");
+  }
+});
+
+// ─── Lead: collaborative round two — the agents challenge the people ────────
+
+router.post("/consultations/:id/challenge", requireLead, async (req, res) => {
+  const store = getStore();
+  const c = res.locals.consultation as Consultation;
+  if (c.mode !== "collaborative") {
+    res.status(409).json({ error: "The challenge round is for collaborative decisions." });
+    return;
+  }
+  const ctx = parseBoardContext((req.body ?? {}) as Record<string, unknown>);
+  if (!ctx) return bad(res, "invalid board context");
+
+  try {
+    const shadow = await store.get<ShadowBoard>(partition(c.id), SHADOW);
+    const responses = await responsesOf(store, c);
+    if (!shadow) {
+      res.status(409).json({ error: "Convene the shadow board first." });
+      return;
+    }
+    if (Object.keys(responses).length === 0) {
+      res.status(409).json({ error: "No one has answered yet." });
+      return;
+    }
+    const knowledge = await knowledgeFor(c);
+    const people = responsesBlock(c, responses);
+    const opinions = await Promise.all(
+      shadow.opinions.map(async (first) => {
+        const raw = await complete({
+          purpose: "shadow-challenge",
+          system: `${shadowSystem(first.agentId, ctx.briefs[first.agentId], knowledge[first.agentId])}
+
+ROUND TWO: You gave your opinion independently. Now you have read the people's answers. Challenge them constructively from your remit: what they have seen that you missed, what they may have missed, and which of their assumptions most needs testing. Then say whether your own view changes, and why. The people are accountable and will decide; your job is to sharpen their judgement, not to win.`,
+          messages: [
+            {
+              role: "user",
+              content: `${organisationBlock(c, ctx)}\n\n${questionBlock(c)}\n\n<your_first_opinion position="${first.position ?? "not stated"}">\n${first.content}\n</your_first_opinion>\n\n${people}`,
+            },
+          ],
+          maxTokens: 2048,
+          effort: first.agentId === CHAIR_AGENT ? "medium" : "low",
+        });
+        return { agentId: first.agentId, seat: first.seat, persona: first.persona, ...parseOpinion(raw) };
+      }),
+    );
+    const challenge: ShadowBoard = { createdAt: new Date().toISOString(), opinions };
+    await store.put(partition(c.id), CHALLENGE, challenge);
+    res.json(challenge);
+  } catch (err) {
+    aiFailure(req, res, err, "The challenge round could not be run.");
+  }
+});
+
+// ─── Lead: the decision, and feedback that teaches the agents ───────────────
+
+router.post("/consultations/:id/decision", requireLead, async (req, res, next) => {
+  try {
+    const store = getStore();
+    const c = res.locals.consultation as Consultation;
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const decision = text(body.decision, 500, { required: true });
+    const rationale = text(body.rationale, 2000);
+    if (decision === null) return bad(res, "the decision is required");
+    if (rationale === null) return bad(res, "rationale too long");
+    if (!(POSITIONS as readonly string[]).includes(body.position as string)) return bad(res, "choose what the decision means: go ahead, go ahead with conditions, do not, or defer");
+
+    const taken: DecisionTaken = { decision, position: body.position as Position, rationale, decidedAt: new Date().toISOString() };
+    await store.put(partition(c.id), DECISION, taken);
+    c.status = "closed";
+    await store.put(partition(c.id), META, c);
+
+    if (c.workspaceId) {
+      const responses = await responsesOf(store, c);
+      const agentsNow = finalOpinions(await store.get<ShadowBoard>(partition(c.id), SHADOW), await store.get<ShadowBoard>(partition(c.id), CHALLENGE));
+      const record: DecisionRecord = {
+        consultationId: c.id,
+        question: c.question,
+        mode: c.mode,
+        decision,
+        position: taken.position,
+        rationale,
+        decidedAt: taken.decidedAt,
+        agentPositions: Object.fromEntries(agentsNow.map((o) => [o.agentId, o.position])),
+        peoplePositions: c.invitees.map((i) => (responses[i.personId]?.answers.find((a) => a.questionId === "position")?.value ?? null) as Position | null),
+        outcome: null,
+      };
+      await saveDecision(store, c.workspaceId, record);
+    }
+    res.json(taken);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** The chair rates an agent's opinion; a note becomes something the agent learns. */
+router.post("/consultations/:id/feedback", requireLead, async (req, res, next) => {
+  try {
+    const store = getStore();
+    const c = res.locals.consultation as Consultation;
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const agentId = body.agentId as AgentId;
+    if (!c.agents.includes(agentId)) return bad(res, "that agent did not sit on this question");
+    if (body.rating !== "helpful" && body.rating !== "off_target") return bad(res, "rating must be helpful or off_target");
+    const note = text(body.note, 500);
+    if (note === null) return bad(res, "note too long");
+
+    const feedback: Feedback = { agentId, rating: body.rating, note, at: new Date().toISOString() };
+    await store.put(partition(c.id), feedbackRow(agentId), feedback);
+    let lesson = null;
+    if (c.workspaceId && note) {
+      lesson = await addLesson(store, c.workspaceId, {
+        agentId,
+        kind: body.rating === "off_target" ? "correction" : "preference",
+        text: note,
+        source: "feedback",
+        ref: c.question.slice(0, 200),
+        status: "active",
+      });
+    }
+    res.json({ feedback, lesson });
+  } catch (err) {
+    next(err);
   }
 });
 
@@ -684,6 +900,20 @@ router.get("/respond/:token", async (req, res, next) => {
     }
     const { store, c, invitee } = found;
     const existing = await store.get<StoredResponse>(partition(c.id), responseRow(invitee.personId));
+    // Collaborative round two: the chair can let people see the shadow board's view and revise.
+    let boardView = null;
+    if (c.shareWithPeople) {
+      const shadow = await store.get<ShadowBoard>(partition(c.id), SHADOW);
+      const challenge = await store.get<ShadowBoard>(partition(c.id), CHALLENGE);
+      const opinions = finalOpinions(shadow, challenge);
+      const chair = opinions.find((o) => o.agentId === CHAIR_AGENT);
+      if (shadow) {
+        boardView = {
+          agents: opinions.map((o) => ({ persona: o.persona, seat: o.seat, position: o.position, confidence: o.confidence })),
+          recommendation: chair?.content.slice(0, 4000) ?? null,
+        };
+      }
+    }
     res.setHeader("Cache-Control", "no-store");
     res.json({
       organisation: c.organisation,
@@ -695,6 +925,7 @@ router.get("/respond/:token", async (req, res, next) => {
       questionnaire: c.questionnaire,
       respondent: { name: invitee.name, role: invitee.role },
       response: existing,
+      boardView,
     });
   } catch (err) {
     next(err);

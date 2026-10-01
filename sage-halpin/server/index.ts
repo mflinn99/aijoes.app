@@ -4,6 +4,8 @@ import { aiModel, aiProvider, assertAIConfigured } from "./ai.js";
 import { assertStoreConfigured, storeKind } from "./store.js";
 import { assertEmailConfigured, emailProvider } from "./email.js";
 import { sweepExpired } from "./routes/consultations.js";
+import { scanDueWorkspaces } from "./horizon.js";
+import { getStore } from "./store.js";
 
 // Fail fast on a misconfigured AI provider rather than serving a board that
 // cannot answer.
@@ -26,3 +28,15 @@ const sweep = () =>
     .catch((err) => console.error("Consultation sweep failed", err));
 setTimeout(sweep, 60_000).unref();
 setInterval(sweep, SWEEP_MS).unref();
+
+// Keep looking outward: every half hour, scan each workspace that is due
+// (each sets its own interval, 6 hours to a week). HORIZON_SCANNER=off stops it.
+if ((process.env.HORIZON_SCANNER ?? "on").toLowerCase() !== "off") {
+  const SCAN_CHECK_MS = 30 * 60 * 1000;
+  const scan = () =>
+    scanDueWorkspaces(getStore())
+      .then((n) => n > 0 && console.info(`Horizon scan: ${n} workspace(s) scanned`))
+      .catch((err) => console.error("Horizon scan failed", err));
+  setTimeout(scan, 2 * 60_000).unref();
+  setInterval(scan, SCAN_CHECK_MS).unref();
+}

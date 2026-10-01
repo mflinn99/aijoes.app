@@ -1,5 +1,5 @@
 import { scopedKey } from "./userScope";
-import type { AgentId, Answer, Position, QuestionnaireItem } from "../../shared/board";
+import type { AgentId, Answer, DecisionMode, Position, QuestionnaireItem } from "../../shared/board";
 
 // Client for board questions (consultations). The lead's browser keeps each
 // question's id and admin token; the server keeps the question, the people
@@ -48,7 +48,14 @@ export interface ConsultationView {
   invitees: Invitee[];
   responses: Record<string, { answers: Answer[]; submittedAt: string }>;
   shadow: { createdAt: string; opinions: AgentOpinion[] } | null;
+  challenge: { createdAt: string; opinions: AgentOpinion[] } | null;
   syntheses: { people: Synthesis | null; mixed: Synthesis | null };
+  mode: DecisionMode;
+  peopleWeight: number;
+  shareWithPeople: boolean;
+  linkedToWorkspace: boolean;
+  decision: { decision: string; position: Position; rationale: string; decidedAt: string } | null;
+  feedback: { agentId: AgentId; rating: "helpful" | "off_target"; note: string; at: string }[];
 }
 
 export interface SavedConsultation {
@@ -149,6 +156,10 @@ export const api = {
     }),
 
   create: (body: {
+    mode: DecisionMode;
+    peopleWeight: number;
+    shareWithPeople: boolean;
+    workspace: { id: string; token: string } | null;
     organisation: string;
     leadName: string;
     question: string;
@@ -176,6 +187,15 @@ export const api = {
   synthesis: (s: SavedConsultation, view: "people" | "mixed", context: object) =>
     call<Synthesis>(`/consultations/${s.id}/synthesis`, { method: "POST", token: s.adminToken, body: JSON.stringify({ view, ...context }) }),
 
+  challenge: (s: SavedConsultation, context: object) =>
+    call<ConsultationView["challenge"]>(`/consultations/${s.id}/challenge`, { method: "POST", token: s.adminToken, body: JSON.stringify(context) }),
+
+  decide: (s: SavedConsultation, body: { decision: string; position: Position; rationale: string }) =>
+    call<ConsultationView["decision"]>(`/consultations/${s.id}/decision`, { method: "POST", token: s.adminToken, body: JSON.stringify(body) }),
+
+  feedback: (s: SavedConsultation, body: { agentId: AgentId; rating: "helpful" | "off_target"; note: string }) =>
+    call<{ lesson: unknown }>(`/consultations/${s.id}/feedback`, { method: "POST", token: s.adminToken, body: JSON.stringify(body) }),
+
   close: (s: SavedConsultation) => call<{ status: string }>(`/consultations/${s.id}/close`, { method: "POST", token: s.adminToken }),
 
   remove: (s: SavedConsultation) => call<void>(`/consultations/${s.id}`, { method: "DELETE", token: s.adminToken }),
@@ -191,6 +211,10 @@ export const api = {
       questionnaire: QuestionnaireItem[];
       respondent: { name: string; role: string };
       response: { answers: Answer[]; submittedAt: string } | null;
+      boardView: {
+        agents: { persona: string; seat: string; position: Position | null; confidence: number | null }[];
+        recommendation: string | null;
+      } | null;
     }>(`/respond/${encodeURIComponent(token)}`),
 
   answer: (token: string, answers: Answer[]) =>

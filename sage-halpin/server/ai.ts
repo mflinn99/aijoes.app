@@ -22,7 +22,13 @@ export type Purpose =
   | "shadow"
   | "shadow-chair"
   | "synthesis-people"
-  | "synthesis-mixed";
+  | "synthesis-mixed"
+  | "shadow-challenge"
+  | "agent-study"
+  | "agent-reflection"
+  | "horizon-triage"
+  | "horizon-search"
+  | "horizon-landscape";
 
 export interface CompletionRequest {
   purpose: Purpose;
@@ -30,6 +36,8 @@ export interface CompletionRequest {
   messages: { role: "user" | "assistant"; content: string }[];
   maxTokens: number;
   effort: Effort;
+  /** Let the model search the web (Anthropic's server-side web search tool). */
+  webSearch?: boolean;
 }
 
 export class AIRefusalError extends Error {
@@ -106,23 +114,57 @@ function normaliseMessages(messages: CompletionRequest["messages"]): CompletionR
   return firstUser === -1 ? [] : nonEmpty.slice(firstUser);
 }
 
+/** Test seam: observe every completion request (pass null to stop). */
+let observer: ((req: CompletionRequest) => void) | null = null;
+export function setCompletionObserver(fn: ((req: CompletionRequest) => void) | null): void {
+  observer = fn;
+}
+
+/**
+ * The web search tool version. Foundry deployments hosted on Azure (and Vertex)
+ * support only the basic web_search_20250305; Claude API and Foundry deployments
+ * hosted on Anthropic can use web_search_20260209 (dynamic filtering).
+ */
+function webSearchTool() {
+  return process.env.WEB_SEARCH_TOOL === "web_search_20260209"
+    ? ({ type: "web_search_20260209", name: "web_search", max_uses: 5 } as const)
+    : ({ type: "web_search_20250305", name: "web_search", max_uses: 5 } as const);
+}
+
+/** Whether external web search is allowed at all (WEB_SEARCH=off turns it off). */
+export function webSearchEnabled(): boolean {
+  return (process.env.WEB_SEARCH ?? "on").toLowerCase() !== "off";
+}
+
+const MAX_CONTINUATIONS = 4;
+
 export async function complete(req: CompletionRequest): Promise<string> {
+  observer?.(req);
   if (aiProvider() === "mock") return mockCompletion(req);
 
-  const response = await getClient().messages.create({
-    model: aiModel(),
-    max_tokens: req.maxTokens,
-    system: req.system,
-    messages: normaliseMessages(req.messages),
-    output_config: { effort: req.effort },
-  });
+  const messages: Anthropic.MessageParam[] = normaliseMessages(req.messages);
+  const tools = req.webSearch && webSearchEnabled() ? [webSearchTool()] : undefined;
+  let text = "";
 
-  if (response.stop_reason === "refusal") {
-    throw new AIRefusalError(response.stop_details?.category ?? null);
+  // A server-side tool loop can pause; resume by sending the paused turn back.
+  for (let turn = 0; turn <= MAX_CONTINUATIONS; turn++) {
+    const response = await getClient().messages.create({
+      model: aiModel(),
+      max_tokens: req.maxTokens,
+      system: req.system,
+      messages,
+      output_config: { effort: req.effort },
+      ...(tools ? { tools } : {}),
+    });
+
+    if (response.stop_reason === "refusal") {
+      throw new AIRefusalError(response.stop_details?.category ?? null);
+    }
+
+    text += response.content.flatMap((block) => (block.type === "text" ? [block.text] : [])).join("");
+    if (response.stop_reason !== "pause_turn") break;
+    messages.push({ role: "assistant", content: response.content });
   }
 
-  return response.content
-    .flatMap((block) => (block.type === "text" ? [block.text] : []))
-    .join("")
-    .trim();
+  return text.trim();
 }

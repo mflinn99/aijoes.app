@@ -42,6 +42,17 @@
   screen) with no page errors. Not yet run against real Azure Table Storage or
   Azure Communication Services, which need a subscription.
 
+- **Decision modes, agent development and horizon scanning** (1 October 2026):
+  the chair chooses per question whether people, agents or both decide
+  (collaborative: two rounds, a challenge round and a chair-set weighting);
+  agents are educated by the chair and learn from feedback, outcomes, study and
+  horizon scanning, with every proposed lesson held for approval; a scheduled
+  scanner reads feeds and searches the web, keeps signals and maintains the
+  landscape briefing agents read. 18 more API tests (70 in all), including feed
+  parsing, private-address refusal and prompt contents. A Chromium walkthrough
+  covered all of it. Not yet run against real feeds, real web search or real
+  Claude output (no network or credentials in the build environment).
+
 - **Website**: `site/` (landing page and demo) serves correctly as a static
   site, with relative links so it works both at the GitHub Pages address and at
   www.sentinel8.ai. The brand check covers it.

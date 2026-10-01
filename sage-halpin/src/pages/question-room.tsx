@@ -18,7 +18,16 @@ import {
   type SavedConsultation,
   type Synthesis,
 } from "@/lib/consultations";
-import { AGENT_PERSONAS, CHAIR_AGENT, POSITIONS, POSITION_LABELS, type Position } from "../../shared/board";
+import {
+  AGENT_PERSONAS,
+  CHAIR_AGENT,
+  DECISION_MODE_LABELS,
+  POSITIONS,
+  POSITION_LABELS,
+  weightedTally,
+  type AgentId,
+  type Position,
+} from "../../shared/board";
 
 // One board question: who has been asked and who has answered, then the
 // decision seen three ways: the people only, the shadow board of agents only,
@@ -101,9 +110,24 @@ function SynthesisPanel({ synthesis, label, busy, onRun, disabledReason }: { syn
   );
 }
 
-function OpinionCard({ o }: { o: AgentOpinion }) {
+type Rating = "helpful" | "off_target";
+
+function OpinionCard({
+  o,
+  feedback,
+  onFeedback,
+  learns,
+}: {
+  o: AgentOpinion;
+  feedback?: { rating: Rating; note: string };
+  onFeedback?: (rating: Rating, note: string) => Promise<void>;
+  learns: boolean;
+}) {
   const a = AGENT_PERSONAS[o.agentId];
   const chair = o.agentId === CHAIR_AGENT;
+  const [rating, setRating] = useState<Rating | null>(null);
+  const [note, setNote] = useState("");
+  const [sending, setSending] = useState(false);
   return (
     <article className={`rounded-md border border-border p-4 ${chair ? "bg-muted/40" : "bg-card"}`} style={{ borderLeft: `4px solid ${a.colour}` }}>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -119,7 +143,86 @@ function OpinionCard({ o }: { o: AgentOpinion }) {
         </div>
       </div>
       <Prose text={o.content} />
+      {onFeedback && (
+        <div className="mt-3 border-t border-border pt-3 text-sm">
+          {feedback ? (
+            <p className="text-xs text-muted-foreground">
+              You rated this {feedback.rating === "helpful" ? "helpful" : "off target"}
+              {feedback.note ? `: “${feedback.note}”${learns ? " (it has learned this)" : ""}` : "."}
+            </p>
+          ) : rating ? (
+            <form
+              className="space-y-2"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setSending(true);
+                await onFeedback(rating, note.trim()).finally(() => setSending(false));
+              }}
+            >
+              <label className="block text-xs font-semibold" htmlFor={`fb-${o.agentId}`}>
+                {rating === "helpful" ? "What should it keep doing? (optional)" : "What did it get wrong? (optional)"}
+                {learns && <span className="font-normal text-muted-foreground"> It will learn from what you write.</span>}
+              </label>
+              <textarea id={`fb-${o.agentId}`} rows={2} maxLength={500} className="w-full rounded-md border border-input bg-background p-2 text-sm" value={note} onChange={(e) => setNote(e.target.value)} />
+              <div className="flex gap-2">
+                <Button size="sm" type="submit" disabled={sending}>
+                  Send feedback
+                </Button>
+                <Button size="sm" type="button" variant="ghost" onClick={() => setRating(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">Was this useful?</span>
+              <Button size="sm" variant="outline" onClick={() => setRating("helpful")} data-testid={`feedback-helpful-${o.agentId}`}>
+                Helpful
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setRating("off_target")} data-testid={`feedback-off-${o.agentId}`}>
+                Off target
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
     </article>
+  );
+}
+
+/** The combined weight behind each position, as the chair weighted it. */
+function WeightedTally({ people, agents, peopleWeight }: { people: (Position | null)[]; agents: (Position | null)[]; peopleWeight: number }) {
+  const tally = weightedTally(people, agents, peopleWeight);
+  const top = Math.max(...tally.map((t) => t.score));
+  return (
+    <figure className="m-0" data-testid="tally-weighted">
+      <figcaption className="mb-2 text-xs font-bold uppercase tracking-[0.14em]">
+        Weighted view{" "}
+        <span className="font-normal normal-case tracking-normal text-muted-foreground">
+          people {peopleWeight}% · agents {100 - peopleWeight}%
+        </span>
+      </figcaption>
+      <table className="w-full border-collapse text-sm">
+        <tbody>
+          {tally.map((t) => (
+            <tr key={t.position}>
+              <th scope="row" className="w-48 py-1 pr-3 text-left font-normal">
+                {POSITION_LABELS[t.position]}
+                {t.score === top && top > 0 && <span className="ml-1 text-xs font-semibold">(leads)</span>}
+              </th>
+              <td className="py-1">
+                <div className="flex items-center gap-2">
+                  <div className="h-2 flex-1 rounded-sm bg-muted">
+                    <div className="h-2 rounded-r bg-primary" style={{ width: `${t.score}%` }} />
+                  </div>
+                  <span className="w-10 text-right tabular-nums">{t.score}%</span>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </figure>
   );
 }
 
@@ -183,6 +286,8 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [decision, setDecision] = useState("");
   const [recorded, setRecorded] = useState(false);
+  const [direction, setDirection] = useState<Position>("support");
+  const [rationale, setRationale] = useState("");
 
   const refresh = useCallback(async () => {
     if (!saved) return;
@@ -240,26 +345,100 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
     const confidence = Number(answers.find((a) => a.questionId === "confidence")?.value) || null;
     return { label: `${i.name} (${i.role})`, position, confidence };
   });
+  const finalAgents = (c.shadow?.opinions ?? []).map((o) => c.challenge?.opinions.find((x) => x.agentId === o.agentId) ?? o);
   const agentVoices: Voice[] = (c.shadow?.opinions ?? []).map((o) => ({ label: o.persona, position: o.position, confidence: o.confidence }));
+  const finalAgentVoices: Voice[] = finalAgents.map((o) => ({ label: o.persona, position: o.position, confidence: o.confidence }));
+  const feedbackFor = (id: AgentId) => c.feedback.find((f) => f.agentId === id);
+  const sendFeedback = (agentId: AgentId) => (rating: Rating, note: string) => run(`fb-${agentId}`, () => api.feedback(saved, { agentId, rating, note }));
+  const showPeople = c.mode !== "agents";
+  const showAgents = c.mode !== "people";
 
-  function recordDecision() {
-    if (!decision.trim()) return;
-    const decisions = store.getDecisions();
-    store.setDecisions([
-      {
-        id: `d${Date.now()}`,
-        title: decision.trim().slice(0, 200),
-        owner: org.leadName || "Lead",
-        deadline: c?.dueDate ?? "",
-        status: "not_started",
-        impactArea: "strategy",
-        notes: `Board question: ${c?.question}\nAnswered by ${answered} of ${c?.invitees.length} people${c?.shadow ? "; shadow board convened" : ""}.`,
-        createdAt: new Date().toISOString(),
-      },
-      ...decisions,
-    ]);
-    setRecorded(true);
+  async function recordDecision() {
+    if (!decision.trim() || !c) return;
+    await run("decide", async () => {
+      await api.decide(saved!, { decision: decision.trim(), position: direction, rationale: rationale.trim() });
+      store.setDecisions([
+        {
+          id: `d${Date.now()}`,
+          title: decision.trim().slice(0, 200),
+          owner: org.leadName || "Lead",
+          deadline: c.dueDate ?? "",
+          status: "not_started",
+          impactArea: "strategy",
+          notes: `Board question (${DECISION_MODE_LABELS[c.mode].toLowerCase()}): ${c.question}${rationale.trim() ? `\nWhy: ${rationale.trim()}` : ""}`,
+          createdAt: new Date().toISOString(),
+        },
+        ...store.getDecisions(),
+      ]);
+      setRecorded(true);
+    });
   }
+
+  const shadowPanel = (
+    <Section
+      title={c.mode === "collaborative" ? "Round one: the shadow board" : "The shadow board"}
+      intro="Each AI agent gives its own opinion through its persona, drawing on what it has learned in your organisation and the external landscape, without seeing the people's answers. The Chair hears the other agents, then recommends a resolution."
+    >
+      {c.shadow ? (
+        <>
+          <PositionTally title="Agents" voices={agentVoices} testId="tally-agents" />
+          <div className="mt-6 space-y-3">
+            {c.shadow.opinions.map((o) => (
+              <OpinionCard key={o.agentId} o={o} feedback={feedbackFor(o.agentId)} onFeedback={sendFeedback(o.agentId)} learns={c.linkedToWorkspace} />
+            ))}
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">Convened {new Date(c.shadow.createdAt).toLocaleString()}.</p>
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">The shadow board has not been convened for this question yet.</p>
+      )}
+      <Button className="mt-4" variant={c.shadow ? "outline" : "default"} onClick={() => run("shadow", () => api.shadowBoard(saved, ctx))} disabled={busy === "shadow"} data-testid="button-convene">
+        {busy === "shadow" ? "Convening…" : c.shadow ? "Convene again" : "Convene the shadow board"}
+      </Button>
+      {c.shadow && c.mode === "collaborative" && c.shareWithPeople && (
+        <p className="mt-3 text-xs text-muted-foreground">People now see the agents' positions and the Chair's recommendation on their questionnaire, and can revise their answers.</p>
+      )}
+    </Section>
+  );
+
+  const peoplePanel = (
+    <Section
+      title={c.mode === "collaborative" ? "Round one: the people" : "The people's view"}
+      intro="What the people asked said in their questionnaires, with no AI opinion added."
+    >
+      <PositionTally title="People" voices={peopleVoices} testId="tally-people" />
+      <div className="mt-6 space-y-4">
+        {c.invitees
+          .filter((i) => c.responses[i.personId])
+          .map((i) => (
+            <details key={i.personId} className="rounded-md border border-border p-4">
+              <summary className="cursor-pointer font-semibold">
+                {i.name} <span className="font-normal text-muted-foreground">· {i.role}</span>
+              </summary>
+              <dl className="mt-3 space-y-3 text-sm">
+                {c.questionnaire.map((q) => {
+                  const a = c.responses[i.personId].answers.find((x) => x.questionId === q.id);
+                  if (!a) return null;
+                  return (
+                    <div key={q.id}>
+                      <dt className="font-semibold">{q.prompt}</dt>
+                      <dd className="mt-0.5 whitespace-pre-wrap">{q.type === "position" ? POSITION_LABELS[a.value as Position] : a.value}</dd>
+                    </div>
+                  );
+                })}
+              </dl>
+            </details>
+          ))}
+      </div>
+      <SynthesisPanel
+        synthesis={c.syntheses.people}
+        label="Summarise the people's view"
+        busy={busy === "people"}
+        disabledReason={answered === 0 ? "No one has answered yet." : undefined}
+        onRun={() => run("people", () => api.synthesis(saved, "people", ctx))}
+      />
+    </Section>
+  );
 
   return (
     <WorkspaceShell title="Board question">
@@ -267,7 +446,11 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
         <p className="font-serif text-xl leading-snug">{c.question}</p>
         {c.context && <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm text-muted-foreground">{c.context}</p>}
         <p className="mt-2 text-xs text-muted-foreground">
-          {c.organisation} · asked by {c.leadName} {c.dueDate ? `· reply by ${c.dueDate}` : ""} · {c.status === "open" ? "open for answers" : "closed"}
+          {c.organisation} · asked by {c.leadName} {c.dueDate ? `· reply by ${c.dueDate}` : ""} · {c.status === "open" ? "open" : "closed"}
+        </p>
+        <p className="mt-3 inline-block rounded border border-border bg-card px-3 py-1 text-xs font-semibold" data-testid="mode-badge">
+          Decided by: {DECISION_MODE_LABELS[c.mode]}
+          {c.mode === "collaborative" ? ` · people ${c.peopleWeight}%, agents ${100 - c.peopleWeight}%` : ""}
         </p>
       </section>
 
@@ -277,137 +460,193 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
         </p>
       )}
 
+      {showPeople && (
+        <Section
+          title={`The people (${answered} of ${c.invitees.length} answered)`}
+          intro={
+            c.emailProvider === "acs"
+              ? "Each person was emailed their own questionnaire link."
+              : "Email isn't set up for this app yet, so send each person their own link: “Email them” opens a ready-written email in your mail app."
+          }
+        >
+          <ul className="divide-y divide-border rounded-md border border-border">
+            {c.invitees.map((i) => (
+              <InviteRow
+                key={i.personId}
+                invitee={i}
+                c={c}
+                link={links[i.personId] ? respondUrl(links[i.personId]) : null}
+                busy={busy === `invite-${i.personId}`}
+                onReissue={() => run(`invite-${i.personId}`, () => api.invite(saved, [i.personId]))}
+              />
+            ))}
+          </ul>
+        </Section>
+      )}
+
+      {c.mode === "people" && peoplePanel}
+      {c.mode === "agents" && shadowPanel}
+      {c.mode === "collaborative" && (
+        <Tabs defaultValue="people">
+          <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
+            <TabsTrigger value="people" data-testid="tab-people">
+              1 · People
+            </TabsTrigger>
+            <TabsTrigger value="agents" data-testid="tab-agents">
+              1 · Shadow board
+            </TabsTrigger>
+            <TabsTrigger value="challenge" data-testid="tab-challenge">
+              2 · Challenge
+            </TabsTrigger>
+            <TabsTrigger value="mixed" data-testid="tab-mixed">
+              Combined view
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="people">{peoplePanel}</TabsContent>
+          <TabsContent value="agents">{shadowPanel}</TabsContent>
+
+          <TabsContent value="challenge">
+            <Section
+              title="Round two: the agents challenge the people"
+              intro="Each agent reads the people's answers, says what they may have missed and what it missed itself, and whether its own view changes."
+            >
+              {c.challenge ? (
+                <>
+                  <PositionTally title="Agents after the challenge" voices={finalAgentVoices} testId="tally-challenge" />
+                  <div className="mt-6 space-y-3">
+                    {c.challenge.opinions.map((o) => {
+                      const before = c.shadow?.opinions.find((x) => x.agentId === o.agentId)?.position;
+                      return (
+                        <div key={o.agentId}>
+                          {before !== o.position && (
+                            <p className="mb-1 text-xs font-semibold">
+                              Changed its view: {before ? POSITION_LABELS[before] : "no position"} → {o.position ? POSITION_LABELS[o.position] : "no position"}
+                            </p>
+                          )}
+                          <OpinionCard o={o} learns={c.linkedToWorkspace} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {!c.shadow ? "Convene the shadow board first." : answered === 0 ? "Wait for at least one person to answer." : "Not run yet."}
+                </p>
+              )}
+              <Button
+                className="mt-4"
+                variant={c.challenge ? "outline" : "default"}
+                onClick={() => run("challenge", () => api.challenge(saved, ctx))}
+                disabled={busy === "challenge" || !c.shadow || answered === 0}
+                data-testid="button-challenge"
+              >
+                {busy === "challenge" ? "Challenging…" : c.challenge ? "Run the challenge again" : "Run the challenge round"}
+              </Button>
+            </Section>
+          </TabsContent>
+
+          <TabsContent value="mixed">
+            <Section
+              title="People and agents together"
+              intro="Both sides' positions, the weighted view you set, and a recommended resolution that reflects your weighting. Your people decide."
+            >
+              <div className="grid gap-6 md:grid-cols-2">
+                <PositionTally title="People" voices={peopleVoices} testId="tally-mixed-people" />
+                {c.shadow ? (
+                  <PositionTally title={c.challenge ? "Agents (after the challenge)" : "Agents"} voices={finalAgentVoices} testId="tally-mixed-agents" />
+                ) : (
+                  <p className="text-sm text-muted-foreground">Convene the shadow board to compare.</p>
+                )}
+              </div>
+              <div className="mt-6">
+                <WeightedTally people={peopleVoices.map((v) => v.position)} agents={finalAgentVoices.map((v) => v.position)} peopleWeight={c.peopleWeight} />
+              </div>
+              <SynthesisPanel
+                synthesis={c.syntheses.mixed}
+                label="Prepare the combined view"
+                busy={busy === "mixed"}
+                disabledReason={answered === 0 ? "No one has answered yet." : !c.shadow ? "Convene the shadow board first." : undefined}
+                onRun={() => run("mixed", () => api.synthesis(saved, "mixed", ctx))}
+              />
+            </Section>
+          </TabsContent>
+        </Tabs>
+      )}
+
       <Section
-        title={`The people (${answered} of ${c.invitees.length} answered)`}
+        title="Decide"
         intro={
-          c.emailProvider === "acs"
-            ? "Each person was emailed their own questionnaire link."
-            : "Email isn't set up for this app yet, so send each person their own link: “Email them” opens a ready-written email in your mail app."
+          c.mode === "agents"
+            ? "The shadow board advises; you adopt or reject its resolution. Record the decision."
+            : "The people accountable for the organisation make the decision. Record it, and the agents learn from it when you review how it turned out."
         }
       >
-        <ul className="divide-y divide-border rounded-md border border-border">
-          {c.invitees.map((i) => (
-            <InviteRow
-              key={i.personId}
-              invitee={i}
-              c={c}
-              link={links[i.personId] ? respondUrl(links[i.personId]) : null}
-              busy={busy === `invite-${i.personId}`}
-              onReissue={() => run(`invite-${i.personId}`, () => api.invite(saved, [i.personId]))}
-            />
-          ))}
-        </ul>
-      </Section>
-
-      <Tabs defaultValue="people">
-        <TabsList className="mb-4 flex h-auto flex-wrap justify-start">
-          <TabsTrigger value="people" data-testid="tab-people">
-            People only
-          </TabsTrigger>
-          <TabsTrigger value="agents" data-testid="tab-agents">
-            Shadow board (agents only)
-          </TabsTrigger>
-          <TabsTrigger value="mixed" data-testid="tab-mixed">
-            People and agents
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="people">
-          <Section title="The people's view" intro="What the people asked said in their questionnaires, with no AI opinion added.">
-            <PositionTally title="People" voices={peopleVoices} testId="tally-people" />
-            <div className="mt-6 space-y-4">
-              {c.invitees
-                .filter((i) => c.responses[i.personId])
-                .map((i) => (
-                  <details key={i.personId} className="rounded-md border border-border p-4">
-                    <summary className="cursor-pointer font-semibold">
-                      {i.name} <span className="font-normal text-muted-foreground">· {i.role}</span>
-                    </summary>
-                    <dl className="mt-3 space-y-3 text-sm">
-                      {c.questionnaire.map((q) => {
-                        const a = c.responses[i.personId].answers.find((x) => x.questionId === q.id);
-                        if (!a) return null;
-                        return (
-                          <div key={q.id}>
-                            <dt className="font-semibold">{q.prompt}</dt>
-                            <dd className="mt-0.5 whitespace-pre-wrap">{q.type === "position" ? POSITION_LABELS[a.value as Position] : a.value}</dd>
-                          </div>
-                        );
-                      })}
-                    </dl>
-                  </details>
-                ))}
-            </div>
-            <SynthesisPanel
-              synthesis={c.syntheses.people}
-              label="Summarise the people's view"
-              busy={busy === "people"}
-              disabledReason={answered === 0 ? "No one has answered yet." : undefined}
-              onRun={() => run("people", () => api.synthesis(saved, "people", ctx))}
-            />
-          </Section>
-        </TabsContent>
-
-        <TabsContent value="agents">
-          <Section
-            title="The shadow board"
-            intro="Each AI agent gives its own opinion through its persona, without seeing the people's answers. The Chair hears the other agents, then recommends a resolution."
-          >
-            {c.shadow ? (
-              <>
-                <PositionTally title="Agents" voices={agentVoices} testId="tally-agents" />
-                <div className="mt-6 space-y-3">
-                  {c.shadow.opinions.map((o) => (
-                    <OpinionCard key={o.agentId} o={o} />
-                  ))}
-                </div>
-                <p className="mt-3 text-xs text-muted-foreground">Convened {new Date(c.shadow.createdAt).toLocaleString()}.</p>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">The shadow board has not been convened for this question yet.</p>
+        {c.decision ? (
+          <div data-testid="decision-recorded">
+            <p className="font-semibold">{c.decision.decision}</p>
+            <p className="text-sm text-muted-foreground">
+              {POSITION_LABELS[c.decision.position]} · decided {new Date(c.decision.decidedAt).toLocaleDateString()}
+            </p>
+            {c.decision.rationale && <p className="mt-2 whitespace-pre-wrap text-sm">{c.decision.rationale}</p>}
+            {c.linkedToWorkspace && (
+              <p className="mt-3 text-sm">
+                When you know how it turned out,{" "}
+                <Link href="/agents" className="font-semibold underline underline-offset-4">
+                  review the outcome with the agents
+                </Link>{" "}
+                so they learn from it.
+              </p>
             )}
-            <Button className="mt-4" variant={c.shadow ? "outline" : "default"} onClick={() => run("shadow", () => api.shadowBoard(saved, ctx))} disabled={busy === "shadow"} data-testid="button-convene">
-              {busy === "shadow" ? "Convening…" : c.shadow ? "Convene again" : "Convene the shadow board"}
-            </Button>
-          </Section>
-        </TabsContent>
-
-        <TabsContent value="mixed">
-          <Section title="People and agents together" intro="Where the people and the shadow board agree and differ, and a recommended resolution that gives the people's judgement its proper weight.">
-            <div className="grid gap-6 md:grid-cols-2">
-              <PositionTally title="People" voices={peopleVoices} testId="tally-mixed-people" />
-              {c.shadow ? (
-                <PositionTally title="Agents" voices={agentVoices} testId="tally-mixed-agents" />
-              ) : (
-                <p className="text-sm text-muted-foreground">Convene the shadow board to compare.</p>
-              )}
+          </div>
+        ) : (
+          <>
+            <div className="grid gap-3 md:grid-cols-[1fr_260px]">
+              <textarea
+                aria-label="The decision"
+                className="w-full rounded-md border border-input bg-background p-3 text-sm"
+                rows={3}
+                maxLength={500}
+                value={decision}
+                onChange={(e) => setDecision(e.target.value)}
+                placeholder="We will open the second factory in Q3, subject to the CFO's financing conditions."
+              />
+              <div className="space-y-1">
+                <label htmlFor="decision-direction" className="text-xs font-semibold uppercase tracking-[0.12em]">
+                  What it means
+                </label>
+                <select
+                  id="decision-direction"
+                  className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  value={direction}
+                  onChange={(e) => setDirection(e.target.value as Position)}
+                >
+                  <option value="support">Go ahead</option>
+                  <option value="support_with_conditions">Go ahead, with conditions</option>
+                  <option value="oppose">Do not go ahead</option>
+                  <option value="need_more_information">Defer for more information</option>
+                </select>
+              </div>
             </div>
-            <SynthesisPanel
-              synthesis={c.syntheses.mixed}
-              label="Prepare the combined view"
-              busy={busy === "mixed"}
-              disabledReason={answered === 0 ? "No one has answered yet." : !c.shadow ? "Convene the shadow board first." : undefined}
-              onRun={() => run("mixed", () => api.synthesis(saved, "mixed", ctx))}
+            <textarea
+              aria-label="Why"
+              className="mt-3 w-full rounded-md border border-input bg-background p-3 text-sm"
+              rows={2}
+              maxLength={2000}
+              value={rationale}
+              onChange={(e) => setRationale(e.target.value)}
+              placeholder="Why (optional): what tipped it, and what you accepted."
             />
-          </Section>
-        </TabsContent>
-      </Tabs>
-
-      <Section title="Decide" intro="The people accountable for the organisation make the decision. Record it on the workspace's decisions board.">
-        <textarea
-          aria-label="The decision"
-          className="w-full rounded-md border border-input bg-background p-3 text-sm"
-          rows={3}
-          maxLength={200}
-          value={decision}
-          onChange={(e) => setDecision(e.target.value)}
-          placeholder="We will open the second factory in Q3, subject to the CFO's financing conditions."
-        />
+          </>
+        )}
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button onClick={recordDecision} disabled={!decision.trim() || recorded}>
-            {recorded ? "Recorded on the decisions board" : "Record the decision"}
-          </Button>
-          {c.status === "open" && (
+          {!c.decision && (
+            <Button onClick={recordDecision} disabled={!decision.trim() || recorded || busy === "decide"} data-testid="button-decide">
+              {recorded ? "Recorded" : "Record the decision"}
+            </Button>
+          )}
+          {c.status === "open" && showPeople && (
             <Button variant="outline" onClick={() => run("close", () => api.close(saved))} disabled={busy === "close"}>
               Close the questionnaire
             </Button>
@@ -433,7 +672,8 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
           </Button>
         </div>
         <p className="mt-3 text-xs text-muted-foreground">
-          Answers are kept until {new Date(c.expiresAt).toLocaleDateString()}, then deleted automatically.
+          Answers are kept until {new Date(c.expiresAt).toLocaleDateString()}, then deleted automatically. The decision and its outcome stay with your
+          agents' track records.
         </p>
       </Section>
     </WorkspaceShell>

@@ -3,6 +3,7 @@ import pinoHttp from "pino-http";
 import path from "node:path";
 import boardroom from "./routes/boardroom.js";
 import consultations from "./routes/consultations.js";
+import workspaces from "./routes/workspaces.js";
 import { aiProvider } from "./ai.js";
 import { limitFromEnv, rateLimit } from "./rate-limit.js";
 
@@ -62,7 +63,9 @@ export function createApp({ publicDir = path.resolve(process.cwd(), "dist/public
   // inviting and answering are cheap but still bounded per client.
   const consult = rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_CONSULT_AI_PER_10_MIN", 20) });
   app.use("/api/consultations/questionnaire", consult);
-  app.use(/^\/api\/consultations\/[^/]+\/(shadow-board|synthesis)$/, consult);
+  app.use(/^\/api\/consultations\/[^/]+\/(shadow-board|synthesis|challenge)$/, consult);
+  app.use(/^\/api\/workspaces\/[^/]+\/(agents\/[^/]+\/study|decisions\/[^/]+\/outcome|horizon\/scan)$/, consult);
+  app.use("/api/workspaces", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_CONSULT_PER_10_MIN", 120) }));
   app.use("/api/consultations", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_CONSULT_PER_10_MIN", 120) }));
   app.use("/api/respond", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_RESPOND_PER_10_MIN", 60) }));
   app.use("/api/respond", (_req, res, next) => {
@@ -73,6 +76,7 @@ export function createApp({ publicDir = path.resolve(process.cwd(), "dist/public
 
   app.use("/api", boardroom);
   app.use("/api", consultations);
+  app.use("/api", workspaces);
   app.use("/api", (_req, res) => res.status(404).json({ error: "Not found" }));
   app.use("/api", (err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
     req.log.error({ err }, "request failed");

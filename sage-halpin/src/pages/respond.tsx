@@ -128,6 +128,30 @@ export default function Respond({ params }: { params: { token: string } }) {
             )}
             {closed && !savedAt && <p className="mt-6 rounded-md border border-border p-3 text-sm">This questionnaire has closed.</p>}
 
+            {data.boardView && (
+              <section className="mt-6 rounded-md border border-border bg-card p-4" data-testid="board-view">
+                <h2 className="text-xs font-bold uppercase tracking-[0.16em]">Second round: the shadow board's view</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {data.leadName} has shared what the board's AI agents think, so you can test your answers against it. Change your answers below if
+                  it moves you; keep them if it does not.
+                </p>
+                <ul className="mt-3 grid gap-1 text-sm sm:grid-cols-2">
+                  {data.boardView.agents.map((a) => (
+                    <li key={a.seat}>
+                      <span className="font-semibold">{a.persona}</span>: {a.position ? POSITION_LABELS[a.position] : "no position"}
+                      {a.confidence ? ` (confidence ${a.confidence}/5)` : ""}
+                    </li>
+                  ))}
+                </ul>
+                {data.boardView.recommendation && (
+                  <details className="mt-3">
+                    <summary className="cursor-pointer text-sm font-semibold">The Chair's recommendation</summary>
+                    <p className="mt-2 whitespace-pre-wrap text-sm">{data.boardView.recommendation}</p>
+                  </details>
+                )}
+              </section>
+            )}
+
             <form onSubmit={submit} className="mt-8 space-y-8" noValidate>
               {data.questionnaire.map((item) => (
                 <Item key={item.id} item={item} value={values[item.id] ?? ""} disabled={closed} onChange={(v) => setValues((prev) => ({ ...prev, [item.id]: v }))} />
