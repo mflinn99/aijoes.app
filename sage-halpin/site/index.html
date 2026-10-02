@@ -278,6 +278,8 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
 .footer-group { padding-block: 0 32px; border-top: 1px solid var(--line-ink); }
 .footer-group .group-note { padding-top: 20px; font-size: 14px; color: rgba(245, 241, 233, 0.75); }
 .footer-group a { color: var(--brass); text-underline-offset: 3px; }
+.footer-group .group-signature { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-top: 10px; font-style: normal; font-size: 13px; color: rgba(245, 241, 233, 0.6); }
+.footer-group .group-copyright { margin-top: 10px; font-size: 12px; color: rgba(245, 241, 233, 0.5); }
 .footer-inner { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 48px; align-items: start; padding-block: 40px 48px; }
 .disclosure { font-size: 13px; line-height: 1.7; color: rgba(245, 241, 233, 0.62); max-width: 62em; justify-self: end; }
 @media (max-width: 760px) { .footer-inner { grid-template-columns: minmax(0, 1fr); gap: 24px; } .disclosure { justify-self: start; } }
@@ -686,7 +688,12 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
   </div>
   <div class="wrap footer-group">
     <p class="group-note">Sentinel<span class="eight">8</span> is part of the <a href="https://aigogo.ai" rel="noopener">AIGoGo</a> group of companies.</p>
-    <!-- Group signature: company name, registered number, registered office and copyright line, copied from aigogo.ai's footer. -->
+    <address class="group-signature">
+      <span>AIGoGo · An AI-native platform that turns ideas into reality.</span>
+      <span>71-75 Shelton Street, Covent Garden, London WC2H 9JQ, United Kingdom</span>
+      <span><a href="mailto:hello@aigogo.ai">hello@aigogo.ai</a></span>
+    </address>
+    <p class="group-copyright">© 2026 AIGoGo. All rights reserved.</p>
   </div>
 </footer>
 </div>
