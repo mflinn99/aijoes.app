@@ -239,6 +239,9 @@ h2 { font-size: clamp(28px, 3.6vw, 48px); line-height: 1.12; }
 @media (max-width: 820px) { .closing-inner { grid-template-columns: minmax(0, 1fr); } .closing h2 span { margin-left: 0; } }
 
 footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(--line-ink); }
+.footer-group { padding-block: 0 32px; border-top: 1px solid var(--line-ink); }
+.footer-group .group-note { padding-top: 20px; font-size: 14px; color: rgba(245, 241, 233, 0.75); }
+.footer-group a { color: var(--brass); text-underline-offset: 3px; }
 .footer-inner { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 48px; align-items: start; padding-block: 40px 48px; }
 .disclosure { font-size: 13px; line-height: 1.7; color: rgba(245, 241, 233, 0.62); max-width: 62em; justify-self: end; }
 @media (max-width: 760px) { .footer-inner { grid-template-columns: minmax(0, 1fr); gap: 24px; } .disclosure { justify-self: start; } }
@@ -639,6 +642,10 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
   <div class="wrap footer-inner">
     <span class="wordmark"><span><span class="wordmark-name">SENTINEL<span class="eight">8</span></span><span class="wordmark-desc">THE EVOLVING BOARD</span></span></span>
     <p class="disclosure">Human advisers and AI agents support the board. AI agents are not statutory directors and do not exercise voting rights. The client's authorised people retain decision authority. Data access, retention and deletion follow the agreed terms.</p>
+  </div>
+  <div class="wrap footer-group">
+    <p class="group-note">Sentinel<span class="eight">8</span> is part of the <a href="https://aigogo.ai" rel="noopener">AIGoGo</a> group of companies.</p>
+    <!-- Group signature: company name, registered number, registered office and copyright line, copied from aigogo.ai's footer. -->
   </div>
 </footer>
 </div>
