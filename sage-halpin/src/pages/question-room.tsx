@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { invalidateCheckpointPill } from "@/components/CheckpointPill";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -323,9 +324,13 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
   if (!c) {
     return (
       <WorkspaceShell title="Board question">
-        <p className="text-sm text-muted-foreground" role={error ? "alert" : undefined}>
-          {error || "Loading…"}
-        </p>
+        {error ? (
+          <p className="text-sm text-muted-foreground" role="alert">
+            {error}
+          </p>
+        ) : (
+          <PageLoader label="Loading the question" />
+        )}
       </WorkspaceShell>
     );
   }

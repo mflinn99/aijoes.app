@@ -112,7 +112,7 @@ export function DecisionsPanel({ decisions, onChange }: Props) {
               initial={{ opacity: 0, x: -4 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 4, height: 0 }}
-              transition={{ delay: i * 0.03 }}
+              transition={{ duration: 0.3 }}
               style={{ border: `1px solid ${BORDER}`, borderRadius: 7, overflow: "hidden" }}
             >
               <div

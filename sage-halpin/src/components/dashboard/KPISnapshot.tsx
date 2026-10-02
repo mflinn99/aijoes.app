@@ -128,7 +128,7 @@ export function KPISnapshot({ kpis, onChange }: Props) {
               key={kpi.key}
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
+              transition={{ duration: 0.3 }}
               style={{
                 gridColumn: isLast ? "1 / -1" : undefined,
                 background: bg,

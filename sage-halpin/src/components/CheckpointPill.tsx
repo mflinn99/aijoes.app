@@ -49,6 +49,8 @@ export function CheckpointPill({ className = "" }: { className?: string }) {
     };
   }, []);
 
+  // Until the summary arrives the pill keeps its place but stays invisible, so the header does not shift.
+  const pending = hasWorkspace && summary === null;
   const label = !hasWorkspace
     ? "Checkpoint · set up your board"
     : summary?.n
@@ -58,12 +60,13 @@ export function CheckpointPill({ className = "" }: { className?: string }) {
   return (
     <Link
       href={hasWorkspace ? "/checkpoint" : "/organisation"}
-      className={`inline-flex items-center gap-2 rounded-full border border-primary bg-primary px-3 py-1 text-[11px] font-semibold text-primary-foreground no-underline transition-colors hover:bg-[#8C6A3E] ${className}`}
+      className={`inline-flex items-center gap-2 rounded-full border border-primary bg-primary px-3 py-1 text-[11px] font-semibold text-primary-foreground no-underline transition-[background-color,opacity] duration-300 hover:bg-[#8C6A3E] ${pending ? "invisible opacity-0" : "opacity-100"} ${className}`}
+      aria-hidden={pending || undefined}
       data-testid="checkpoint-pill"
       title="Your organisation on a page: status and three years of history"
     >
       <span aria-hidden className="h-2 w-2 rounded-full bg-[#7FB692]" />
-      {label}
+      {pending ? "Checkpoint 00 · 00 Mmm 0000" : label}
       {summary && summary.fresh > 0 && (
         <span className="rounded-full bg-[#B28A56] px-2 py-px text-[10px] text-[#13232B]">{summary.fresh} new</span>
       )}

@@ -60,7 +60,7 @@ export default function TraditionalView({ data }: { data: TraditionalViewData })
               key={v.key}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
+              transition={{ duration: 0.3 }}
               style={{
                 background: SURFACE,
                 border: `1px solid ${BORDER}`,

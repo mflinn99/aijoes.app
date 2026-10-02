@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,6 +78,14 @@ export default function HorizonPage() {
     );
   }
 
+  if (!settings && !error) {
+    return (
+      <WorkspaceShell title="The horizon">
+        <PageLoader label="Loading the horizon" />
+      </WorkspaceShell>
+    );
+  }
+
   async function run(key: string, fn: () => Promise<unknown>) {
     if (!link) return;
     setBusy(key);
@@ -129,7 +138,7 @@ export default function HorizonPage() {
       )}
 
       {!settings ? (
-        <p className="text-sm text-muted-foreground">{error ? "" : "Loading…"}</p>
+        error ? null : <PageLoader />
       ) : (
         <>
           <Section title="Scanning" intro={settings.lastScanAt ? undefined : "No scan has run yet. The first runs within the hour, or scan now."}>

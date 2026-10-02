@@ -31,7 +31,7 @@ export default function Home() {
         className="w-full flex flex-wrap items-center justify-between gap-5 px-6 sm:px-10 py-6"
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: "easeOut" }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <div className="flex items-center gap-3 shrink-0" style={{ color: TEXT_PRIMARY }}>
           <Mark size={30} />
@@ -67,7 +67,7 @@ export default function Home() {
           className="w-full flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-24"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
         >
           {/* Left: Copy & Context */}
           <div className="flex-1 flex flex-col items-start max-w-xl">
@@ -113,7 +113,7 @@ export default function Home() {
               className="relative w-full z-10"
               initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1.0, ease: "easeOut", delay: 0.2 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               data-testid="boardroom-container"
             >
               <Boardroom />

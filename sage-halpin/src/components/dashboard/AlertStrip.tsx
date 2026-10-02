@@ -68,7 +68,7 @@ export function AlertStrip({ alerts }: Props) {
                 initial={{ opacity: 0, x: -5 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0 }}
-                transition={{ delay: i * 0.04 }}
+                transition={{ duration: 0.3 }}
                 style={{
                   padding: "10px 14px",
                   border: `1px solid ${SEVERITY_COLORS[alert.severity]}30`,

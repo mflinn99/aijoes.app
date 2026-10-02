@@ -2,6 +2,42 @@
 <html lang="en-GB">
 <head>
 <meta charset="utf-8">
+<style>
+/* Loading: one branded mark until fonts and layout are ready, then the whole page at once. */
+.boot { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: #13232B; transition: opacity .4s ease, visibility .4s; }
+.boot svg { width: 76px; height: 76px; }
+.boot .seat { animation: boot-pulse 1.5s ease-in-out infinite; }
+.boot .seat:nth-of-type(2) { animation-delay: .25s; } .boot .seat:nth-of-type(3) { animation-delay: .5s; }
+.boot .seat:nth-of-type(4) { animation-delay: .75s; } .boot .seat:nth-of-type(5) { animation-delay: 1s; } .boot .seat:nth-of-type(6) { animation-delay: 1.25s; }
+.boot-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@keyframes boot-pulse { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+html.booting { overflow: hidden; }
+html.booting body > :not(.boot) { opacity: 0; }
+body > :not(.boot) { transition: opacity .4s ease; }
+html.booted .boot { opacity: 0; visibility: hidden; }
+@media (prefers-reduced-motion: reduce) { .boot .seat { animation: none; opacity: 1; } .boot, body > :not(.boot) { transition: none; } }
+@media print { .boot { display: none; } }
+</style>
+<script>
+(function () {
+  var root = document.documentElement, done = false;
+  root.classList.add('booting');
+  function finish() {
+    if (done) return;
+    done = true;
+    root.classList.remove('booting');
+    root.classList.add('booted');
+    window.dispatchEvent(new Event('page-ready'));
+  }
+  window.whenPageReady = function (fn) { if (done) fn(); else window.addEventListener('page-ready', fn, { once: true }); };
+  var fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+  window.addEventListener('load', function () {
+    fonts.then(function () { requestAnimationFrame(function () { requestAnimationFrame(finish); }); });
+  });
+  // Never hold the page back for long, even if a font server is slow or blocked.
+  setTimeout(finish, 4000);
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Interactive demo of Sentinel8: ask a board question, assemble people and AI agents, decide, follow through and hand over. Fictional company, static demo data.">
 <meta name="theme-color" content="#13232B">
@@ -328,6 +364,11 @@ textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 14
 </style>
 </head>
 <body>
+<div class="boot" role="status" aria-live="polite">
+  <svg viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="20" rx="11.5" ry="7" fill="none" stroke="#F5F1E9" stroke-width="1.6"/><path d="M20 20C18 17.2 13.5 17.2 13.5 20C13.5 22.8 18 22.8 20 20C22 17.2 26.5 17.2 26.5 20C26.5 22.8 22 22.8 20 20Z" fill="none" stroke="#B28A56" stroke-width="1.4"/><circle class="seat" cx="20" cy="7" r="3" fill="#7FB692"/><circle class="seat" cx="34" cy="13" r="3" fill="#F2EEE4"/><circle class="seat" cx="34" cy="27" r="3" fill="#D9A15F"/><circle class="seat" cx="20" cy="33" r="3" fill="#6FA8D6"/><circle class="seat" cx="6" cy="27" r="3" fill="#E07F6A"/><circle class="seat" cx="6" cy="13" r="3" fill="#A99BDA"/></svg>
+  <span class="boot-label">Loading Sentinel8</span>
+</div>
+
 <div class="app">
   <aside class="rail" aria-label="Demo steps">
     <a class="brand" href="../" aria-label="Sentinel8 home" style="color:inherit;text-decoration:none">

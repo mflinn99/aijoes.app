@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Mark } from "@/components/Mark";
@@ -106,9 +107,13 @@ export default function Respond({ params }: { params: { token: string } }) {
       </header>
       <main className="mx-auto max-w-2xl px-4 py-8">
         {!data ? (
-          <p role={error ? "alert" : undefined} className="text-sm text-muted-foreground">
-            {error || "Opening your questionnaire…"}
-          </p>
+          error ? (
+            <p role="alert" className="text-sm text-muted-foreground">
+              {error}
+            </p>
+          ) : (
+            <PageLoader label="Opening your questionnaire" />
+          )
         ) : (
           <>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
