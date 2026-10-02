@@ -24,6 +24,17 @@ export interface Organisation {
   updatedAt: string;
   /** The organisation's workspace on the server: agent learning and horizon scanning. */
   workspace?: { id: string; adminToken: string } | null;
+  /** People who have left the board, kept for the checkpoint's history. */
+  formerPeople?: FormerPerson[];
+}
+
+export interface FormerPerson {
+  id: string;
+  name: string;
+  role: string;
+  permanent: boolean;
+  joinedAt: string;
+  leftAt: string;
 }
 
 export const EMPTY_ORGANISATION: Organisation = {

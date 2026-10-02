@@ -55,7 +55,7 @@ export interface ConsultationView {
   peopleWeight: number;
   shareWithPeople: boolean;
   linkedToWorkspace: boolean;
-  decision: { decision: string; position: Position; rationale: string; decidedAt: string; withoutPermanent?: string[] } | null;
+  decision: { decision: string; position: Position; rationale: string; decidedAt: string; withoutPermanent?: string[]; plan?: string } | null;
   feedback: { agentId: AgentId; rating: "helpful" | "off_target"; note: string; at: string }[];
 }
 
@@ -191,7 +191,7 @@ export const api = {
   challenge: (s: SavedConsultation, context: object) =>
     call<ConsultationView["challenge"]>(`/consultations/${s.id}/challenge`, { method: "POST", token: s.adminToken, body: JSON.stringify(context) }),
 
-  decide: (s: SavedConsultation, body: { decision: string; position: Position; rationale: string; proceedWithoutPermanent?: boolean }) =>
+  decide: (s: SavedConsultation, body: { decision: string; position: Position; rationale: string; plan?: string; proceedWithoutPermanent?: boolean }) =>
     call<ConsultationView["decision"]>(`/consultations/${s.id}/decision`, { method: "POST", token: s.adminToken, body: JSON.stringify(body) }),
 
   feedback: (s: SavedConsultation, body: { agentId: AgentId; rating: "helpful" | "off_target"; note: string }) =>

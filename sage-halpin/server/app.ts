@@ -64,7 +64,7 @@ export function createApp({ publicDir = path.resolve(process.cwd(), "dist/public
   const consult = rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_CONSULT_AI_PER_10_MIN", 20) });
   app.use("/api/consultations/questionnaire", consult);
   app.use(/^\/api\/consultations\/[^/]+\/(shadow-board|synthesis|challenge)$/, consult);
-  app.use(/^\/api\/workspaces\/[^/]+\/(agents\/[^/]+\/study|decisions\/[^/]+\/outcome|horizon\/scan)$/, consult);
+  app.use(/^\/api\/workspaces\/[^/]+\/(agents\/[^/]+\/study|decisions\/[^/]+\/outcome|horizon\/scan|checkpoints)$/, consult);
   app.use("/api/workspaces", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_CONSULT_PER_10_MIN", 120) }));
   app.use("/api/consultations", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_CONSULT_PER_10_MIN", 120) }));
   app.use("/api/respond", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_RESPOND_PER_10_MIN", 60) }));

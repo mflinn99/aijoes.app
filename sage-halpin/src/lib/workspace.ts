@@ -1,5 +1,5 @@
 import { loadOrganisation, saveOrganisation, type Organisation } from "./organisation";
-import type { AgentId, Landscape, Lesson, LessonKind, Outcome, Position, Signal } from "../../shared/board";
+import type { AgentId, Checkpoint, CheckpointEntry, Landscape, Lesson, LessonKind, LoggedKind, Outcome, Position, Signal } from "../../shared/board";
 
 // Client for the organisation's workspace on the server: agent development,
 // decisions and outcomes, and horizon scanning. The browser holds its id and
@@ -65,6 +65,8 @@ export async function ensureWorkspace(org: Organisation = loadOrganisation()): P
   });
   const link = { id: created.id, adminToken: created.adminToken };
   saveOrganisation({ ...loadOrganisation(), workspace: link });
+  // Let the checkpoint pill know the organisation now has a workspace.
+  window.dispatchEvent(new Event("checkpoint-updated"));
   return link;
 }
 
@@ -78,7 +80,21 @@ export async function syncProfile(org: Organisation): Promise<void> {
   });
 }
 
+export interface CheckpointData {
+  workspace: WorkspaceSettings;
+  entries: CheckpointEntry[];
+  latest: Checkpoint | null;
+  checkpoints: { n: number; createdAt: string; publishedBy: string; entryCount: number }[];
+}
+
 export const workspaceApi = {
+  checkpoint: (l: WorkspaceLink) => call<CheckpointData>(l, `/workspaces/${l.id}/checkpoint`),
+  addEvent: (l: WorkspaceLink, body: { date: string; kind: LoggedKind; title: string; detail: string }) =>
+    call(l, `/workspaces/${l.id}/events`, { method: "POST", body: JSON.stringify(body) }),
+  removeEvent: (l: WorkspaceLink, eventId: string) => call<void>(l, `/workspaces/${l.id}/events/${eventId}`, { method: "DELETE" }),
+  publish: (l: WorkspaceLink, body: { publishedBy: string; status: string; people: CheckpointEntry[] }) =>
+    call<Checkpoint>(l, `/workspaces/${l.id}/checkpoints`, { method: "POST", body: JSON.stringify(body) }),
+
   remove: (l: WorkspaceLink) => call<void>(l, `/workspaces/${l.id}`, { method: "DELETE" }),
   settings: (l: WorkspaceLink) => call<WorkspaceSettings>(l, `/workspaces/${l.id}`),
   update: (l: WorkspaceLink, body: Partial<WorkspaceSettings>) => call<WorkspaceSettings>(l, `/workspaces/${l.id}`, { method: "PUT", body: JSON.stringify(body) }),

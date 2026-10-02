@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { Mark } from "@/components/Mark";
+import { CheckpointPill } from "@/components/CheckpointPill";
 
 // The frame for the board pages: brand, page title and the workspace
 // navigation, then the page itself.
@@ -27,6 +28,7 @@ export function WorkspaceShell({ title, children, actions }: { title: string; ch
               SENTINEL<span className="sentinel-eight">8</span>
             </span>
           </Link>
+          <CheckpointPill className="order-last sm:order-none sm:ml-auto" />
           <nav aria-label="Workspace" className="flex flex-wrap gap-1 text-xs">
             {NAV.map((item) => {
               const active = location === item.href || (item.href !== "/dashboard" && location.startsWith(`${item.href}/`));

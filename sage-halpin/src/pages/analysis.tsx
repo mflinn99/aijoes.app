@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { CheckpointPill } from "@/components/CheckpointPill";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import TraditionalView, { type TraditionalViewData } from "../components/TraditionalView";
@@ -254,6 +255,7 @@ export default function Analysis() {
           </button>
           <span style={{ color: BORDER_BRIGHT, fontSize: 12 }}>|</span>
           <span style={{ color: TEXT, fontSize: 11, letterSpacing: "0.3em", fontWeight: 500, textTransform: "uppercase" }}>Analysis Engine</span>
+          <CheckpointPill />
           <button onClick={() => setLocation("/log")} style={{ background: "none", border: "none", color: TEXT_MUTED, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", cursor: "pointer", fontWeight: 600 }} onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "hsl(var(--primary))")} onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_MUTED)}>
             Decision Log
           </button>

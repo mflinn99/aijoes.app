@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { CheckpointPill } from "@/components/CheckpointPill";
 import { useLocation } from "wouter";
 import { loadDecisionLog, saveLog, type DecisionLogEntry } from "@/lib/decisionLog";
 
@@ -59,6 +60,7 @@ export default function DecisionLog() {
         </button>
         <span style={{ color: BORDER_BRIGHT, fontSize: 12 }}>|</span>
         <span style={{ color: TEXT, fontSize: 11, letterSpacing: "0.3em", fontWeight: 500, textTransform: "uppercase" }}>Decision Log</span>
+        <CheckpointPill />
       </div>
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 32px 80px" }}>

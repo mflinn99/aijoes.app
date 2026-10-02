@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { CheckpointPill } from "@/components/CheckpointPill";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { store, generateAlerts, KPIData, Decision, GrowthLever, Risk, Alert } from "@/lib/store";
@@ -70,6 +71,7 @@ export default function Dashboard() {
           <span style={{ color: TEXT_SECONDARY, fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", fontWeight: 500 }}>
             Executive Workspace
           </span>
+          <CheckpointPill />
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>

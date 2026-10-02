@@ -411,3 +411,76 @@ describe("permanent members", () => {
     expect(seen[0].messages[0].content).toContain('<person name="Jo Reyes" role="Chair" member="permanent">No response yet.</person>');
   });
 });
+
+describe("the checkpoint", () => {
+  it("records events and achievements, and validates them", async () => {
+    const { app, wsId, wsToken } = await workspace();
+    const made = await request(app)
+      .post(`/api/workspaces/${wsId}/events`)
+      .set(bearer(wsToken))
+      .send({ date: "2025-03-01", kind: "achievement", title: "Order book reaches seven months", detail: "Utility wins." })
+      .expect(201);
+    await request(app).post(`/api/workspaces/${wsId}/events`).set(bearer(wsToken)).send({ date: "2025-03-01", kind: "rumour", title: "x" }).expect(400);
+    await request(app).post(`/api/workspaces/${wsId}/events`).set(bearer(wsToken)).send({ date: "01/03/2025", kind: "event", title: "x" }).expect(400);
+    await request(app).post(`/api/workspaces/${wsId}/events`).set(bearer(wsToken)).send({ date: "2099-01-01", kind: "event", title: "x" }).expect(400);
+    await request(app).post(`/api/workspaces/${wsId}/events`).send({ date: "2025-03-01", kind: "event", title: "x" }).expect(404);
+    await request(app).delete(`/api/workspaces/${wsId}/events/${made.body.id}`).set(bearer(wsToken)).expect(204);
+    await request(app).delete(`/api/workspaces/${wsId}/events/${made.body.id}`).set(bearer(wsToken)).expect(404);
+  });
+
+  it("assembles three years of history: events, decisions with plans, outcomes, lessons and signals", async () => {
+    const { app, wsId, wsToken } = await workspace();
+    const old = new Date();
+    old.setFullYear(old.getFullYear() - 4);
+    await request(app).post(`/api/workspaces/${wsId}/events`).set(bearer(wsToken)).send({ date: old.toISOString().slice(0, 10), kind: "event", title: "Too old to show" }).expect(201);
+    await request(app).post(`/api/workspaces/${wsId}/events`).set(bearer(wsToken)).send({ date: "2025-10-01", kind: "achievement", title: "Recurring revenue reaches 9%" }).expect(201);
+    await request(app).post(`/api/workspaces/${wsId}/agents/grimm/lessons`).set(bearer(wsToken)).send({ kind: "fact", text: "Covenant is 2.5x EBITDA." }).expect(201);
+
+    const { id, admin } = await question(app, { wsId, wsToken }, { mode: "agents", people: undefined });
+    await request(app).post(`/api/consultations/${id}/shadow-board`).set(bearer(admin)).send({}).expect(200);
+    await request(app)
+      .post(`/api/consultations/${id}/decision`)
+      .set(bearer(admin))
+      .send({ decision: "Open the second factory in Q3.", position: "support_with_conditions", plan: "1. Agree financing (FD, 30 Nov). 2. Site shortlist (COO, 15 Jan)." })
+      .expect(200);
+    await request(app).post(`/api/workspaces/${wsId}/decisions/${id}/outcome`).set(bearer(wsToken)).send({ result: "better" }).expect(200);
+
+    const cp = await request(app).get(`/api/workspaces/${wsId}/checkpoint`).set(bearer(wsToken)).expect(200);
+    const kinds = cp.body.entries.map((e: { kind: string }) => e.kind);
+    expect(kinds).toEqual(expect.arrayContaining(["achievement", "agent", "decision", "plan", "outcome"]));
+    expect(cp.body.entries.some((e: { title: string }) => e.title === "Too old to show")).toBe(false);
+    const plan = cp.body.entries.find((e: { kind: string }) => e.kind === "plan");
+    expect(plan.detail).toContain("Agree financing");
+    const dates = cp.body.entries.map((e: { date: string }) => e.date);
+    expect([...dates].sort()).toEqual(dates); // chronological
+    expect(cp.body.latest).toBeNull();
+  });
+
+  it("publishes numbered checkpoints with insights, including people joining and leaving", async () => {
+    const { app, wsId, wsToken } = await workspace();
+    await request(app).post(`/api/workspaces/${wsId}/events`).set(bearer(wsToken)).send({ date: "2026-05-01", kind: "achievement", title: "Revenue reaches £38.4m" }).expect(201);
+    const people = [
+      { id: "person-cfo1-joined", date: "2024-03-01", kind: "joined", title: "Fractional CFO joined", detail: "Six-month mandate" },
+      { id: "person-cfo1-left", date: "2024-09-01", kind: "left", title: "Fractional CFO left", detail: "Handover recorded" },
+    ];
+    await request(app).post(`/api/workspaces/${wsId}/checkpoints`).set(bearer(wsToken)).send({ people }).expect(400);
+    await request(app)
+      .post(`/api/workspaces/${wsId}/checkpoints`)
+      .set(bearer(wsToken))
+      .send({ publishedBy: "Alex", people: [{ ...people[0], kind: "promoted" }] })
+      .expect(400);
+
+    const seen: CompletionRequest[] = [];
+    setCompletionObserver((r) => seen.push(r));
+    const first = await request(app).post(`/api/workspaces/${wsId}/checkpoints`).set(bearer(wsToken)).send({ publishedBy: "Alex Morgan", people, status: "Revenue £38.4m" }).expect(201);
+    expect(first.body).toMatchObject({ n: 1, publishedBy: "Alex Morgan", entryCount: 3, insights: expect.arrayContaining([expect.objectContaining({ title: expect.any(String) })]) });
+    expect(first.body.entryIds).toContain("person-cfo1-left");
+    expect(seen[0].messages[0].content).toContain("[Left] Fractional CFO left");
+
+    const second = await request(app).post(`/api/workspaces/${wsId}/checkpoints`).set(bearer(wsToken)).send({ publishedBy: "Alex Morgan" }).expect(201);
+    expect(second.body.n).toBe(2);
+    const cp = await request(app).get(`/api/workspaces/${wsId}/checkpoint`).set(bearer(wsToken)).expect(200);
+    expect(cp.body.latest.n).toBe(2);
+    expect(cp.body.checkpoints.map((c: { n: number }) => c.n)).toEqual([2, 1]);
+  });
+});
