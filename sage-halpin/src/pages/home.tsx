@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { CheckpointPill } from "@/components/CheckpointPill";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { Boardroom } from "@/components/Boardroom";
@@ -52,6 +53,7 @@ export default function Home() {
           </div>
         </div>
         <nav className="flex flex-wrap items-center gap-3" aria-label="Workspace access">
+          <CheckpointPill />
           <PrimaryButton label="Enter Workspace" onClick={() => setLocation("/dashboard")} primary testId="button-enter-workspace" />
           <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground bg-muted px-3 py-1.5 rounded-sm">
             Saved in this browser

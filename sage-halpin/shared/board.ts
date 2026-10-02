@@ -147,6 +147,8 @@ export interface BoardPerson {
   cv?: string;
   /** A permanent member takes part in every decision that involves people. */
   permanent?: boolean;
+  /** When they joined the board (YYYY-MM-DD). */
+  joinedAt?: string;
 }
 
 export const LIMITS = {
@@ -315,3 +317,54 @@ export interface Landscape {
 export const SCAN_INTERVALS_HOURS = [6, 12, 24, 72, 168] as const;
 
 export const HORIZON_LIMITS = { feeds: 12, watchTopics: 12, topic: 80, feedLabel: 80, url: 500 } as const;
+
+// ─── The checkpoint: the organisation on a page ─────────────────────────────
+
+export const CHECKPOINT_KINDS = ["decision", "plan", "outcome", "achievement", "event", "joined", "left", "agent", "signal"] as const;
+export type CheckpointKind = (typeof CHECKPOINT_KINDS)[number];
+
+export const CHECKPOINT_KIND_LABELS: Record<CheckpointKind, string> = {
+  decision: "Decision",
+  plan: "Plan",
+  outcome: "Outcome",
+  achievement: "Achievement",
+  event: "Event",
+  joined: "Joined",
+  left: "Left",
+  agent: "Agent learned",
+  signal: "External signal",
+};
+
+/** Kinds the lead records by hand; the rest come from the platform's own records. */
+export const LOGGED_KINDS = ["event", "achievement", "joined", "left"] as const;
+export type LoggedKind = (typeof LOGGED_KINDS)[number];
+
+export interface CheckpointEntry {
+  id: string;
+  date: string; // YYYY-MM-DD
+  kind: CheckpointKind;
+  title: string;
+  detail: string;
+  /** Where it came from, for tracing: a question, a lesson, a signal, or the lead. */
+  source: string;
+}
+
+export interface Checkpoint {
+  n: number;
+  createdAt: string;
+  publishedBy: string;
+  entryCount: number;
+  summary: string;
+  insights: { title: string; detail: string }[];
+  /** The entries it contained, so later entries can be shown as new. */
+  entryIds?: string[];
+}
+
+export const CHECKPOINT_YEARS = 3;
+
+const KIND_ORDER: CheckpointKind[] = ["event", "signal", "joined", "achievement", "decision", "plan", "outcome", "agent", "left"];
+
+/** Oldest first; on the same day, a decision is followed by its plan and outcome. */
+export function compareEntries(a: CheckpointEntry, b: CheckpointEntry): number {
+  return a.date.localeCompare(b.date) || KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || a.id.localeCompare(b.id);
+}

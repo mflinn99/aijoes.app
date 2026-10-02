@@ -10,6 +10,7 @@ const pages: Record<string, [string, string]> = {
   "/organisation": ["Your Board — Sentinel8", "Assemble your board: your organisation, the people who take part in its decisions, and the shadow board of AI agents."],
   "/questions": ["Board Questions — Sentinel8", "Put questions to your board: questionnaires for your people, opinions from the shadow board of AI agents."],
   "/agents": ["Agent Development — Sentinel8", "Develop and educate each AI agent for your organisation, and see how it learns from decisions and outcomes."],
+  "/checkpoint": ["Checkpoint — Sentinel8", "Your organisation on a page: its status and three years of events, decisions, achievements and people joining and leaving, with insights."],
   "/horizon": ["The Horizon — Sentinel8", "How Sentinel8 keeps looking outward: external signals, the landscape briefing and what the agents learn from it."],
   "/questions/new": ["Ask the Board — Sentinel8", "Put a question to your people by questionnaire and to the shadow board of AI agents."],
 };

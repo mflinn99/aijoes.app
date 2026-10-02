@@ -75,6 +75,8 @@ interface DecisionTaken {
   decidedAt: string;
   /** Permanent members who had not answered when the chair decided. */
   withoutPermanent?: string[];
+  /** The plan agreed with the decision. */
+  plan?: string;
 }
 
 interface Feedback {
@@ -822,6 +824,8 @@ router.post("/consultations/:id/decision", requireLead, async (req, res, next) =
     const body = (req.body ?? {}) as Record<string, unknown>;
     const decision = text(body.decision, 500, { required: true });
     const rationale = text(body.rationale, 2000);
+    const plan = text(body.plan, 3000);
+    if (plan === null) return bad(res, "plan too long");
     if (decision === null) return bad(res, "the decision is required");
     if (rationale === null) return bad(res, "rationale too long");
     if (!(POSITIONS as readonly string[]).includes(body.position as string)) return bad(res, "choose what the decision means: go ahead, go ahead with conditions, do not, or defer");
@@ -848,6 +852,7 @@ router.post("/consultations/:id/decision", requireLead, async (req, res, next) =
       rationale,
       decidedAt: new Date().toISOString(),
       ...(missingNames.length ? { withoutPermanent: missingNames } : {}),
+      ...(plan ? { plan } : {}),
     };
     await store.put(partition(c.id), DECISION, taken);
     c.status = "closed";
@@ -867,6 +872,7 @@ router.post("/consultations/:id/decision", requireLead, async (req, res, next) =
         agentPositions: Object.fromEntries(agentsNow.map((o) => [o.agentId, o.position])),
         peoplePositions: c.invitees.map((i) => (responses[i.personId]?.answers.find((a) => a.questionId === "position")?.value ?? null) as Position | null),
         outcome: null,
+        ...(plan ? { plan } : {}),
       };
       await saveDecision(store, c.workspaceId, record);
     }

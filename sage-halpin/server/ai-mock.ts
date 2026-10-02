@@ -99,6 +99,14 @@ export function mockCompletion(req: CompletionRequest): string {
         trends: [{ title: "Mock trend", direction: "rising", detail: "Mock detail." }],
         lessons: [{ agentId: "solara", text: "Mock lesson from horizon scanning." }],
       });
+    case "checkpoint-insights":
+      return JSON.stringify({
+        summary: "Mock checkpoint summary. This is a mock reply for testing.",
+        insights: [
+          { title: "Mock insight about momentum", detail: "Mock detail." },
+          { title: "Mock insight about people", detail: "Mock detail." },
+        ],
+      });
     case "chat-chair":
       return "Mock response. Board alignment points: none yet. Board conflict points: none yet. RECOMMENDED RESOLUTION: gather evidence before deciding.";
     case "chat":

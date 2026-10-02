@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { CheckpointPill } from "@/components/CheckpointPill";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 
@@ -85,6 +86,7 @@ export default function Boardroom() {
           </button>
           <span style={{ color: BORDER, fontSize: 12 }}>|</span>
           <span style={{ color: TEXT, fontSize: 11, letterSpacing: "0.3em", fontWeight: 500, textTransform: "uppercase" }}>SHADOW BOARD</span>
+          <CheckpointPill />
         </div>
 
         {/* Persona chips */}

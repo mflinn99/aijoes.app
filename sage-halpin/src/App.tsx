@@ -13,6 +13,7 @@ import QuestionRoom from "@/pages/question-room";
 import Respond from "@/pages/respond";
 import AgentsPage from "@/pages/agents";
 import HorizonPage from "@/pages/horizon";
+import CheckpointPage from "@/pages/checkpoint";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/respond/:token" component={Respond} />
       <Route path="/agents" component={AgentsPage} />
       <Route path="/horizon" component={HorizonPage} />
+      <Route path="/checkpoint" component={CheckpointPage} />
       <Route path="/reset-password">
         <Redirect to="/" />
       </Route>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { invalidateCheckpointPill } from "@/components/CheckpointPill";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -292,6 +293,7 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
   const [direction, setDirection] = useState<Position>("support");
   const [rationale, setRationale] = useState("");
   const [withoutPermanent, setWithoutPermanent] = useState(false);
+  const [plan, setPlan] = useState("");
 
   const refresh = useCallback(async () => {
     if (!saved) return;
@@ -361,7 +363,8 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
   async function recordDecision() {
     if (!decision.trim() || !c) return;
     await run("decide", async () => {
-      await api.decide(saved!, { decision: decision.trim(), position: direction, rationale: rationale.trim(), proceedWithoutPermanent: withoutPermanent });
+      await api.decide(saved!, { decision: decision.trim(), position: direction, rationale: rationale.trim(), plan: plan.trim(), proceedWithoutPermanent: withoutPermanent });
+      invalidateCheckpointPill();
       store.setDecisions([
         {
           id: `d${Date.now()}`,
@@ -595,6 +598,21 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
               {POSITION_LABELS[c.decision.position]} · decided {new Date(c.decision.decidedAt).toLocaleDateString()}
             </p>
             {c.decision.rationale && <p className="mt-2 whitespace-pre-wrap text-sm">{c.decision.rationale}</p>}
+            {c.decision.plan && (
+              <div className="mt-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em]">The plan</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm">{c.decision.plan}</p>
+              </div>
+            )}
+            {c.linkedToWorkspace && (
+              <p className="mt-3 text-sm">
+                The decision{c.decision.plan ? " and its plan are" : " is"} in your organisation's record and will be in the next{" "}
+                <Link href="/checkpoint" className="font-semibold underline underline-offset-4">
+                  checkpoint
+                </Link>
+                .
+              </p>
+            )}
             {c.decision.withoutPermanent?.length ? (
               <p className="mt-2 text-sm text-muted-foreground">Decided without the answers of permanent members: {c.decision.withoutPermanent.join(", ")}.</p>
             ) : null}
@@ -645,6 +663,16 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
               value={rationale}
               onChange={(e) => setRationale(e.target.value)}
               placeholder="Why (optional): what tipped it, and what you accepted."
+            />
+            <textarea
+              aria-label="The plan"
+              className="mt-3 w-full rounded-md border border-input bg-background p-3 text-sm"
+              rows={3}
+              maxLength={3000}
+              value={plan}
+              onChange={(e) => setPlan(e.target.value)}
+              placeholder="The plan (optional): actions, owners and dates, and the kill condition. Captured with the decision in the checkpoint."
+              data-testid="input-plan"
             />
           </>
         )}

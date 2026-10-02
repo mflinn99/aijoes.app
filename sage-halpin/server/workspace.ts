@@ -15,6 +15,16 @@ import {
   type Signal,
 } from "../shared/board.js";
 import type { Store } from "./store.js";
+import {
+  CHECKPOINT_YEARS,
+  LESSON_SOURCE_LABELS,
+  OUTCOME_LABELS,
+  POSITION_LABELS,
+  type Checkpoint,
+  type CheckpointEntry,
+  type LoggedKind,
+  compareEntries,
+} from "../shared/board.js";
 
 // The organisation's workspace on the server: what the platform needs to keep
 // learning when no one is signed in. It holds the organisation's profile, what
@@ -55,6 +65,8 @@ export interface DecisionRecord {
   agentPositions: Partial<Record<AgentId, Position | null>>;
   peoplePositions: (Position | null)[];
   outcome: { result: Outcome; note: string; recordedAt: string } | null;
+  /** The plan agreed with the decision: actions, owners, dates. */
+  plan?: string;
 }
 
 export interface TrackRecord {
@@ -256,4 +268,101 @@ export async function agentKnowledge(store: Store, wsId: string, agentId: AgentI
 
 export async function deleteWorkspace(store: Store, wsId: string): Promise<void> {
   for (const { row } of await store.list(workspacePartition(wsId))) await store.remove(workspacePartition(wsId), row);
+}
+
+// ─── The checkpoint ─────────────────────────────────────────────────────────
+
+export interface LoggedEvent {
+  id: string;
+  date: string;
+  kind: LoggedKind;
+  title: string;
+  detail: string;
+  createdAt: string;
+}
+
+const eventRow = (id: string) => `event-${id}`;
+const checkpointRow = (n: number) => `checkpoint-${String(n).padStart(5, "0")}`;
+
+export async function listEvents(store: Store, wsId: string): Promise<LoggedEvent[]> {
+  return rowsWithPrefix<LoggedEvent>(store, wsId, "event-");
+}
+
+export async function saveEvent(store: Store, wsId: string, event: LoggedEvent): Promise<void> {
+  await store.put(workspacePartition(wsId), eventRow(event.id), event);
+}
+
+export async function removeEvent(store: Store, wsId: string, id: string): Promise<boolean> {
+  if (!ID.test(id)) return false;
+  const existing = await store.get(workspacePartition(wsId), eventRow(id));
+  if (!existing) return false;
+  await store.remove(workspacePartition(wsId), eventRow(id));
+  return true;
+}
+
+export async function listCheckpoints(store: Store, wsId: string): Promise<Checkpoint[]> {
+  const list = await rowsWithPrefix<Checkpoint>(store, wsId, "checkpoint-");
+  return list.sort((a, b) => b.n - a.n);
+}
+
+export async function saveCheckpoint(store: Store, wsId: string, cp: Checkpoint): Promise<void> {
+  await store.put(workspacePartition(wsId), checkpointRow(cp.n), cp);
+}
+
+const day = (iso: string) => iso.slice(0, 10);
+
+/**
+ * The organisation's record over the last three years, oldest first: what the
+ * lead logged, every decision with its plan and outcome, what the agents
+ * learned with the chair's approval, and the high-impact external signals.
+ * People joining and leaving come from the lead's browser, where people live.
+ */
+export async function checkpointEntries(store: Store, wsId: string, now = Date.now()): Promise<CheckpointEntry[]> {
+  const since = new Date(now);
+  since.setFullYear(since.getFullYear() - CHECKPOINT_YEARS);
+  const from = day(since.toISOString());
+  const entries: CheckpointEntry[] = [];
+
+  for (const e of await listEvents(store, wsId)) {
+    entries.push({ id: `event-${e.id}`, date: e.date, kind: e.kind, title: e.title, detail: e.detail, source: "Recorded by the lead" });
+  }
+  for (const d of await listDecisions(store, wsId)) {
+    entries.push({
+      id: `decision-${d.consultationId}`,
+      date: day(d.decidedAt),
+      kind: "decision",
+      title: d.decision,
+      detail: `${POSITION_LABELS[d.position]}. Question: ${d.question}${d.rationale ? ` Why: ${d.rationale}` : ""} Decided by: ${d.mode}.`,
+      source: `Board question ${d.consultationId}`,
+    });
+    if (d.plan) {
+      entries.push({ id: `plan-${d.consultationId}`, date: day(d.decidedAt), kind: "plan", title: `Plan for: ${d.decision}`, detail: d.plan, source: `Board question ${d.consultationId}` });
+    }
+    if (d.outcome) {
+      entries.push({
+        id: `outcome-${d.consultationId}`,
+        date: day(d.outcome.recordedAt),
+        kind: "outcome",
+        title: `${OUTCOME_LABELS[d.outcome.result]}: ${d.decision}`,
+        detail: d.outcome.note || "Outcome reviewed with the agents.",
+        source: `Board question ${d.consultationId}`,
+      });
+    }
+  }
+  for (const l of await listLessons(store, wsId)) {
+    if (l.status !== "active" || !l.decidedAt) continue;
+    entries.push({
+      id: `lesson-${l.id}`,
+      date: day(l.decidedAt),
+      kind: "agent",
+      title: `${l.agentId} learned: ${l.text}`,
+      detail: `${LESSON_SOURCE_LABELS[l.source]}${l.ref ? ` · ${l.ref}` : ""}`,
+      source: "Agent development",
+    });
+  }
+  for (const s of await listSignals(store, wsId)) {
+    if (s.impact !== "high") continue;
+    entries.push({ id: `signal-${s.id}`, date: day(s.publishedAt ?? s.foundAt), kind: "signal", title: s.title, detail: s.implication, source: s.url });
+  }
+  return entries.filter((e) => e.date >= from).sort(compareEntries);
 }

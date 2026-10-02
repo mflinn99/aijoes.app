@@ -74,6 +74,9 @@ function PersonForm({ initial, onSave, onCancel }: { initial: BoardPerson; onSav
         <Field id="p-phone" label="Phone (optional)">
           <Input id="p-phone" type="tel" value={p.phone ?? ""} maxLength={40} onChange={set("phone")} autoComplete="off" />
         </Field>
+        <Field id="p-joined" label="Joined the board" hint="Shown in the checkpoint's history.">
+          <Input id="p-joined" type="date" value={p.joinedAt ?? ""} max={new Date().toISOString().slice(0, 10)} onChange={set("joinedAt")} />
+        </Field>
       </div>
       <div className="flex items-start gap-3 rounded-md border border-border bg-card p-3">
         <Switch id="p-permanent" checked={p.permanent === true} onCheckedChange={(on) => setP({ ...p, permanent: on })} data-testid="switch-permanent" />
@@ -132,8 +135,17 @@ export default function OrganisationPage() {
 
   function removePerson(id: string) {
     const person = org.people.find((p) => p.id === id);
-    if (person && window.confirm(`Remove ${person.name} and their CV from this browser?`)) {
-      update({ ...org, people: org.people.filter((p) => p.id !== id) });
+    if (!person) return;
+    if (window.confirm(`${person.name} leaves the board? Their CV is removed from this browser; the checkpoint records that they left today.`)) {
+      const leftAt = new Date().toISOString().slice(0, 10);
+      update({
+        ...org,
+        people: org.people.filter((p) => p.id !== id),
+        formerPeople: [
+          ...(org.formerPeople ?? []),
+          { id: person.id, name: person.name, role: person.role, permanent: person.permanent === true, joinedAt: person.joinedAt ?? "", leftAt },
+        ],
+      });
     }
   }
 
@@ -222,8 +234,8 @@ export default function OrganisationPage() {
                   <Button size="sm" variant="outline" onClick={() => setEditing(p)}>
                     Edit
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => removePerson(p.id)} aria-label={`Remove ${p.name}`}>
-                    Remove
+                  <Button size="sm" variant="ghost" onClick={() => removePerson(p.id)} aria-label={`${p.name} leaves the board`}>
+                    Leaves
                   </Button>
                 </div>
               </li>
@@ -235,12 +247,24 @@ export default function OrganisationPage() {
         ) : (
           <Button
             variant="outline"
-            onClick={() => setEditing({ id: newPersonId(), ...BLANK_PERSON })}
+            onClick={() => setEditing({ id: newPersonId(), ...BLANK_PERSON, joinedAt: new Date().toISOString().slice(0, 10) })}
             disabled={org.people.length >= LIMITS.people}
             data-testid="button-add-person"
           >
             Add a person
           </Button>
+        )}
+        {(org.formerPeople ?? []).length > 0 && (
+          <details className="mt-4">
+            <summary className="cursor-pointer text-sm text-muted-foreground">Former members ({org.formerPeople!.length}), kept in the checkpoint's history</summary>
+            <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+              {org.formerPeople!.map((p) => (
+                <li key={p.id}>
+                  {p.name} · {p.role} · {p.permanent ? "permanent" : "as needed"} · {p.joinedAt ? `joined ${p.joinedAt}, ` : ""}left {p.leftAt}
+                </li>
+              ))}
+            </ul>
+          </details>
         )}
       </Section>
 

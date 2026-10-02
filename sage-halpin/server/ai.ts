@@ -28,7 +28,8 @@ export type Purpose =
   | "agent-reflection"
   | "horizon-triage"
   | "horizon-search"
-  | "horizon-landscape";
+  | "horizon-landscape"
+  | "checkpoint-insights";
 
 export interface CompletionRequest {
   purpose: Purpose;
