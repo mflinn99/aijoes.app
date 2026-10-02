@@ -323,7 +323,7 @@ export default function Analysis() {
                     key={c.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
+                    transition={{ duration: 0.3 }}
                     onClick={() => { setChallenge(c.id); persist({ challenge: c.id }); }}
                     style={{ background: challenge === c.id ? "rgba(19,35,43,0.14)" : SURFACE, border: `1px solid ${challenge === c.id ? "#13232B70" : BORDER}`, borderRadius: 9, padding: "16px 18px", cursor: "pointer", textAlign: "left", transition: "all 0.18s", outline: "none" }}
                     onMouseEnter={(e) => { if (challenge !== c.id) { (e.currentTarget as HTMLButtonElement).style.borderColor = "#13232B40"; (e.currentTarget as HTMLButtonElement).style.background = "rgba(19,35,43,0.07)"; } }}

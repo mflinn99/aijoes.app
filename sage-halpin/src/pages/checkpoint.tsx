@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +83,14 @@ export default function CheckpointPage() {
           </Link>
           .
         </p>
+      </WorkspaceShell>
+    );
+  }
+
+  if (!data && !error) {
+    return (
+      <WorkspaceShell title={`${org.name}, on a page`}>
+        <PageLoader label="Loading the checkpoint" />
       </WorkspaceShell>
     );
   }
@@ -210,7 +219,7 @@ export default function CheckpointPage() {
             ))}
           </div>
           {!data ? (
-            <p className="text-sm text-muted-foreground">{error ? "" : "Loading…"}</p>
+            null
           ) : shown.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nothing here yet. Decisions you record, outcomes you review, lessons you approve, high-impact signals and the events you log all appear here.</p>
           ) : (

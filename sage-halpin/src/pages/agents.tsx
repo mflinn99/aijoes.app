@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { PageLoader } from "@/components/PageLoader";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -177,6 +178,15 @@ export default function AgentsPage() {
     );
   }
 
+  // Show one loader until the agents and decisions have both arrived, then the whole page.
+  if (!agents && !error) {
+    return (
+      <WorkspaceShell title="Agent development">
+        <PageLoader label="Loading your agents" />
+      </WorkspaceShell>
+    );
+  }
+
   async function run(key: string, fn: () => Promise<unknown>, done?: string) {
     if (!link) return;
     setBusy(key);
@@ -247,7 +257,7 @@ export default function AgentsPage() {
       </div>
 
       {!agent ? (
-        <p className="text-sm text-muted-foreground">{error ? "" : "Loading…"}</p>
+        error ? null : <PageLoader />
       ) : (
         <>
           <Section title={`${persona.persona}: ${persona.seat}`} intro={persona.archetype}>

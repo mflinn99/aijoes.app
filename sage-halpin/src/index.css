@@ -181,3 +181,8 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Loading: the mark's seats pulse in turn while a page's data arrives. */
+.page-loader-mark circle { animation: seat-pulse 1.5s ease-in-out infinite; }
+@keyframes seat-pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .page-loader-mark circle { animation: none; } }

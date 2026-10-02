@@ -170,7 +170,7 @@ export default function Boardroom() {
                               const persona = PERSONAS.find((p) => p.id === r.personaId);
                               const isAquila = r.personaId === "aquila";
                               return (
-                                <motion.div key={r.personaId} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: ri * 0.06 }}
+                                <motion.div key={r.personaId} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}
                                   style={{ border: `1px solid ${r.color}25`, borderLeft: `3px solid ${r.color}`, borderRadius: "0 8px 8px 0", padding: isAquila ? "16px 18px" : "12px 16px", background: isAquila ? `${r.color}06` : SURFACE }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                                     <span style={{ fontSize: 14 }}>{persona?.icon}</span>

@@ -86,7 +86,7 @@ export function StrategicForces({ levers, risks, onLeversChange, onRisksChange }
           {levers.length === 0 && <span style={{ color: TEXT_MUTED, fontSize: 9, letterSpacing: "0.1em" }}>No levers defined</span>}
           <AnimatePresence>
             {levers.map((l, i) => (
-              <motion.div key={l.id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 4 }} transition={{ delay: i * 0.04 }}
+              <motion.div key={l.id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 4 }} transition={{ duration: 0.3 }}
                 style={{ background: "#ffffff", border: `1px solid ${BORDER}`, borderRadius: 7, padding: "9px 10px" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ color: TEXT, fontSize: 10, flex: 1, lineHeight: 1.4 }}>{l.name}</span>
@@ -136,7 +136,7 @@ export function StrategicForces({ levers, risks, onLeversChange, onRisksChange }
           {risks.length === 0 && <span style={{ color: TEXT_MUTED, fontSize: 9, letterSpacing: "0.1em" }}>No risks logged</span>}
           <AnimatePresence>
             {risks.map((r, i) => (
-              <motion.div key={r.id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 4 }} transition={{ delay: i * 0.04 }}
+              <motion.div key={r.id} initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 4 }} transition={{ duration: 0.3 }}
                 style={{ background: SEVERITY_BG[r.severity], border: `1px solid ${SEVERITY_BORDER[r.severity]}`, borderLeft: `3px solid ${SEVERITY_COLORS[r.severity]}`, borderRadius: "0 7px 7px 0", padding: "9px 10px" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
                   <span style={{ color: TEXT, fontSize: 10, flex: 1, lineHeight: 1.4 }}>{r.name}</span>

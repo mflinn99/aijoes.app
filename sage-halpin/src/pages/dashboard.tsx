@@ -135,22 +135,22 @@ export default function Dashboard() {
         data-testid="dashboard-grid"
       >
         {[
-          { component: <KPISnapshot kpis={kpis} onChange={setKpis} />, testId: "panel-kpi", delay: 0.05 },
-          { component: <AlertStrip alerts={alerts} />, testId: "panel-alerts", delay: 0.10 },
-          { component: <DecisionsPanel decisions={decisions} onChange={setDecisions} />, testId: "panel-decisions", delay: 0.15 },
+          { component: <KPISnapshot kpis={kpis} onChange={setKpis} />, testId: "panel-kpi" },
+          { component: <AlertStrip alerts={alerts} />, testId: "panel-alerts" },
+          { component: <DecisionsPanel decisions={decisions} onChange={setDecisions} />, testId: "panel-decisions" },
           {
             component: (
               <StrategicForces levers={levers} risks={risks} onLeversChange={setLevers} onRisksChange={setRisks} />
             ),
             testId: "panel-strategic",
-            delay: 0.20,
+            
           },
-        ].map(({ component, testId, delay }) => (
+        ].map(({ component, testId }) => (
           <motion.div
             key={testId}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay }}
+            transition={{ duration: 0.3 }}
             style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 6, padding: "24px", boxShadow: "0 1px 3px rgba(0,0,0,0.02)" }}
             data-testid={testId}
           >
@@ -162,7 +162,7 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
+          transition={{ duration: 0.3 }}
           style={{ gridColumn: "1 / -1" }}
         >
           <button
