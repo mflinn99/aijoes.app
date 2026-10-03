@@ -118,8 +118,9 @@ its own package, tests and pipelines:
 instruction it was built from.
 
 Before launch: Bryn Sage's and Mark Halpin's consent to the name, trade mark and
-domain checks, real photography, and an enquiry route for "Talk to Us", which
-currently lands on the closing panel.
+domain checks, and real photography. "Contact Us" opens a booking calendar and a
+message form; see `sage-halpin/docs/HOSTING.md` (Contact Us) to connect them to a
+form service or a live scheduling page.
 
 ## Documentation
 

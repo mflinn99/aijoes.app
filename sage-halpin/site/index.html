@@ -348,11 +348,68 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
 .fractional-points b { color: var(--ivory); font-weight: 600; }
 @media (max-width: 860px) { .fractional { grid-template-columns: minmax(0, 1fr); gap: 24px; } }
 
-/* Section transitions: sections below the fold rise gently into place as they
-   arrive. Without script, or with reduced motion, everything is simply shown. */
-.reveal { transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1); }
-.reveal.pending { opacity: 0; transform: translateY(36px); }
-@media (prefers-reduced-motion: reduce) { .reveal, .reveal.pending { opacity: 1; transform: none; transition: none; } }
+/* Section transitions: sections below the fold fade in as they arrive. They do
+   not move, so nothing on screen shifts while scrolling. Without script, or with
+   reduced motion, everything is simply shown. */
+.reveal { transition: opacity 0.6s ease; }
+.reveal.pending { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .reveal, .reveal.pending { opacity: 1; transition: none; } }
+
+/* ---------------------------------------------------------------- contact */
+.contact { background: var(--paper); }
+.contact-head { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 24px 48px; align-items: end; margin-bottom: 48px; }
+.contact-head h2 span { display: block; color: var(--brass-deep); }
+.contact-lede { color: var(--text-dim); }
+.contact-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 20px; align-items: start; }
+.card { position: relative; border-radius: 28px; padding: clamp(22px, 3vw, 34px); min-width: 0; }
+.card h3 { font-size: 22px; line-height: 1.25; margin-bottom: 6px; }
+.card-ink { background: var(--ink); color: var(--ivory); }
+.card-plain { background: var(--ivory); border: 1px solid var(--line); }
+.hint { font-size: 14px; color: var(--text-dim); }
+.card-ink .hint { color: rgba(245, 241, 233, 0.65); }
+.bk-step { margin-top: 24px; }
+.step-label { display: block; margin-bottom: 10px; color: var(--brass); }
+.days { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.day { flex: none; display: grid; justify-items: center; gap: 2px; min-width: 64px; padding: 10px 8px; border-radius: 16px; border: 1px solid var(--line-ink); background: transparent; color: var(--ivory); font: inherit; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+.day small { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(245, 241, 233, 0.6); }
+.day b { font-family: var(--display); font-weight: 300; font-size: 22px; line-height: 1.1; }
+.day:hover { border-color: rgba(245, 241, 233, 0.4); }
+.day[aria-pressed="true"] { background: var(--brass); border-color: var(--brass); color: var(--ink); }
+.day[aria-pressed="true"] small { color: var(--ink); }
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; min-height: 44px; }
+.slot { padding: 10px 6px; border-radius: var(--pill); border: 1px solid var(--line-ink); background: transparent; color: var(--ivory); font: inherit; font-size: 14px; font-variant-numeric: tabular-nums; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+.slot:hover { border-color: rgba(245, 241, 233, 0.4); }
+.slot[aria-pressed="true"] { background: var(--sage); border-color: var(--sage); color: var(--ink); font-weight: 600; }
+.chosen { margin-top: 24px; padding: 14px 16px; border-radius: 16px; background: var(--ink-2); font-size: 15px; }
+.chosen b { color: var(--brass); font-weight: 600; }
+.fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-top: 16px; }
+.fields .wide { grid-column: 1 / -1; }
+.field { display: grid; gap: 6px; font-size: 14px; font-weight: 600; }
+.field input, .field textarea { width: 100%; font: inherit; font-weight: 400; font-size: 16px; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: var(--paper); color: var(--text); }
+.field textarea { resize: vertical; min-height: 132px; }
+.card-ink .field input { background: var(--ink-2); border-color: var(--line-ink); color: var(--ivory); }
+.field input:focus-visible, .field textarea:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+.optional { font-weight: 400; color: var(--text-dim); }
+.card-ink .optional { color: rgba(245, 241, 233, 0.55); }
+.form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-top: 18px; }
+button.btn { border: 0; cursor: pointer; font: inherit; font-weight: 600; font-size: 15px; }
+.btn-dark { background: var(--ink); color: var(--ivory); }
+.btn-dark:hover { background: var(--ink-2); }
+.btn-line { border: 1px solid rgba(245, 241, 233, 0.35); color: var(--ivory); background: transparent; }
+button.btn-line { border: 1px solid rgba(245, 241, 233, 0.35); }
+.form-note { font-size: 13px; color: var(--text-dim); }
+.card-ink .form-note { color: rgba(245, 241, 233, 0.6); }
+.form-error { margin-top: 12px; font-size: 14px; font-weight: 600; color: #B4412E; }
+.card-ink .form-error { color: #F0A090; }
+.done { margin-top: 20px; padding: 18px; border-radius: 18px; border: 1px solid var(--sage); background: rgba(127, 182, 146, 0.12); }
+.done:focus { outline: none; }
+.done p + p, .done p + .form-actions { margin-top: 10px; }
+.trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.booking-frame { display: block; width: 100%; height: 640px; margin-top: 20px; border: 0; border-radius: 18px; background: var(--ivory); }
+@media (max-width: 900px) {
+  .contact-head, .contact-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) { .fields { grid-template-columns: minmax(0, 1fr); } }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
@@ -375,12 +432,12 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
       <span><span class="wordmark-name">SENTINEL<span class="eight">8</span></span><span class="wordmark-desc">THE EVOLVING BOARD</span></span>
     </a>
     <nav class="nav" aria-label="Primary">
-      <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#horizon">The Horizon</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a href="demo/">Demo</a><a class="nav-cta" href="#contact">Talk to Us</a>
+      <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#horizon">The Horizon</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a href="demo/">Demo</a><a class="nav-cta" href="#contact">Contact Us</a>
     </nav>
     <details class="menu">
       <summary>Menu</summary>
       <nav aria-label="Primary, compact">
-        <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#horizon">The Horizon</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a href="demo/">Demo</a><a href="#contact">Talk to Us</a>
+        <a href="#idea">The Idea</a><a href="#team">The Team</a><a href="#horizon">The Horizon</a><a href="#memory">The Memory</a><a href="#how">How It Works</a><a href="#boards">For Boards</a><a href="demo/">Demo</a><a href="#contact">Contact Us</a>
       </nav>
     </details>
   </div>
@@ -669,7 +726,82 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
     </div>
   </section>
 
-  <section id="contact" class="closing">
+  <section id="contact" class="section contact" aria-labelledby="contact-title">
+    <div class="wrap">
+      <div class="contact-head">
+        <div>
+          <p class="kicker label">Contact Us</p>
+          <h2 id="contact-title">Book a call, <span>or send us a note.</span></h2>
+        </div>
+        <p class="contact-lede">A 30-minute introductory call with the team: what Sentinel<span class="eight">8</span> would assemble around your board, and how a first engagement runs.</p>
+      </div>
+
+      <div class="contact-grid">
+        <div class="card card-ink" id="book" role="region" aria-labelledby="book-title">
+          <h3 id="book-title">Book a call</h3>
+          <p class="hint">30 minutes, by video. Times are shown in <span data-tz>your time zone</span>.</p>
+
+          <div data-booking-picker>
+            <div class="bk-step">
+              <span class="step-label label" id="day-label">1. Choose a day</span>
+              <div class="days" role="group" aria-labelledby="day-label" data-days></div>
+            </div>
+            <div class="bk-step">
+              <span class="step-label label" id="slot-label">2. Choose a time</span>
+              <div class="slots" role="group" aria-labelledby="slot-label" data-slots></div>
+            </div>
+
+            <form class="book-form" data-book-form novalidate hidden>
+              <p class="chosen" aria-live="polite">Your call: <b data-chosen></b></p>
+              <div class="bk-step"><span class="step-label label">3. Your details</span></div>
+              <div class="fields">
+                <label class="field">Name<input name="name" autocomplete="name" required maxlength="120"></label>
+                <label class="field">Work email<input name="email" type="email" autocomplete="email" required maxlength="200"></label>
+                <label class="field wide"><span>Organisation <span class="optional">(optional)</span></span><input name="organisation" autocomplete="organization" maxlength="160"></label>
+                <label class="field wide"><span>What would you like to discuss? <span class="optional">(optional)</span></span><input name="topic" maxlength="300"></label>
+              </div>
+              <label class="trap" aria-hidden="true">Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label>
+              <p class="form-error" role="alert" data-error hidden></p>
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Request this time</button>
+                <span class="form-note">We confirm every call by email.</span>
+              </div>
+            </form>
+
+            <div class="done" data-book-done hidden tabindex="-1">
+              <p><b>Your request for <span data-done-when></span> is ready.</b></p>
+              <p data-done-how></p>
+              <div class="form-actions">
+                <a class="btn btn-primary" data-ics download="sentinel8-call.ics" href="#">Add to my calendar</a>
+                <a class="btn btn-line" data-gcal target="_blank" rel="noopener" href="#">Add to Google Calendar</a>
+                <button class="btn btn-line" type="button" data-book-again>Choose another time</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <form class="card card-plain" data-message-form novalidate aria-labelledby="message-title">
+          <h3 id="message-title">Send a message</h3>
+          <p class="hint">Questions, an engagement in mind, or a board to assemble.</p>
+          <div class="fields">
+            <label class="field">Name<input name="name" autocomplete="name" required maxlength="120"></label>
+            <label class="field">Work email<input name="email" type="email" autocomplete="email" required maxlength="200"></label>
+            <label class="field wide"><span>Organisation <span class="optional">(optional)</span></span><input name="organisation" autocomplete="organization" maxlength="160"></label>
+            <label class="field wide">Message<textarea name="message" required maxlength="4000"></textarea></label>
+          </div>
+          <label class="trap" aria-hidden="true">Leave this empty<input name="website" tabindex="-1" autocomplete="off"></label>
+          <p class="form-error" role="alert" data-error hidden></p>
+          <div class="form-actions">
+            <button class="btn btn-dark" type="submit">Send message</button>
+            <span class="form-note">Or email <a data-contact-email href="mailto:hello@aigogo.ai">hello@aigogo.ai</a></span>
+          </div>
+          <div class="done" data-message-done hidden tabindex="-1"><p data-message-how></p></div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="closing">
     <div class="wrap closing-inner">
       <h2>Expertise changes. <span>Understanding deepens.</span></h2>
       <div>
@@ -698,6 +830,21 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
 </footer>
 </div>
 
+<script>
+// A filled dot with a soft glow, pre-rendered to its own small canvas.
+// Returns { canvas, size } where size is the drawn width in CSS pixels.
+function glowDot(colour, r, blur, dpr) {
+  var pad = Math.ceil(blur * 1.1), size = (r + pad) * 2;
+  var c = document.createElement('canvas');
+  c.width = c.height = Math.ceil(size * dpr);
+  var g = c.getContext('2d');
+  g.scale(dpr, dpr);
+  g.shadowColor = colour; g.shadowBlur = blur * dpr;
+  g.beginPath(); g.arc(size / 2, size / 2, r, 0, Math.PI * 2);
+  g.fillStyle = colour; g.fill();
+  return { canvas: c, size: size };
+}
+</script>
 <script>
 // Hero: the logo, alive. Six seats around one oval table, as in the mark.
 // People are green; AI agents take the mark's other colours. One seat changes
@@ -742,15 +889,24 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
   // Constant forward motion, wrapping every decade.
   function yearPosition(clock) { return (clock / YEAR_MS) % COUNT; }
 
+  // Year positions are measured once (and again on resize or when fonts load),
+  // never per frame, so the animation does no layout work while it runs.
+  var lefts = [], widths = [], stripWidth = 0;
+  function measureYears() {
+    lefts = spans.map(function (el) { return el.offsetLeft; });
+    widths = spans.map(function (el) { return el.offsetWidth; });
+    stripWidth = track.parentElement.getBoundingClientRect().width;
+  }
+
   var shown = null;
   function placeYears(pos) {
+    if (!lefts.length) measureYears();
     var index = COUNT + pos;                     // always within the middle copy
     var i = Math.floor(index), f = index - i;
     // Interpolate between the measured positions of neighbouring years, so the
     // copies line up exactly whatever the width of each numeral.
-    var x = spans[i].offsetLeft + (spans[i + 1].offsetLeft - spans[i].offsetLeft) * f;
-    var width = track.parentElement.getBoundingClientRect().width;
-    var centre = width * 0.62 - spans[i].offsetWidth / 2;
+    var x = lefts[i] + (lefts[i + 1] - lefts[i]) * f;
+    var centre = stripWidth * 0.62 - widths[i] / 2;
     track.style.transform = 'translate3d(' + (centre - x).toFixed(2) + 'px,0,0)';
     var now = Math.round(index);
     if (now !== shown) {
@@ -807,13 +963,23 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
     }
   }
 
-  var width = 0, height = 0;
+  var width = 0, height = 0, dpr = 1, sprites = {};
   function resize() {
     var r = canvas.getBoundingClientRect();
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
     width = r.width; height = r.height;
     canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sprites = {};
+    measureYears();
+  }
+
+  // A glowing seat is drawn once per colour and size, then stamped each frame:
+  // canvas blur is far too slow to repeat sixty times a second.
+  function sprite(colour, r) {
+    var key = colour + r.toFixed(1);
+    if (!sprites[key]) sprites[key] = glowDot(colour, r, r * 0.9, dpr);
+    return sprites[key];
   }
 
   function draw(clock) {
@@ -842,22 +1008,25 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.strokeStyle = 'rgba(245,241,233,0.16)'; ctx.lineWidth = 1; ctx.stroke();
       if (lvl > 0.01) {
-        ctx.save();
+        var img = sprite(seat.colour, r), scale = 0.86 + 0.14 * lvl, size = img.size * scale;
         ctx.globalAlpha = lvl;
-        ctx.shadowColor = seat.colour; ctx.shadowBlur = r * 0.9;
-        ctx.beginPath(); ctx.arc(x, y, r * (0.86 + 0.14 * lvl), 0, Math.PI * 2);
-        ctx.fillStyle = seat.colour; ctx.fill();
-        ctx.restore();
+        ctx.drawImage(img.canvas, x - size / 2, y - size / 2, size, size);
+        ctx.globalAlpha = 1;
       }
     }
   }
 
-  var clock = 0, last = 0, frame = 0, visible = true;
-  function render() { update(clock); placeYears(yearPosition(clock)); draw(clock); }
+  // The years glide every frame; the seats only fade slowly, so the canvas is
+  // redrawn at most 30 times a second, which looks the same at half the work.
+  var DRAW_MS = 32;
+  var clock = 0, last = 0, lastDraw = -1e9, frame = 0, visible = true;
+  function render() { update(clock); placeYears(yearPosition(clock)); draw(clock); lastDraw = clock; }
   function tick(now) {
     clock += Math.min(50, Math.max(0, now - last));
     last = now;
-    render();
+    update(clock);
+    placeYears(yearPosition(clock));
+    if (clock - lastDraw >= DRAW_MS) { draw(clock); lastDraw = clock; }
     frame = requestAnimationFrame(tick);
   }
   function start() {
@@ -875,7 +1044,7 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
   }
   document.addEventListener('visibilitychange', function () { document.hidden ? stop() : start(); });
   if (motion.addEventListener) motion.addEventListener('change', apply);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { motion.matches ? still() : render(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { measureYears(); motion.matches ? still() : render(); });
   apply();
 
   var menu = document.querySelector('.menu');
@@ -913,13 +1082,15 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
     el.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
   });
 
-  var width = 0, height = 0;
+  var width = 0, height = 0, seatSprites = [];
   function resize() {
     var r = canvas.getBoundingClientRect();
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     width = r.width; height = r.height;
     canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var u = Math.min(width, height) / 40 * 0.94;
+    seatSprites = COLS.map(function (c) { return glowDot(c, 3 * u, 1.8 * u, dpr); });
   }
 
   // Sparks mostly jump across the table, so they arc through the oval.
@@ -961,8 +1132,12 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
           var x = ax + dx * t + nx * off, y = ay + dy * t + ny * off;
           if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
-        if (pass === 0) { ctx.strokeStyle = COLS[s.a]; ctx.globalAlpha = 0.35 * alpha; ctx.lineWidth = Math.max(3, 0.9 * u); ctx.shadowColor = COLS[s.a]; ctx.shadowBlur = 2.5 * u; }
-        else { ctx.strokeStyle = '#FFFFFF'; ctx.globalAlpha = 0.9 * alpha; ctx.lineWidth = Math.max(1, 0.22 * u); ctx.shadowBlur = 0; }
+        if (pass === 0) {
+          // The glow: a wide faint stroke under a narrower one, instead of a blur.
+          ctx.strokeStyle = COLS[s.a];
+          ctx.globalAlpha = 0.14 * alpha; ctx.lineWidth = Math.max(8, 2.6 * u); ctx.stroke();
+          ctx.globalAlpha = 0.32 * alpha; ctx.lineWidth = Math.max(3, 0.9 * u);
+        } else { ctx.strokeStyle = '#FFFFFF'; ctx.globalAlpha = 0.9 * alpha; ctx.lineWidth = Math.max(1, 0.22 * u); }
         ctx.stroke();
       }
       // A ping where it lands.
@@ -973,20 +1148,18 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
 
     // The six seats, drawn last so the sparks start and end beneath them.
     for (var i = 0; i < 6; i++) {
-      ctx.save();
-      ctx.shadowColor = COLS[i]; ctx.shadowBlur = 1.8 * u;
-      ctx.beginPath(); ctx.arc(px(POS[i][0]), py(POS[i][1]), 3 * u, 0, Math.PI * 2);
-      ctx.fillStyle = COLS[i]; ctx.fill();
-      ctx.restore();
+      var img = seatSprites[i];
+      if (img) ctx.drawImage(img.canvas, px(POS[i][0]) - img.size / 2, py(POS[i][1]) - img.size / 2, img.size, img.size);
     }
   }
 
-  var clock = 0, last = 0, frame = 0, visible = false, nextSpark = 0, nextQuestionAt = QUESTION_MS;
+  var DRAW_MS = 32;          // sparks redraw at most 30 times a second
+  var clock = 0, last = 0, lastDraw = -1e9, frame = 0, visible = false, nextSpark = 0, nextQuestionAt = QUESTION_MS;
   function tick(now) {
     clock += Math.min(50, Math.max(0, now - last)); last = now;
     while (clock >= nextSpark) { spawn(nextSpark); nextSpark += SPARK_EVERY; }
     if (clock >= nextQuestionAt) { show((active + 1) % qs.length); nextQuestionAt += QUESTION_MS; }
-    draw(clock);
+    if (clock - lastDraw >= DRAW_MS) { draw(clock); lastDraw = clock; }
     frame = requestAnimationFrame(tick);
   }
   function start() { if (frame || !visible || document.hidden || motion.matches) return; last = performance.now(); frame = requestAnimationFrame(tick); }
@@ -1017,5 +1190,6 @@ window.whenPageReady(function () {
   });
 });
 </script>
+<script src="contact.js"></script>
 </body>
 </html>
