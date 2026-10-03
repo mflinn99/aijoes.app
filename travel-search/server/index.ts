@@ -2,9 +2,11 @@ import "dotenv/config";
 import { createApp } from "./app.js";
 import { assertProvidersConfigured, providerSummary } from "./providers/index.js";
 import { storeKind } from "./store.js";
+import { assertClockConfigured } from "./clock.js";
 
 // Fail fast: a travel search with no aggregator behind it cannot find anything.
 assertProvidersConfigured();
+assertClockConfigured();
 
 const port = Number(process.env.PORT || 3002);
 if (!Number.isInteger(port) || port <= 0) throw new Error("PORT must be a positive integer");

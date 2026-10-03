@@ -32,13 +32,21 @@ export type RefineInput = z.input<typeof refineSchema>;
 
 type Json = Record<string, unknown>;
 
-/** Merge a partial request onto the current one; nested objects merge, arrays and scalars replace. */
+/** Merge a partial request onto the current one; nested objects merge, arrays and scalars replace, null clears. */
 export function mergeRequest(current: TripRequest, changes: Json): TripRequest {
   const merged: Json = { ...(current as unknown as Json) };
   for (const [key, value] of Object.entries(changes)) {
     const existing = merged[key];
     if (value === null) delete merged[key];
-    else if (isPlainObject(value) && isPlainObject(existing)) merged[key] = { ...existing, ...value };
+    else if (isPlainObject(value) && isPlainObject(existing)) {
+      // Nested fields merge too, and null clears one ({ preferences: { minHotelStars: null } }).
+      const next: Json = { ...existing };
+      for (const [k, v] of Object.entries(value)) {
+        if (v === null) delete next[k];
+        else next[k] = v;
+      }
+      merged[key] = next;
+    }
     else merged[key] = value;
   }
   return tripRequestSchema.parse(merged);

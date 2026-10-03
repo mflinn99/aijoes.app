@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "build": "esbuild server/index.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.mjs",
-    "start": "node dist/server.mjs"
+    "start": "node dist/server.mjs",
+    "e2e": "npm run build && node scripts/e2e.mjs"
   },
   "dependencies": {
     "dotenv": "^16.6.1",

@@ -33,5 +33,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: End-to-end functional test against the built server
+        run: node scripts/e2e.mjs
       - name: Build container image
         run: docker build -t travel-search:ci .

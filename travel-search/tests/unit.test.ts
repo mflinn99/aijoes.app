@@ -125,5 +125,7 @@ describe("refine instructions", () => {
     expect(merged.budget).toMatchObject({ amount: 900, currency: "GBP", flexibilityPercent: 5 });
     expect(merged.destination).toBe("Rome");
     expect(() => mergeRequest(req, { travellers: { adults: 0 } })).toThrow();
+    const strict = mergeRequest(req, { preferences: { minHotelStars: 4 } });
+    expect(mergeRequest(strict, { preferences: { minHotelStars: null } }).preferences.minHotelStars).toBeUndefined();
   });
 });

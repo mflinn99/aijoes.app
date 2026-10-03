@@ -16,6 +16,7 @@ cd travel-search
 npm install
 TRAVEL_PROVIDERS=mock,drive TRAVEL_STORE=memory npm run dev   # http://localhost:3002, demo data
 npm test            # 119 tests, no network or keys needed
+npm run e2e         # builds, boots the real server and walks a whole journey over HTTP (69 checks)
 FAKE_TODAY=2027-03-01 npm test   # run them as if it were another day of the year
 npm run typecheck
 npm run build && npm start
@@ -311,6 +312,8 @@ server/
   trips.ts       save, my trips, choose, share links, reviews
   itinerary.ts   the chosen option, day by day
   print.ts       printable HTML and plain text
-  clock.ts       the current time (movable in tests)
+  clock.ts       the current time (movable in tests; TRAVEL_CLOCK_OFFSET_DAYS outside production)
+scripts/
+  e2e.mjs        end-to-end functional test against the built server
   app.ts         HTTP API
 ```
