@@ -1,0 +1,37 @@
+name: Travel search
+
+on:
+  pull_request:
+    paths: ["travel-search/**", ".github/workflows/travel-search.yml"]
+  push:
+    branches: [main, claude/aiogo-metamsp-build-directive-2lsui2]
+    paths: ["travel-search/**", ".github/workflows/travel-search.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: travel-search-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: travel-search
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: travel-search/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Build container image
+        run: docker build -t travel-search:ci .
