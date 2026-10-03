@@ -55,14 +55,27 @@ export const budgetSchema = z.object({
   flexibilityPercent: z.number().min(0).max(50).default(0),
 });
 
+const MODES = ["flight", "train", "coach", "ferry", "car"] as const;
+
 export const preferencesSchema = z
-  .object({
-    maxStops: z.number().int().min(0).max(3).optional(),
-    cabin: z.enum(["economy", "premium_economy", "business", "first"]).default("economy"),
-    minHotelStars: z.number().int().min(1).max(5).optional(),
-    /** Maximum one-way flying time in hours. */
-    maxFlightHours: z.number().positive().max(36).optional(),
-  })
+  .preprocess(
+    // maxFlightHours is the old name for maxTravelHours.
+    (v) => (v && typeof v === "object" && "maxFlightHours" in v && !("maxTravelHours" in v) ? { ...(v as object), maxTravelHours: (v as { maxFlightHours: unknown }).maxFlightHours } : v),
+    z.object({
+      /** Ways of travelling the traveller will accept. All of them unless narrowed. */
+      modes: z
+        .array(z.enum(MODES))
+        .min(1, "Allow at least one way of travelling")
+        .transform((m) => [...new Set(m)])
+        .default([...MODES]),
+      /** Most stops or changes each way. */
+      maxStops: z.number().int().min(0).max(3).optional(),
+      cabin: z.enum(["economy", "premium_economy", "business", "first"]).default("economy"),
+      minHotelStars: z.number().int().min(1).max(5).optional(),
+      /** Most hours travelling each way, by any mode. */
+      maxTravelHours: z.number().positive().max(36).optional(),
+    }),
+  )
   .default({});
 
 const tripRequestFields = z.object({

@@ -3,22 +3,39 @@ import type { Travellers } from "../schema.js";
 // The contract every aggregator adapter meets. Adapters translate; they do not
 // judge. Policing the non-negotiables (start point, party size, budget, dates)
 // happens once, centrally, in search.ts, whatever a provider sends back.
+//
+// "Transport" is any way of getting there and back: flight, train, coach,
+// ferry or car. A journey can mix modes (rail & sail); `mode` is the main one.
+
+export const TRANSPORT_MODES = ["flight", "train", "coach", "ferry", "car"] as const;
+export type TransportMode = (typeof TRANSPORT_MODES)[number];
 
 export interface Leg {
+  mode: TransportMode;
+  /** Every mode used on this leg, in order (e.g. train then ferry). */
+  modes: TransportMode[];
+  /** Airport code, station or port name; for a car, the city. */
   from: string;
   to: string;
   departAt: string;
   arriveAt: string;
   durationMinutes: number;
+  /** Stops or changes along the way. */
   stops: number;
   carriers: string[];
+  /** Distance travelled, when known (used for CO2). */
+  km?: number;
 }
 
-export interface FlightQuery {
+export interface TransportQuery {
   /** City code (e.g. LON) when every airport is acceptable, used by providers that take one code. */
   originCode: string;
-  /** The acceptable departure airports. Anything else is discarded. */
+  /** The acceptable departure airports. */
   originAirports: string[];
+  /** Every acceptable departure hub (airports, stations, ports, the city itself). */
+  originHubs: string[];
+  /** The traveller named one airport: only that airport will do. */
+  originSpecific?: boolean;
   /** Absent means "anywhere", only sent to providers that support it. */
   destinationCode?: string;
   destinationAirports?: string[];
@@ -30,13 +47,20 @@ export interface FlightQuery {
   cabin: "economy" | "premium_economy" | "business" | "first";
   maxStops?: number;
   currency: string;
+  /** The modes the traveller will accept. */
+  modes: TransportMode[];
 }
 
-export interface FlightOffer {
+export interface TransportOffer {
   provider: string;
   id: string;
-  originAirport: string;
-  destinationAirport: string;
+  mode: TransportMode;
+  /** Where the outbound leaves from and the destination hub it arrives at. */
+  originHub: string;
+  destinationHub: string;
+  /** City codes as the provider reports them, when it does. */
+  originCity?: string;
+  returnCity?: string;
   /** City code of the destination, used to match the catalogue. */
   destinationCode: string;
   destinationName?: string;
@@ -51,6 +75,8 @@ export interface FlightOffer {
   bookingUrl?: string;
   /** True for estimates rather than live, bookable fares. */
   indicative?: boolean;
+  /** For a car: how many vehicles the price covers. */
+  vehicles?: number;
 }
 
 export interface StayQuery {
@@ -90,7 +116,9 @@ export interface Provider {
   name: string;
   /** Live providers quote bookable prices; the mock does not. */
   live: boolean;
-  searchFlights?(q: FlightQuery, signal: AbortSignal): Promise<FlightOffer[]>;
+  /** The modes this provider can return. */
+  modes?: TransportMode[];
+  searchTransport?(q: TransportQuery, signal: AbortSignal): Promise<TransportOffer[]>;
   searchStays?(q: StayQuery, signal: AbortSignal): Promise<StayOffer[]>;
   /** Can search with no destination ("anywhere"). */
   anywhere?: boolean;

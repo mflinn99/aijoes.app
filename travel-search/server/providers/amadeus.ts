@@ -1,12 +1,12 @@
 import { fetchJson } from "./http.js";
-import { isoDurationMinutes, ProviderError, type FlightOffer, type FlightQuery, type Leg, type Provider, type StayOffer, type StayQuery } from "./types.js";
+import { isoDurationMinutes, ProviderError, type TransportOffer, type TransportQuery, type Leg, type Provider, type StayOffer, type StayQuery } from "./types.js";
 
 // Amadeus for Developers (Self-Service APIs): Flight Offers Search for fares
 // from hundreds of airlines, Hotel List + Hotel Search for rooms.
 //   AMADEUS_CLIENT_ID, AMADEUS_CLIENT_SECRET, AMADEUS_ENV=test|production
 // The test environment returns cached, partial data; use production for real prices.
 
-const CABINS: Record<FlightQuery["cabin"], string> = {
+const CABINS: Record<TransportQuery["cabin"], string> = {
   economy: "ECONOMY",
   premium_economy: "PREMIUM_ECONOMY",
   business: "BUSINESS",
@@ -81,8 +81,9 @@ export function createAmadeus(opts: { host: string; clientId: string; clientSecr
   return {
     name: NAME,
     live: true,
+    modes: ["flight"],
 
-    async searchFlights(q, signal) {
+    async searchTransport(q, signal) {
       if (!q.destinationCode) throw new ProviderError(NAME, "needs a destination");
       const origin = q.originAirports.length === 1 ? q.originAirports[0] : q.originCode;
       const res = await get<AmadeusFlightResponse>(
@@ -132,9 +133,9 @@ export function createAmadeus(opts: { host: string; clientId: string; clientSecr
   };
 }
 
-export function mapAmadeusFlights(res: AmadeusFlightResponse, q: FlightQuery): FlightOffer[] {
+export function mapAmadeusFlights(res: AmadeusFlightResponse, q: TransportQuery): TransportOffer[] {
   const carriers = res.dictionaries?.carriers ?? {};
-  const out: FlightOffer[] = [];
+  const out: TransportOffer[] = [];
   for (const offer of res.data ?? []) {
     const [outb, inb] = offer.itineraries;
     if (!outb || !inb || outb.segments.length === 0 || inb.segments.length === 0) continue;
@@ -142,6 +143,8 @@ export function mapAmadeusFlights(res: AmadeusFlightResponse, q: FlightQuery): F
       const first = it.segments[0]!;
       const last = it.segments[it.segments.length - 1]!;
       return {
+        mode: "flight",
+        modes: ["flight"],
         from: first.departure.iataCode,
         to: last.arrival.iataCode,
         departAt: first.departure.at,
@@ -155,8 +158,9 @@ export function mapAmadeusFlights(res: AmadeusFlightResponse, q: FlightQuery): F
     out.push({
       provider: "amadeus",
       id: `amadeus:${offer.id}`,
-      originAirport: o.from,
-      destinationAirport: o.to,
+      mode: "flight",
+      originHub: o.from,
+      destinationHub: o.to,
       destinationCode: q.destinationCode ?? o.to,
       outbound: o,
       inbound: leg(inb),

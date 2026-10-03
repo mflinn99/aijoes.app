@@ -5,9 +5,9 @@ import type { Store } from "./store.js";
 import type { TripRequest } from "./schema.js";
 
 // A search session is one traveller's conversation with the platform: the
-// first three options, then every refinement as a numbered version. Saving
-// takes an immutable snapshot of a version that can be reopened and printed
-// later. Ids are long and random: whoever holds the link holds the trip.
+// first three options, then every refinement or remix as a numbered version.
+// Saving, sharing and reviewing live in trips.ts. Ids are long and random:
+// whoever holds the link holds the search.
 
 export interface Version {
   number: number;
@@ -31,20 +31,9 @@ export interface SearchSession {
   versions: Version[];
 }
 
-export interface SavedTrip {
-  id: string;
-  name: string;
-  savedAt: string;
-  sessionId: string;
-  version: number;
-  /** Ids of the options the traveller chose to save; all three if none were picked. */
-  optionIds: string[];
-  result: SearchResult;
-}
 
 const MAX_VERSIONS = 50;
 export const SESSIONS = "searches";
-export const SAVED = "saved";
 
 export function newId(): string {
   return randomBytes(16).toString("base64url");
@@ -155,37 +144,4 @@ export async function remixOption(store: Store, id: string, optionId: string, in
   session.updatedAt = now;
   await store.put(SESSIONS, session.id, session);
   return session;
-}
-
-export async function saveTrip(store: Store, id: string, opts: { name?: string; version?: number; optionIds?: string[] }): Promise<SavedTrip> {
-  const session = await loadSession(store, id);
-  const version = opts.version ? session.versions.find((v) => v.number === opts.version) : current(session);
-  if (!version) throw new NotFoundError(`Version ${opts.version} not found`);
-  const ids = version.result.options.map((o) => o.id);
-  const optionIds = opts.optionIds?.length ? opts.optionIds : ids;
-  const unknown = optionIds.filter((o) => !ids.includes(o));
-  if (unknown.length) throw new RefineError(`Option(s) ${unknown.join(", ")} are not in version ${version.number}`);
-  const r = version.result;
-  const saved: SavedTrip = {
-    id: newId(),
-    name: opts.name?.trim() || defaultName(r),
-    savedAt: new Date().toISOString(),
-    sessionId: session.id,
-    version: version.number,
-    optionIds,
-    result: { ...r, options: r.options.filter((o) => optionIds.includes(o.id)) },
-  };
-  await store.put(SAVED, saved.id, saved);
-  return saved;
-}
-
-export async function loadSaved(store: Store, id: string): Promise<SavedTrip> {
-  const s = await store.get<SavedTrip>(SAVED, id);
-  if (!s) throw new NotFoundError("Saved trip not found");
-  return s;
-}
-
-function defaultName(r: SearchResult): string {
-  const where = r.resolved.destination?.name ?? (r.options.length ? r.options.map((o) => o.destination.name).join(" / ") : "Anywhere");
-  return `${r.resolved.origin.name} to ${where}, ${r.request.dates.depart}`;
 }

@@ -1,6 +1,8 @@
 import { formatMoney } from "./money.js";
+import type { Itinerary } from "./itinerary.js";
 import type { SearchResult, TripOption } from "./search.js";
-import { dateRange, hoursMinutes, partyLabel, stopsLabel } from "./summary.js";
+import type { Review } from "./trips.js";
+import { dateRange, hoursMinutes, MODE_LABEL, partyLabel, stopsLabel } from "./summary.js";
 
 // Print: a self-contained, printer-friendly page (A4, no scripts, no external
 // assets) for any search version or saved trip, plus a plain-text version for
@@ -11,11 +13,25 @@ export function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
 
-function legLine(label: string, l: TripOption["flight"]["outbound"]): string {
-  return `${label}: ${l.from} → ${l.to}, ${l.departAt.replace("T", " ")} – ${l.arriveAt.replace("T", " ")} (${hoursMinutes(l.durationMinutes)}, ${stopsLabel(l.stops)}, ${l.carriers.join(" / ")})`;
+function legLine(label: string, l: TripOption["transport"]["outbound"]): string {
+  return `${label}: ${MODE_LABEL[l.mode]}${l.modes.length > 1 ? ` (${[...new Set(l.modes)].join(" + ")})` : ""}, ${l.from} → ${l.to}, ${l.departAt.replace("T", " ")} – ${l.arriveAt.replace("T", " ")} (${hoursMinutes(l.durationMinutes)}, ${stopsLabel(l.stops, l.mode)}, ${l.carriers.join(" / ")})`;
 }
 
-export function renderText(r: SearchResult, title: string): string {
+export interface PrintExtras {
+  itinerary?: Itinerary | null;
+  reviews?: Review[];
+}
+
+const stars = (n: number) => "★".repeat(n) + "☆".repeat(5 - n);
+
+function reviewLine(r: Review): string {
+  const aspects = Object.entries(r.aspects ?? {})
+    .map(([k, v]) => `${k} ${v}/5`)
+    .join(", ");
+  return `${stars(r.rating)} ${r.by ?? "You"}${aspects ? ` (${aspects})` : ""}${r.wouldGoAgain ? ", would go again" : ""}${r.comment ? `: “${r.comment}”` : ""}`;
+}
+
+export function renderText(r: SearchResult, title: string, extras: PrintExtras = {}): string {
   const req = r.request;
   const lines = [
     title,
@@ -27,26 +43,36 @@ export function renderText(r: SearchResult, title: string): string {
   r.options.forEach((o, i) => {
     lines.push(`${i + 1}. ${o.label ? `${o.label}: ` : ""}${o.destination.name}${o.destination.country ? `, ${o.destination.country}` : ""} — ${formatMoney(o.price.total, o.price.currency)}`);
     lines.push(`   ${o.summary}`);
-    lines.push(`   ${legLine("Out", o.flight.outbound)}`);
-    lines.push(`   ${legLine("Back", o.flight.inbound)}`);
+    lines.push(`   ${legLine("Out", o.transport.outbound)}`);
+    lines.push(`   ${legLine("Back", o.transport.inbound)}`);
     lines.push(`   Stay: ${o.stay.name}${o.stay.stars ? ` ${o.stay.stars}★` : ""}, ${o.stay.nights} nights, ${o.stay.rooms} room(s)${o.stay.estimated ? " (estimate)" : ""}`);
-    lines.push(`   Price: flights ${formatMoney(o.price.flights, o.price.currency)} + stay ${formatMoney(o.price.stay, o.price.currency)} = ${formatMoney(o.price.total, o.price.currency)} (${formatMoney(o.price.perPerson, o.price.currency)} pp)`);
-    if (o.flight.bookingUrl) lines.push(`   Book flights: ${o.flight.bookingUrl}`);
+    lines.push(`   Price: ${o.transport.mode === "car" ? "driving" : "travel"} ${formatMoney(o.price.transport, o.price.currency)} + stay ${formatMoney(o.price.stay, o.price.currency)} = ${formatMoney(o.price.total, o.price.currency)} (${formatMoney(o.price.perPerson, o.price.currency)} pp)`);
+    if (o.transport.bookingUrl) lines.push(`   Book travel: ${o.transport.bookingUrl}`);
     if (o.stay.bookingUrl) lines.push(`   Book stay: ${o.stay.bookingUrl}`);
     lines.push("");
   });
+  const it = extras.itinerary;
+  if (it) {
+    lines.push(`Itinerary: ${it.title}`, "-".repeat(11 + it.title.length));
+    for (const d of it.days) {
+      lines.push(`Day ${d.day} · ${d.date} · ${d.title}`);
+      for (const item of d.items) lines.push(`   ${item.time ? `${item.time}  ` : ""}${item.text}`);
+    }
+    lines.push(`Total ${it.total}${it.co2KgPerPerson !== undefined ? ` · about ${it.co2KgPerPerson} kg CO2e per person` : ""}`, "");
+  }
+  if (extras.reviews?.length) lines.push("Reviews:", ...extras.reviews.map((x) => `- ${reviewLine(x)}`), "");
   if (r.notes.length) lines.push("Notes:", ...r.notes.map((n) => `- ${n}`), "");
   lines.push(`Searched ${r.searchedAt.slice(0, 16).replace("T", " ")} UTC. Prices change; confirm before booking.`);
   return lines.join("\n");
 }
 
-export function renderHtml(r: SearchResult, title: string): string {
+export function renderHtml(r: SearchResult, title: string, extras: PrintExtras = {}): string {
   const e = escapeHtml;
   const req = r.request;
   const safeUrl = (u?: string) => (u && /^https:\/\//i.test(u) ? u : undefined);
   const options = r.options
     .map((o, i) => {
-      const flightUrl = safeUrl(o.flight.bookingUrl);
+      const flightUrl = safeUrl(o.transport.bookingUrl);
       const stayUrl = safeUrl(o.stay.bookingUrl);
       return `
     <section class="option">
@@ -58,12 +84,12 @@ export function renderHtml(r: SearchResult, title: string): string {
       <p>${e(o.summary)}</p>
       <table>
         <tr><th>Dates</th><td>${e(dateRange(o.dates.depart, o.dates.return))} · ${o.dates.nights} nights${o.dates.shiftedFromRequested ? " (moved within your flexibility)" : ""}</td></tr>
-        <tr><th>Out</th><td>${e(legLine("", o.flight.outbound).slice(2))}</td></tr>
-        <tr><th>Back</th><td>${e(legLine("", o.flight.inbound).slice(2))}</td></tr>
+        <tr><th>Out</th><td>${e(legLine("", o.transport.outbound).slice(2))}</td></tr>
+        <tr><th>Back</th><td>${e(legLine("", o.transport.inbound).slice(2))}</td></tr>
         <tr><th>Stay</th><td>${e(o.stay.name)}${o.stay.stars ? ` ${"★".repeat(o.stay.stars)}` : ""}${o.stay.reviewScore ? ` · ${o.stay.reviewScore}/10` : ""} · ${o.stay.rooms} room(s), sleeps ${o.stay.sleeps}${o.stay.estimated ? " · <em>estimate</em>" : ""}</td></tr>
-        <tr><th>Price</th><td>Flights ${e(formatMoney(o.price.flights, o.price.currency))} + stay ${e(formatMoney(o.price.stay, o.price.currency))}${o.price.dailySpendPerPerson ? ` · allow about ${e(formatMoney(o.price.dailySpendPerPerson, o.price.currency))} pp a day on the ground` : ""}</td></tr>
+        <tr><th>Price</th><td>${o.transport.mode === "car" ? "Driving" : "Travel"} ${e(formatMoney(o.price.transport, o.price.currency))} + stay ${e(formatMoney(o.price.stay, o.price.currency))}${o.price.dailySpendPerPerson ? ` · allow about ${e(formatMoney(o.price.dailySpendPerPerson, o.price.currency))} pp a day on the ground` : ""}</td></tr>
         ${o.match.watchOuts.length ? `<tr><th>Watch out</th><td>${e(o.match.watchOuts.join("; "))}</td></tr>` : ""}
-        ${flightUrl || stayUrl ? `<tr><th>Book</th><td>${flightUrl ? `<a href="${e(flightUrl)}">Flights</a>` : ""}${flightUrl && stayUrl ? " · " : ""}${stayUrl ? `<a href="${e(stayUrl)}">Stay</a>` : ""}</td></tr>` : ""}
+        ${flightUrl || stayUrl ? `<tr><th>Book</th><td>${flightUrl ? `<a href="${e(flightUrl)}">Travel</a>` : ""}${flightUrl && stayUrl ? " · " : ""}${stayUrl ? `<a href="${e(stayUrl)}">Stay</a>` : ""}</td></tr>` : ""}
       </table>
       <p class="src">Sources: ${e(o.sources.join(", "))}${o.indicative ? " · includes estimates" : ""}</p>
     </section>`;
@@ -102,9 +128,23 @@ export function renderHtml(r: SearchResult, title: string): string {
 <body>
 <h1>${e(title)}</h1>
 <p class="brief">From ${e(r.resolved.origin.name)} · ${e(r.resolved.destination?.name ?? "Destination open")} · ${e(dateRange(req.dates.depart, req.dates.return))}${req.dates.flexibilityDays ? ` (±${req.dates.flexibilityDays} days)` : ""} · ${e(partyLabel(req.travellers))} · Budget ${e(formatMoney(req.budget.amount, req.budget.currency))}${req.budget.per === "person" ? " per person" : ""}${req.budget.flexibilityPercent ? ` (+${req.budget.flexibilityPercent}%)` : ""} · Vibe: ${e(req.vibe.join(", ") || "–")}${req.keywords?.length ? ` · Keywords: ${e(req.keywords.join(", "))}` : ""}${req.likes.length ? ` · Likes: ${e(req.likes.join(", "))}` : ""}${req.dislikes.length ? ` · Avoiding: ${e(req.dislikes.join(", "))}` : ""}</p>
+${extras.itinerary ? itineraryHtml(extras.itinerary) : ""}
 ${options || "<p>No options matched every requirement.</p>"}
+${extras.reviews?.length ? `<section class="option"><h2>Reviews</h2><ul>${extras.reviews.map((x) => `<li>${e(reviewLine(x))}</li>`).join("")}</ul></section>` : ""}
 ${r.notes.length ? `<div class="notes"><strong>Notes</strong><ul>${r.notes.map((n) => `<li>${e(n)}</li>`).join("")}</ul></div>` : ""}
 <footer><p>Searched ${e(r.searchedAt.slice(0, 16).replace("T", " "))} UTC. Prices and availability change; confirm before booking.</p></footer>
 </body>
 </html>`;
+}
+
+function itineraryHtml(it: Itinerary): string {
+  const e = escapeHtml;
+  const days = it.days
+    .map(
+      (d) => `<tr><th>Day ${d.day}<br><small>${e(d.date)}</small></th><td><strong>${e(d.title)}</strong><ul>${d.items
+        .map((i) => `<li>${i.time ? `<b>${e(i.time)}</b> ` : ""}${e(i.text)}</li>`)
+        .join("")}</ul></td></tr>`,
+    )
+    .join("");
+  return `<section class="option"><p class="label">Itinerary</p><h2>${e(it.title)}</h2><p>${e(it.travellers)} · ${e(it.transport)} · ${e(it.stay)} · ${e(it.total)}${it.co2KgPerPerson !== undefined ? ` · about ${it.co2KgPerPerson} kg CO2e per person` : ""}</p><table>${days}</table></section>`;
 }

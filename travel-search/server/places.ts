@@ -196,6 +196,8 @@ export interface ResolvedPlace {
   lon?: number;
   /** The catalogue entry, when we know the place. */
   place?: Place;
+  /** The traveller named one airport: only that airport will do, by any mode. */
+  specific?: boolean;
 }
 
 function fromPlace(p: Place, airports = p.airports): ResolvedPlace {
@@ -215,7 +217,7 @@ export function resolvePlace(text: string): ResolvedPlace | null {
     // A city code that is also one of its airports (MAN, EDI) means the city.
     if (city) return fromPlace(city);
     const viaAirport = BY_AIRPORT.get(upper);
-    if (viaAirport) return fromPlace(viaAirport, [upper]);
+    if (viaAirport) return { ...fromPlace(viaAirport, [upper]), specific: true };
   }
   const key = normalise(raw);
   const named = BY_NAME.get(key);

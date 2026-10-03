@@ -10,7 +10,7 @@ import { brief } from "./helpers.js";
 
 beforeEach(() => setStore(new MemoryStore()));
 
-type Opt = { id: string; destination: { code: string; name: string }; dates: { depart: string; return: string }; flight: { offerId: string }; stay: { name: string }; locked: string[]; price: { total: number; ceiling: number } };
+type Opt = { id: string; destination: { code: string; name: string }; dates: { depart: string; return: string }; transport: { offerId: string; mode: string }; stay: { name: string }; locked: string[]; price: { total: number; ceiling: number } };
 
 async function search(body: Record<string, unknown>) {
   return request(createApp()).post("/api/searches").send(body);
@@ -87,25 +87,25 @@ describe("lock an element and remix the rest", () => {
     const res = await remix(s.id, from.id, ["destination"]).expect(200);
     expect(res.body.version).toBe(2);
     expect(res.body.change).toMatchObject({ kind: "remix", remixOf: from.id, locked: ["destination"] });
-    expect(res.body.remix).toEqual({ from: from.id, locked: ["destination"], remixed: ["dates", "flight", "stay"] });
+    expect(res.body.remix).toEqual({ from: from.id, locked: ["destination"], remixed: ["dates", "transport", "stay"] });
     expect(res.body.options).toHaveLength(3);
     for (const o of res.body.options as Opt[]) {
       expect(o.destination.code).toBe(from.destination.code);
       expect(o.id).not.toBe(from.id);
       expect(o.locked).toEqual(["destination"]);
-      expect(o.flight.offerId !== from.flight.offerId || o.stay.name !== from.stay.name).toBe(true);
+      expect(o.transport.offerId !== from.transport.offerId || o.stay.name !== from.stay.name).toBe(true);
     }
-    expect(res.body.notes[0]).toMatch(/^Remixed .+: kept the destination; new dates, flight, stay\.$/);
+    expect(res.body.notes[0]).toMatch(/^Remixed .+: kept the destination; new dates, transport, stay\.$/);
   });
 
   it("lock the flight: same flight, dates and destination; new stays", async () => {
     const s = await start({ budget: { amount: 8000, currency: "GBP" } });
     const from = s.options[0]!;
     const res = await remix(s.id, from.id, ["flight"]).expect(200);
-    expect(res.body.remix.locked).toEqual(expect.arrayContaining(["flight", "destination", "dates"]));
+    expect(res.body.remix.locked).toEqual(expect.arrayContaining(["transport", "destination", "dates"]));
     expect(res.body.options.length).toBeGreaterThan(0);
     for (const o of res.body.options as Opt[]) {
-      expect(o.flight.offerId).toBe(from.flight.offerId);
+      expect(o.transport.offerId).toBe(from.transport.offerId);
       expect(o.dates).toMatchObject({ depart: from.dates.depart, return: from.dates.return });
       expect(o.stay.name).not.toBe(from.stay.name);
     }
@@ -118,7 +118,7 @@ describe("lock an element and remix the rest", () => {
     expect(res.body.options.length).toBeGreaterThan(0);
     for (const o of res.body.options as Opt[]) {
       expect(o.stay.name).toBe(from.stay.name);
-      expect(o.flight.offerId).not.toBe(from.flight.offerId);
+      expect(o.transport.offerId).not.toBe(from.transport.offerId);
     }
   });
 
@@ -136,11 +136,11 @@ describe("lock an element and remix the rest", () => {
   });
 
   it("says plainly when nothing else fits with what is locked", async () => {
-    const first = await runSearch(tripRequestSchema.parse(brief({ budget: { amount: 900, currency: "GBP" } })));
+    const first = await runSearch(tripRequestSchema.parse(brief()));
     const cheapest = [...first.options].sort((a, b) => a.price.total - b.price.total)[0]!;
-    const r = await runSearch(tripRequestSchema.parse(brief({ budget: { amount: cheapest.price.total, currency: "GBP" } })), { locks: { from: cheapest, elements: ["flight"] }, rejectIds: [cheapest.id] });
+    const r = await runSearch(tripRequestSchema.parse(brief({ budget: { amount: cheapest.price.total, currency: "GBP" } })), { locks: { from: cheapest, elements: ["transport"] }, rejectIds: [cheapest.id] });
     for (const o of r.options) expect(o.price.total).toBeLessThanOrEqual(cheapest.price.total);
-    if (r.options.length < 3) expect(r.notes.join(" ")).toMatch(/With the flight, destination, dates locked/);
+    if (r.options.length < 3) expect(r.notes.join(" ")).toMatch(/With the transport, destination, dates locked/);
   });
 
   it("remixes still obey the budget", async () => {
@@ -179,8 +179,8 @@ describe("lock an element and remix the rest", () => {
   it("a locked flight goes back through the non-negotiable checks", async () => {
     const first = await runSearch(tripRequestSchema.parse(brief()));
     const from = first.options[0]!;
-    const r = await runSearch(tripRequestSchema.parse(brief({ travellers: 3 })), { locks: { from, elements: ["flight"] } });
+    const r = await runSearch(tripRequestSchema.parse(brief({ travellers: 3 })), { locks: { from, elements: ["transport"] } });
     expect(r.options).toEqual([]);
-    expect(r.notes.join(" ")).toMatch(/locked flight no longer meets your requirements/);
+    expect(r.notes.join(" ")).toMatch(/locked transport no longer meets your requirements/);
   });
 });

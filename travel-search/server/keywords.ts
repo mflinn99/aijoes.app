@@ -10,7 +10,7 @@ import { interpret, type KeywordProfile } from "./vibe.js";
 
 export interface KeywordInsight {
   keyword: string;
-  kind: "place" | "region" | "theme" | "vibe" | "text";
+  kind: "place" | "region" | "theme" | "vibe" | "travel" | "text";
   effect: string;
   places?: string[];
   tags?: string[];
@@ -100,6 +100,17 @@ function clean(k: string): string {
     .trim();
 }
 
+/** Said anywhere in the brief, this rules flights out: the one keyword that constrains. */
+export const FLIGHT_FREE = /\b(flight[- ]?free|no[- ]fly(?:ing)?|no flights?|not flying|without flying)\b/;
+
+const TRAVEL_WORDS: [string, RegExp][] = [
+  ["train", /^(trains?|rail|railway|by train|sleeper trains?|interrail(?:ing)?|scenic rail)$/],
+  ["car", /^(road ?trip|drive|driving|by car)$/],
+  ["coach", /^(coach|bus|by coach|by bus)$/],
+  ["ferry", /^(ferry|ferries|by ferry|by sea)$/],
+  ["low-carbon transport", /^(eco|low[- ]carbon|sustainable(?: travel)?|green travel|slow travel)$/],
+];
+
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** Read the keyword box into a profile the scorer uses, plus a plain account of each keyword. */
@@ -115,6 +126,16 @@ export function interpretKeywords(keywords: string[], month: number): { profile:
   for (const raw of keywords) {
     const k = clean(raw);
     if (!k) continue;
+
+    if (FLIGHT_FREE.test(k)) {
+      insights.push({ keyword: raw, kind: "travel", effect: "Read as flight-free: flights are ruled out; trains, coaches, ferries and driving only." });
+      continue;
+    }
+    const mode = TRAVEL_WORDS.find(([, re]) => re.test(k));
+    if (mode) {
+      insights.push({ keyword: raw, kind: "travel", effect: `Favouring travel by ${mode[0]}, without ruling other ways out.` });
+      continue;
+    }
 
     const theme = THEMES.find((t) => t.words.some((w) => k === w || ` ${k} `.includes(` ${w} `)));
     if (theme) {

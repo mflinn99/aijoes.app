@@ -3,14 +3,16 @@ import { createAmadeus, mapAmadeusFlights, mapAmadeusStays } from "../server/pro
 import { mapDuffelOffers, mapDuffelStays } from "../server/providers/duffel.js";
 import { createKiwi, mapKiwiResults } from "../server/providers/kiwi.js";
 import { createMock } from "../server/providers/mock.js";
-import { roomsFor, type FlightOffer, type FlightQuery, type Provider, type StayQuery } from "../server/providers/types.js";
+import { roomsFor, type TransportOffer, type TransportQuery, type Provider, type StayQuery } from "../server/providers/types.js";
 import { runSearch } from "../server/search.js";
 import { tripRequestSchema } from "../server/schema.js";
 import { brief, future } from "./helpers.js";
 
-const Q: FlightQuery = {
+const Q: TransportQuery = {
   originCode: "LON",
   originAirports: ["LHR", "LGW"],
+  originHubs: ["LHR", "LGW"],
+  modes: ["flight", "train", "coach", "ferry", "car"],
   destinationCode: "BCN",
   destinationAirports: ["BCN"],
   depart: "2027-05-10",
@@ -63,8 +65,8 @@ describe("Amadeus adapter", () => {
     expect(offers).toHaveLength(1);
     expect(offers[0]).toMatchObject({
       provider: "amadeus",
-      originAirport: "LGW",
-      destinationAirport: "BCN",
+      originHub: "LGW",
+      destinationHub: "BCN",
       destinationCode: "BCN",
       totalPrice: 432.5,
       currency: "GBP",
@@ -101,8 +103,8 @@ describe("Amadeus adapter", () => {
       }),
     );
     const p = createAmadeus({ host: "https://test.api.amadeus.com", clientId: "id", clientSecret: "secret" });
-    await p.searchFlights!(Q, AbortSignal.timeout(1000));
-    await p.searchFlights!({ ...Q, originAirports: ["LGW"] }, AbortSignal.timeout(1000));
+    await p.searchTransport!(Q, AbortSignal.timeout(1000));
+    await p.searchTransport!({ ...Q, originAirports: ["LGW"] }, AbortSignal.timeout(1000));
     expect(calls.filter((c) => c.includes("oauth2")).length).toBe(1);
     const search = new URL(calls[1]!);
     expect(search.pathname).toBe("/v2/shopping/flight-offers");
@@ -120,7 +122,7 @@ describe("Amadeus adapter", () => {
       vi.fn(async () => new Response(JSON.stringify({ errors: [{ detail: "Invalid client" }] }), { status: 401 })),
     );
     const p = createAmadeus({ host: "https://test.api.amadeus.com", clientId: "id", clientSecret: "s3cret" });
-    const err = await p.searchFlights!(Q, AbortSignal.timeout(1000)).catch((e: Error) => e);
+    const err = await p.searchTransport!(Q, AbortSignal.timeout(1000)).catch((e: Error) => e);
     expect((err as Error).message).toBe("amadeus: HTTP 401: Invalid client");
     expect((err as Error).message).not.toContain("s3cret");
   });
@@ -210,12 +212,14 @@ describe("Kiwi adapter", () => {
     );
     const p = createKiwi({ apiKey: "k" });
     expect(p.anywhere && p.dateRange).toBe(true);
-    await p.searchFlights!(
+    await p.searchTransport!(
       { ...Q, destinationCode: undefined, destinationAirports: undefined, window: { departFrom: "2027-05-08", departTo: "2027-05-12", returnFrom: "2027-05-15", returnTo: "2027-05-19", minNights: 5, maxNights: 9 } },
       AbortSignal.timeout(1000),
     );
     const u = new URL(seen);
-    expect(u.searchParams.get("fly_from")).toBe("airport:LHR,airport:LGW");
+    // The whole city, so stations count as well as airports.
+    expect(u.searchParams.get("fly_from")).toBe("city:LON");
+    expect(u.searchParams.get("vehicle_type")).toBe("aircraft,train,bus");
     expect(u.searchParams.get("fly_to")).toBeNull();
     expect(u.searchParams.get("one_for_city")).toBe("1");
     expect(u.searchParams.get("date_from")).toBe("08/05/2027");
@@ -239,12 +243,12 @@ describe("the non-negotiables are policed centrally, whatever a provider returns
     return {
       name: "rogue",
       live: true,
-      async searchFlights(q, signal) {
-        const good = await mock.searchFlights!(q, signal);
+      async searchTransport(q, signal) {
+        const good = await mock.searchTransport!(q, signal);
         if (!good.length) return [];
         const g = good[0]!;
-        const bad: FlightOffer[] = [
-          { ...g, id: "rogue:wrong-origin", originAirport: "MAN", outbound: { ...g.outbound, from: "MAN" }, totalPrice: 1 },
+        const bad: TransportOffer[] = [
+          { ...g, id: "rogue:wrong-origin", originHub: "MAN", outbound: { ...g.outbound, from: "MAN" }, totalPrice: 1 },
           { ...g, id: "rogue:returns-elsewhere", inbound: { ...g.inbound, to: "MAN" }, totalPrice: 1 },
           { ...g, id: "rogue:wrong-party", pricedPassengers: 1, totalPrice: 1 },
           { ...g, id: "rogue:outside-dates", outbound: { ...g.outbound, departAt: `${future(80)}T08:00` }, totalPrice: 1 },
@@ -260,7 +264,7 @@ describe("the non-negotiables are policed centrally, whatever a provider returns
     const req = tripRequestSchema.parse(brief());
     const r = await runSearch(req, { providers: [rogue()] });
     expect(r.options).toHaveLength(3);
-    for (const o of r.options) expect(o.flight.offerId.startsWith("rogue:")).toBe(false);
+    for (const o of r.options) expect(o.transport.offerId.startsWith("rogue:")).toBe(false);
     expect(r.notes.join(" ")).toMatch(/not priced for all 2 travellers/);
   });
 
@@ -275,19 +279,19 @@ describe("the non-negotiables are policed centrally, whatever a provider returns
     const broken: Provider = {
       name: "broken",
       live: true,
-      searchFlights: async () => {
+      searchTransport: async () => {
         throw new Error("broken: HTTP 503");
       },
     };
     const r = await runSearch(tripRequestSchema.parse(brief()), { providers: [broken, createMock()] });
     expect(r.options).toHaveLength(3);
-    expect(r.providers.find((p) => p.provider === "broken")).toMatchObject({ kind: "flights", offers: 0, errors: ["broken: HTTP 503"] });
-    expect(r.notes.join(" ")).toMatch(/broken \(flights\) did not respond usefully/);
+    expect(r.providers.find((p) => p.provider === "broken")).toMatchObject({ kind: "transport", offers: 0, errors: ["broken: HTTP 503"] });
+    expect(r.notes.join(" ")).toMatch(/broken \(transport\) did not respond usefully/);
   });
 
   it("estimates accommodation, clearly marked, when no provider quotes rooms", async () => {
     const mock = createMock();
-    const flightsOnly: Provider = { name: "flights-only", live: true, searchFlights: (q, s) => mock.searchFlights!(q, s) };
+    const flightsOnly: Provider = { name: "flights-only", live: true, searchTransport: (q, s) => mock.searchTransport!(q, s) };
     const r = await runSearch(tripRequestSchema.parse(brief()), { providers: [flightsOnly] });
     expect(r.options.length).toBeGreaterThan(0);
     for (const o of r.options) {
@@ -306,11 +310,11 @@ describe("the non-negotiables are policed centrally, whatever a provider returns
       live: true,
       anywhere: true,
       dateRange: true,
-      async searchFlights(q, s) {
+      async searchTransport(q, s) {
         seen.push(q.destinationCode);
         if (q.destinationCode) return [];
         // Pretend the aggregator found Krakow, which the vibe ranking alone would not have asked about.
-        return (await mock.searchFlights!({ ...q, destinationCode: "KRK" }, s)).map((f) => ({ ...f, provider: "anywhere", id: `anywhere:${f.id}` }));
+        return (await mock.searchTransport!({ ...q, destinationCode: "KRK" }, s)).map((f) => ({ ...f, provider: "anywhere", id: `anywhere:${f.id}` }));
       },
     };
     const r = await runSearch(tripRequestSchema.parse(brief({ vibe: ["city", "history"], dislikes: [], budget: { amount: 5000, currency: "GBP" } })), { providers: [anywhere, mock] });

@@ -88,7 +88,7 @@ describe("refine instructions", () => {
     ["budget £3,000", { budget: { amount: 3000, currency: "GBP" } }],
     ["up to 4k", { budget: { amount: 4000 } }],
     ["direct flights only", { preferences: { maxStops: 0 } }],
-    ["no long flights", { preferences: { maxFlightHours: 5 } }],
+    ["no long flights", { preferences: { maxTravelHours: 5 } }],
     ["4 star", { preferences: { minHotelStars: 4 } }],
     ["3 adults and 2 kids", { travellers: { adults: 3, children: 2, infants: 0 } }],
     ["add a child", { travellers: { adults: 2, children: 2, infants: 0 } }],
@@ -106,7 +106,7 @@ describe("refine instructions", () => {
   it("does not mistake hours or stars for money", () => {
     const { changes } = interpretInstruction("under 5 hours, max 4 star", req);
     expect(changes.budget).toBeUndefined();
-    expect(changes.preferences).toMatchObject({ maxFlightHours: 5, minHotelStars: 4 });
+    expect(changes.preferences).toMatchObject({ maxTravelHours: 5, minHotelStars: 4 });
   });
 
   it("adds to the vibe and the dislikes", () => {

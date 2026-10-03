@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "../server/app.js";
+import { escapeHtml } from "../server/print.js";
 import { MemoryStore, setStore } from "../server/store.js";
 import { brief, future } from "./helpers.js";
 
@@ -17,7 +18,10 @@ describe("health", () => {
   it("reports liveness and the configured providers", async () => {
     await request(createApp()).get("/api/healthz").expect(200, { status: "ok" });
     const ready = await request(createApp()).get("/api/readyz").expect(200);
-    expect(ready.body.providers).toEqual([{ name: "mock", live: false, flights: true, stays: true, anywhere: false }]);
+    expect(ready.body.providers).toEqual([
+      { name: "mock", live: false, transport: ["flight", "train", "coach", "ferry"], stays: true, anywhere: false },
+      { name: "drive", live: true, transport: ["car"], stays: false, anywhere: false },
+    ]);
   });
 
   it("returns JSON 404 for unknown routes and sends security headers", async () => {
@@ -75,7 +79,7 @@ describe("POST /api/searches: three options", () => {
     for (const o of res.body.options) {
       expect(o.label).toMatch(/Best match|Best value|Something different|Upgrade/);
       expect(o.summary).toContain(o.destination.name);
-      expect(o.flight.outbound.from).toBeTruthy();
+      expect(o.transport.outbound.from).toBeTruthy();
       expect(o.stay.name).toBeTruthy();
     }
     expect(res.body.actions.save).toEqual({ method: "POST", href: `/api/searches/${res.body.id}/save`, body: { version: 1 } });
@@ -88,12 +92,12 @@ describe("POST /api/searches: three options", () => {
     const res = await search(body);
     expect(res.body.options.length).toBeGreaterThan(0);
     for (const o of res.body.options) {
-      expect(LONDON).toContain(o.flight.outbound.from);
-      expect(LONDON).toContain(o.flight.inbound.to);
+      expect(LONDON).toContain(o.transport.outbound.from);
+      expect(LONDON).toContain(o.transport.inbound.to);
       expect(o.price.travellers).toBe(3);
       expect(o.stay.sleeps).toBeGreaterThanOrEqual(3);
       expect(o.price.total).toBeLessThanOrEqual(3300);
-      expect(o.price.total).toBeCloseTo(o.price.flights + o.price.stay, 1);
+      expect(o.price.total).toBeCloseTo(o.price.transport + o.price.stay, 1);
       expect(o.dates.depart >= future(38) && o.dates.depart <= future(42)).toBe(true);
       expect(o.dates.return >= future(45) && o.dates.return <= future(49)).toBe(true);
     }
@@ -103,8 +107,8 @@ describe("POST /api/searches: three options", () => {
     const res = await search(brief({ origin: "LGW" }));
     expect(res.body.resolved.origin.airports).toEqual(["LGW"]);
     for (const o of res.body.options) {
-      expect(o.flight.outbound.from).toBe("LGW");
-      expect(o.flight.inbound.to).toBe("LGW");
+      expect(o.transport.outbound.from).toBe("LGW");
+      expect(o.transport.inbound.to).toBe("LGW");
     }
   });
 
@@ -120,7 +124,7 @@ describe("POST /api/searches: three options", () => {
     expect(res.body.resolved.destination.code).toBe("TFS");
     expect(res.body.options).toHaveLength(3);
     for (const o of res.body.options) expect(o.destination.code).toBe("TFS");
-    const shapes = res.body.options.map((o: { stay: { name: string }; flight: { offerId: string }; dates: { depart: string } }) => `${o.stay.name}|${o.flight.offerId}|${o.dates.depart}`);
+    const shapes = res.body.options.map((o: { stay: { name: string }; transport: { offerId: string; mode: string }; dates: { depart: string } }) => `${o.stay.name}|${o.transport.offerId}|${o.dates.depart}`);
     expect(new Set(shapes).size).toBe(3);
     expect(new Set(res.body.options.map((o: { stay: { name: string } }) => o.stay.name)).size).toBeGreaterThanOrEqual(2);
   });
@@ -141,10 +145,10 @@ describe("POST /api/searches: three options", () => {
     expect(res.body.notes.join(" ")).toMatch(/cheapest trip over it was/);
   });
 
-  it("says when even the flights alone are over budget", async () => {
+  it("says when even the transport alone is over budget", async () => {
     const res = await search(brief({ budget: { amount: 60, currency: "GBP" } }));
     expect(res.body.options).toEqual([]);
-    expect(res.body.notes.join(" ")).toMatch(/cheapest flights alone were/);
+    expect(res.body.notes.join(" ")).toMatch(/cheapest transport alone was/);
   });
 
   it("prices a per-person budget for the whole party", async () => {
@@ -174,8 +178,8 @@ describe("refine, as many times as needed", () => {
     expect(res.body.request.budget.amount).toBe(2125);
     expect(res.body.request.preferences.maxStops).toBe(0);
     for (const o of res.body.options) {
-      expect(o.flight.outbound.stops).toBe(0);
-      expect(o.flight.inbound.stops).toBe(0);
+      expect(o.transport.outbound.stops).toBe(0);
+      expect(o.transport.inbound.stops).toBe(0);
       expect(o.price.total).toBeLessThanOrEqual(2125 * 1.05 + 0.01);
     }
   });
@@ -269,7 +273,7 @@ describe("save and print, always available", () => {
     expect(html.text).toContain("<title>Winter sun</title>");
     expect(html.text).toContain("@page");
     expect(html.text).not.toContain("<script");
-    for (const o of first.body.options) expect(html.text).toContain(o.destination.name);
+    for (const o of first.body.options) expect(html.text).toContain(escapeHtml(o.destination.name));
 
     const text = await request(createApp()).get(saved.body.actions.print.text).expect(200);
     expect(text.headers["content-type"]).toMatch(/text\/plain/);

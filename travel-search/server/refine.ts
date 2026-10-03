@@ -2,6 +2,7 @@ import { z } from "zod";
 import { resolvePlace } from "./places.js";
 import { tripRequestSchema, type TripRequest } from "./schema.js";
 import { LOCK_ELEMENTS } from "./search.js";
+import { TRANSPORT_MODES, type TransportMode } from "./providers/types.js";
 
 // Refinement: the traveller changes anything, as often as they like. Changes
 // arrive as a partial request (merged field by field), as a plain-English
@@ -20,7 +21,11 @@ export const refineSchema = z.object({
 
 export const remixSchema = z.object({
   /** What to keep from the option; everything else is remixed. */
-  lock: z.array(z.enum(LOCK_ELEMENTS)).min(1, "Lock at least one of destination, dates, flight or stay").max(3),
+  lock: z
+    .array(z.preprocess((v) => (v === "flight" ? "transport" : v), z.enum(LOCK_ELEMENTS)))
+    .min(1, "Lock at least one of destination, dates, transport or stay")
+    .max(3)
+    .transform((l) => [...new Set(l)]),
 });
 
 export type RefineInput = z.input<typeof refineSchema>;
@@ -133,11 +138,38 @@ export function interpretInstruction(text: string, current: TripRequest): Interp
   }
   const hours = /\b(?:no|under|less than|max(?:imum)?)\s+(\d{1,2})\s?(?:h|hours?)\b/.exec(t);
   if (hours) {
-    prefs.maxFlightHours = Number(hours[1]);
-    understood.push(`flights under ${prefs.maxFlightHours}h`);
-  } else if (/\b(no long[- ]haul|shorter flights?|no long flights?)\b/.test(t)) {
-    prefs.maxFlightHours = 5;
-    understood.push("flights under 5h");
+    prefs.maxTravelHours = Number(hours[1]);
+    understood.push(`travel under ${prefs.maxTravelHours}h each way`);
+  } else if (/\b(no long[- ]haul|shorter (?:flights?|journeys?|trips?)|no long (?:flights?|journeys?|drives?))\b/.test(t)) {
+    prefs.maxTravelHours = 5;
+    understood.push("travel under 5h each way");
+  }
+
+  // Ways of travelling: "train only", "no flying", "road trip", "include ferries", "any transport".
+  const modeOf = (w: string): TransportMode | null =>
+    /^(fl|plane)/.test(w) ? "flight" : /^(train|rail)/.test(w) ? "train" : /^(coach|bus)/.test(w) ? "coach" : /^ferr/.test(w) ? "ferry" : /^(car|driv|road)/.test(w) ? "car" : null;
+  const MODE_RE = "(fly|flying|flights?|planes?|trains?|rail|coach(?:es)?|bus(?:es)?|ferr(?:y|ies)|driv(?:e|ing)|cars?|road ?trip)";
+  const only = new RegExp(`\\b(?:only (?:by |go by )?${MODE_RE}|(?<!direct )${MODE_RE} only|(?:go|travel|get there) by ${MODE_RE}|let'?s ${MODE_RE}|(road ?trip))\\b`).exec(t);
+  const no = [...t.matchAll(new RegExp(`\\b(?:no|avoid|without|not by|don'?t want to|hate|rather not)\\s+${MODE_RE}\\b`, "g"))].map((m) => modeOf(m[1]!)).filter((m): m is TransportMode => !!m);
+  if (/\bflight[- ]?free|no[- ]fly\b/.test(t)) no.push("flight");
+  const include = [...t.matchAll(new RegExp(`\\b(?:include|allow|add|also|happy to take|happy to)\\s+(?:the )?${MODE_RE}\\b`, "g"))].map((m) => modeOf(m[1]!)).filter((m): m is TransportMode => !!m);
+  if (/\b(any (?:transport|way of travelling|mode)|any way there)\b/.test(t)) {
+    prefs.modes = [...TRANSPORT_MODES];
+    understood.push("any way of travelling");
+  } else if (only) {
+    const m = modeOf((only[1] ?? only[2] ?? only[3] ?? only[4] ?? only[5] ?? "road")!);
+    if (m) {
+      prefs.modes = [m];
+      understood.push(`${m} only`);
+    }
+  } else if (no.length || include.length) {
+    const next = new Set([...current.preferences.modes, ...include]);
+    no.forEach((m) => next.delete(m));
+    if (next.size > 0) {
+      prefs.modes = TRANSPORT_MODES.filter((m) => next.has(m));
+      if (no.length) understood.push(`no ${[...new Set(no)].join(" or ")}`);
+      if (include.length) understood.push(`include ${[...new Set(include)].join(", ")}`);
+    }
   }
   const stars = /\b([1-5])\s?(?:\*|★|-?\s?stars?)\b/.exec(t);
   if (stars) {
@@ -185,7 +217,7 @@ export function interpretInstruction(text: string, current: TripRequest): Interp
   // "more X", "add X", "with X" → vibe; "no X", "avoid X", "less X", "not X" → dislikes.
   const addVibe = [...t.matchAll(/\b(?:more|add|with|make it more|i want|we want)\s+([a-z][a-z -]{2,30}?)(?=[,.;!]| and | but |\s*$)/g)].map((m) => m[1]!.trim());
   const avoid = [...t.matchAll(/\b(?:no|avoid|less|not|without|hate|don't want|dont want)\s+([a-z][a-z -]{2,30}?)(?=[,.;!]| and | but |\s*$)/g)].map((m) => m[1]!.trim());
-  const ignore = /^(stops|layovers|connections|long[- ]haul|long flights?|kids|children|child|expensive|\d.*)$/;
+  const ignore = /^(stops|layovers|connections|long[- ]haul|long (?:flights?|journeys?|drives?)|kids|children|child|expensive|fly|flying|flights?|planes?|trains?|rail|coach(?:es)?|bus(?:es)?|ferr(?:y|ies)|driv(?:e|ing)|cars?|road ?trip|\d.*)$/;
   const vibeAdds = addVibe.filter((v) => !ignore.test(v) && !/^(budget|money|stops?|days?|flexib)/.test(v));
   const dislikeAdds = avoid.filter((v) => !ignore.test(v));
   if (vibeAdds.length) {

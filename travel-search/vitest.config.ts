@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
-    env: { TRAVEL_PROVIDERS: "mock", TRAVEL_STORE: "memory" },
+    setupFiles: ["tests/setup.ts"],
+    env: { TRAVEL_PROVIDERS: "mock,drive", TRAVEL_STORE: "memory" },
   },
 });

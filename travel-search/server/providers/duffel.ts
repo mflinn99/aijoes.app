@@ -1,5 +1,5 @@
 import { fetchJson } from "./http.js";
-import { isoDurationMinutes, ProviderError, type FlightOffer, type FlightQuery, type Leg, type Provider, type StayOffer, type StayQuery } from "./types.js";
+import { isoDurationMinutes, ProviderError, type TransportOffer, type TransportQuery, type Leg, type Provider, type StayOffer, type StayQuery } from "./types.js";
 
 // Duffel: NDC and GDS fares from 300+ airlines in one API, and Duffel Stays
 // for accommodation (Stays needs Duffel to enable it on the account).
@@ -61,8 +61,9 @@ export function createDuffel(opts: { token: string; stays: boolean; base?: strin
   const provider: Provider = {
     name: NAME,
     live: true,
+    modes: ["flight"],
 
-    async searchFlights(q, signal) {
+    async searchTransport(q, signal) {
       if (!q.destinationCode) throw new ProviderError(NAME, "needs a destination");
       const origin = q.originAirports.length === 1 ? q.originAirports[0]! : q.originCode;
       const destination = q.destinationAirports?.length === 1 ? q.destinationAirports[0]! : q.destinationCode;
@@ -119,8 +120,8 @@ export function createDuffel(opts: { token: string; stays: boolean; base?: strin
   return provider;
 }
 
-export function mapDuffelOffers(offers: DuffelOffer[], q: FlightQuery): FlightOffer[] {
-  const out: FlightOffer[] = [];
+export function mapDuffelOffers(offers: DuffelOffer[], q: TransportQuery): TransportOffer[] {
+  const out: TransportOffer[] = [];
   for (const offer of offers) {
     const [outb, inb] = offer.slices;
     if (!outb || !inb || outb.segments.length === 0 || inb.segments.length === 0) continue;
@@ -128,6 +129,8 @@ export function mapDuffelOffers(offers: DuffelOffer[], q: FlightQuery): FlightOf
       const first = s.segments[0]!;
       const last = s.segments[s.segments.length - 1]!;
       return {
+        mode: "flight",
+        modes: ["flight"],
         from: first.origin.iata_code,
         to: last.destination.iata_code,
         departAt: first.departing_at,
@@ -141,8 +144,9 @@ export function mapDuffelOffers(offers: DuffelOffer[], q: FlightQuery): FlightOf
     out.push({
       provider: "duffel",
       id: `duffel:${offer.id}`,
-      originAirport: o.from,
-      destinationAirport: o.to,
+      mode: "flight",
+      originHub: o.from,
+      destinationHub: o.to,
       destinationCode: outb.destination.iata_city_code ?? q.destinationCode ?? o.to,
       destinationName: outb.destination.city_name,
       outbound: o,

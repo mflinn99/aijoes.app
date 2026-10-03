@@ -11,7 +11,7 @@ if (!Number.isInteger(port) || port <= 0) throw new Error("PORT must be a positi
 
 createApp().listen(port, "0.0.0.0", () => {
   const providers = providerSummary()
-    .map((p) => `${p.name}(${[p.flights && "flights", p.stays && "stays", p.anywhere && "anywhere"].filter(Boolean).join("+")})`)
+    .map((p) => `${p.name}(${[...p.transport, p.stays && "stays", p.anywhere && "anywhere"].filter(Boolean).join("+")})`)
     .join(", ");
   console.info(`Travel search listening on port ${port} (providers: ${providers}; store: ${storeKind()})`);
 });

@@ -1,24 +1,28 @@
 import { createHash } from "node:crypto";
 import { datePairs, monthOf, nightsBetween, todayIso, withinWindow, addDays, type DatePair } from "./dates.js";
 import { convert, formatMoney } from "./money.js";
-import { destinationCatalogue, placeByCode, resolvePlace, suggestPlaces, type Place, type ResolvedPlace } from "./places.js";
+import { destinationCatalogue, distanceKm, placeByCode, resolvePlace, suggestPlaces, type Place, type ResolvedPlace } from "./places.js";
 import { getProviders } from "./providers/index.js";
-import { roomsFor, type FlightOffer, type FlightQuery, type Leg, type Provider, type StayOffer } from "./providers/types.js";
+import { roomsFor, TRANSPORT_MODES, type TransportMode, type TransportOffer, type TransportQuery, type Leg, type Provider, type StayOffer } from "./providers/types.js";
+import { CO2_PER_KM, hubOwner, hubsOf } from "./ground.js";
 import { budgetCeiling, budgetTarget, partySize, round2, seatedTravellers, type TripRequest } from "./schema.js";
 import { summarise, partyLabel } from "./summary.js";
 import { profile, scoreVibe, type VibeMatch, type VibeProfile } from "./vibe.js";
-import { interpretKeywords, type KeywordInsight } from "./keywords.js";
+import { FLIGHT_FREE, interpretKeywords, type KeywordInsight } from "./keywords.js";
 
 // The search itself. Every aggregator is asked in parallel; whatever comes
 // back is policed against the traveller's non-negotiables in this order:
 //
-//   1. starting point — out from, and back to, one of the origin's airports
+//   1. starting point — out from, and back to, the origin (its airports,
+//                       stations and ports, or the front door for a car)
 //   2. travellers     — priced for the whole party, rooms that sleep them all
-//   3. budget         — flights + accommodation inside the ceiling
+//   3. budget         — transport + accommodation inside the ceiling
 //                       (target plus the flexibility the traveller allowed)
 //
 // and only then ranked on what is important but negotiable: vibe, likes and
-// dislikes, value, convenience. Destination is a constraint only when given.
+// dislikes, value, convenience, carbon. Destination is a constraint only when
+// given. Transport is any mode the traveller allows: flight, train, coach,
+// ferry or car.
 // If fewer than three options survive we return fewer and say why; we never
 // bend a non-negotiable to fill a slot.
 
@@ -34,7 +38,7 @@ export class SearchInputError extends Error {
 
 export interface ProviderReport {
   provider: string;
-  kind: "flights" | "stays";
+  kind: "transport" | "stays";
   calls: number;
   offers: number;
   errors: string[];
@@ -45,7 +49,8 @@ export interface TripOption {
   label: string;
   destination: { code: string; name: string; country: string };
   dates: { depart: string; return: string; nights: number; shiftedFromRequested: boolean };
-  flight: {
+  transport: {
+    mode: TransportMode;
     provider: string;
     offerId: string;
     outbound: Leg;
@@ -54,6 +59,12 @@ export interface TripOption {
     quoted?: { amount: number; currency: string };
     bookingUrl?: string;
     indicative: boolean;
+    /** For a car: how many vehicles. */
+    vehicles?: number;
+    /** The start point it was checked against (city code). */
+    originCity: string;
+    /** Estimated return-trip emissions per traveller, kg CO2e. */
+    co2KgPerPerson?: number;
   };
   stay: {
     provider: string;
@@ -80,7 +91,7 @@ export interface TripOption {
     perPerson: number;
     /** How many travellers the total covers. */
     travellers: number;
-    flights: number;
+    transport: number;
     stay: number;
     budget: number;
     ceiling: number;
@@ -90,7 +101,7 @@ export interface TripOption {
     dailySpendPerPerson?: number;
   };
   match: { score: number; vibe: VibeMatch; reasons: string[]; watchOuts: string[] };
-  scores: { overall: number; match: number; value: number; convenience: number; quality: number };
+  scores: { overall: number; match: number; value: number; convenience: number; quality: number; green: number };
   summary: string;
   sources: string[];
   /** True if any part of the price is an estimate rather than a live quote. */
@@ -100,7 +111,7 @@ export interface TripOption {
 }
 
 /** The parts of an option a traveller can lock while the rest is remixed. */
-export const LOCK_ELEMENTS = ["destination", "dates", "flight", "stay"] as const;
+export const LOCK_ELEMENTS = ["destination", "dates", "transport", "stay"] as const;
 export type LockElement = (typeof LOCK_ELEMENTS)[number];
 
 export interface Locks {
@@ -135,6 +146,8 @@ export interface SearchOptions {
   rejectIds?: string[];
   /** Lock parts of one option and remix the rest. */
   locks?: Locks;
+  /** How this traveller rated places after earlier trips, by city code. */
+  history?: Record<string, { rating: number; name: string }>;
   providers?: Provider[];
   now?: Date;
 }
@@ -177,15 +190,15 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
   const origin = resolved.origin;
   let destination = resolved.destination;
 
-  // Locks: a locked flight or stay brings its destination and dates with it.
+  // Locks: a locked transport or stay brings its destination and dates with it.
   const lock = opts.locks;
   const locked = new Set<LockElement>(lock?.elements ?? []);
-  if (locked.has("flight") || locked.has("stay")) {
+  if (locked.has("transport") || locked.has("stay")) {
     locked.add("destination");
     locked.add("dates");
   }
-  if (lock && locked.has("flight") && locked.has("stay")) {
-    throw new SearchInputError("With both the flight and the stay locked there is nothing left to remix. Unlock one of them.", "lock");
+  if (lock && locked.has("transport") && locked.has("stay")) {
+    throw new SearchInputError("With both the transport and the stay locked there is nothing left to remix. Unlock one of them.", "lock");
   }
   if (lock && locked.has("destination")) destination = placeFromOption(lock.from);
 
@@ -199,6 +212,7 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
 
   const month = monthOf(req.dates.depart);
   const keywordRead = interpretKeywords(req.keywords, month);
+  const taste = modeTaste(req);
   const vp = profile(req.vibe, req.likes, req.dislikes, keywordRead.profile);
   const currency = req.budget.currency;
   const ceiling = budgetCeiling(req);
@@ -208,16 +222,20 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
   const rooms = roomsFor(req.travellers);
   const notes: string[] = [];
   const reports = new Map<string, ProviderReport>();
-  const report = (provider: string, kind: "flights" | "stays") => {
+  const report = (provider: string, kind: "transport" | "stays") => {
     const key = `${provider}:${kind}`;
     let r = reports.get(key);
     if (!r) reports.set(key, (r = { provider, kind, calls: 0, offers: 0, errors: [] }));
     return r;
   };
 
-  const flightProviders = providers.filter((p) => p.searchFlights);
+  const transportProviders = providers.filter((p) => p.searchTransport);
   const stayProviders = providers.filter((p) => p.searchStays);
-  if (flightProviders.length === 0) throw new Error("No flight providers configured");
+  if (transportProviders.length === 0) throw new Error("No transport providers configured");
+  // "Flight-free" anywhere in the brief is meant literally.
+  const flightFree = FLIGHT_FREE.test([...req.vibe, ...req.keywords, ...req.likes].join(" ").toLowerCase());
+  const modes = flightFree && req.preferences.modes.some((m) => m !== "flight") ? req.preferences.modes.filter((m) => m !== "flight") : req.preferences.modes;
+  const offersMode = (p: Provider) => (p.modes ?? ["flight"]).some((m) => modes.includes(m));
 
   // --- candidate destinations ------------------------------------------------
   const excluded = new Set(req.excludeDestinations.map((d) => resolvePlace(d)?.code ?? d.toUpperCase()));
@@ -236,7 +254,7 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
       .map(({ p }) => ({ code: p.code, name: p.name, country: p.country, airports: p.airports, lat: p.lat, lon: p.lon, place: p }));
   }
 
-  // --- flights ------------------------------------------------------------------
+  // --- transport -----------------------------------------------------------------
   const window = {
     departFrom: addDays(req.dates.depart, -req.dates.flexibilityDays),
     departTo: addDays(req.dates.depart, req.dates.flexibilityDays),
@@ -245,9 +263,14 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
     minNights: Math.max(1, nightsBetween(req.dates.depart, req.dates.return) - req.dates.flexibilityDays),
     maxNights: nightsBetween(req.dates.depart, req.dates.return) + req.dates.flexibilityDays,
   };
-  const base = (pair: DatePair): Omit<FlightQuery, "destinationCode" | "destinationAirports"> => ({
+  // The start point, by any mode: a named airport means only that airport.
+  const originHubs = new Set(origin.specific || !origin.place ? [...origin.airports, ...(origin.place ? [] : [origin.code])] : hubsOf(origin.place));
+  const base = (pair: DatePair): Omit<TransportQuery, "destinationCode" | "destinationAirports"> => ({
     originCode: origin.code,
     originAirports: origin.airports,
+    originHubs: [...originHubs],
+    originSpecific: origin.specific,
+    modes,
     depart: pair.depart,
     return: pair.return,
     window,
@@ -257,9 +280,9 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
     currency,
   });
 
-  const flightTasks: (() => Promise<void>)[] = [];
-  const flights: FlightOffer[] = [];
-  const call = <T,>(p: Provider, kind: "flights" | "stays", fn: (signal: AbortSignal) => Promise<T[]>, sink: T[]) => async () => {
+  const transportTasks: (() => Promise<void>)[] = [];
+  const journeys: TransportOffer[] = [];
+  const call = <T,>(p: Provider, kind: "transport" | "stays", fn: (signal: AbortSignal) => Promise<T[]>, sink: T[]) => async () => {
     const r = report(p.name, kind);
     r.calls++;
     try {
@@ -271,31 +294,34 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
       if (r.errors.length < 3 && !r.errors.includes(message)) r.errors.push(message);
     }
   };
-  for (const p of locked.has("flight") ? [] : flightProviders) {
+  for (const p of locked.has("transport") ? [] : transportProviders.filter(offersMode)) {
     const first = pairs[0]!;
     if (!destination && p.anywhere) {
-      flightTasks.push(call(p, "flights", (s) => p.searchFlights!(base(first), s), flights));
+      transportTasks.push(call(p, "transport", (s) => p.searchTransport!(base(first), s), journeys));
     }
     for (const c of candidates) {
-      const q = (pair: DatePair): FlightQuery => ({ ...base(pair), destinationCode: c.code, destinationAirports: c.airports });
+      const q = (pair: DatePair): TransportQuery => ({ ...base(pair), destinationCode: c.code, destinationAirports: c.airports });
       if (p.dateRange) {
         // Range-capable providers search the whole window in one call.
-        flightTasks.push(call(p, "flights", (s) => p.searchFlights!(q(first), s), flights));
+        transportTasks.push(call(p, "transport", (s) => p.searchTransport!(q(first), s), journeys));
       } else {
-        for (const pair of pairs) flightTasks.push(call(p, "flights", (s) => p.searchFlights!(q(pair), s), flights));
+        for (const pair of pairs) transportTasks.push(call(p, "transport", (s) => p.searchTransport!(q(pair), s), journeys));
       }
     }
   }
-  await pool(flightTasks, CONCURRENCY);
-  if (lock && locked.has("flight")) flights.push(flightFromOption(lock.from));
+  await pool(transportTasks, CONCURRENCY);
+  if (lock && locked.has("transport")) journeys.push(transportFromOption(lock.from));
 
-  // --- police the non-negotiables on flights ---------------------------------
-  const originAirports = new Set(origin.airports);
+  // --- police the non-negotiables on every journey ----------------------------
+  // Out from the start point and back to it. A provider's own city code counts
+  // (stations it names that we don't), unless the traveller named one airport.
+  // A hub we know belongs to somewhere else is never accepted, whatever city the provider claims.
+  const atOrigin = (hub: string, city?: string) => originHubs.has(hub) || (!origin.specific && city === origin.code && !hubOwner(hub));
   const rejections = { origin: 0, party: 0, dates: 0, prefs: 0, currency: 0, destination: 0 };
-  interface PricedFlight { offer: FlightOffer; total: number; place: ResolvedPlace; pair: DatePair }
-  const priced: PricedFlight[] = [];
-  for (const f of flights) {
-    if (!originAirports.has(f.originAirport) || !originAirports.has(f.inbound.to) || f.outbound.from !== f.originAirport) {
+  interface PricedTransport { offer: TransportOffer; total: number; place: ResolvedPlace; pair: DatePair }
+  const priced: PricedTransport[] = [];
+  for (const f of journeys) {
+    if (!atOrigin(f.originHub, f.originCity) || !atOrigin(f.inbound.to, f.returnCity ?? f.originCity) || f.outbound.from !== f.originHub) {
       rejections.origin++;
       continue;
     }
@@ -309,8 +335,8 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
       continue;
     }
     const maxStops = req.preferences.maxStops;
-    const maxMins = req.preferences.maxFlightHours ? req.preferences.maxFlightHours * 60 : Infinity;
-    if ((maxStops !== undefined && (f.outbound.stops > maxStops || f.inbound.stops > maxStops)) || f.outbound.durationMinutes > maxMins || f.inbound.durationMinutes > maxMins) {
+    const maxMins = req.preferences.maxTravelHours ? req.preferences.maxTravelHours * 60 : Infinity;
+    if (!modes.includes(f.mode) || (maxStops !== undefined && (f.outbound.stops > maxStops || f.inbound.stops > maxStops)) || f.outbound.durationMinutes > maxMins || f.inbound.durationMinutes > maxMins) {
       rejections.prefs++;
       continue;
     }
@@ -327,8 +353,8 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
     priced.push({ offer: f, total, place, pair: { ...pair, nights: nightsBetween(pair.depart, pair.return) } });
   }
 
-  // Keep the three cheapest and the quickest flight per destination and dates.
-  const groups = new Map<string, PricedFlight[]>();
+  // Keep the three cheapest, the quickest and the best of each mode per destination and dates.
+  const groups = new Map<string, PricedTransport[]>();
   for (const pf of priced) {
     const key = `${pf.place.code}|${pf.pair.depart}|${pf.pair.return}`;
     const list = groups.get(key) ?? [];
@@ -338,10 +364,11 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
   for (const [key, list] of groups) {
     const byPrice = [...list].sort((a, b) => a.total - b.total).slice(0, 3);
     const quickest = [...list].sort((a, b) => a.offer.outbound.durationMinutes + a.offer.inbound.durationMinutes - (b.offer.outbound.durationMinutes + b.offer.inbound.durationMinutes))[0];
-    groups.set(key, [...new Set([...byPrice, ...(quickest ? [quickest] : [])])]);
+    const perMode = TRANSPORT_MODES.map((m) => [...list].filter((pf) => pf.offer.mode === m).sort((a, b) => a.total - b.total)[0]).filter((x): x is PricedTransport => !!x);
+    groups.set(key, [...new Set([...byPrice, ...(quickest ? [quickest] : []), ...perMode])]);
   }
 
-  // Only look for rooms where the cheapest flight leaves something for them,
+  // Only look for rooms where the cheapest journey leaves something for them,
   // best vibe first, so live stay providers are not asked about hopeless trips.
   const groupKeys = [...groups.keys()]
     .filter((k) => groups.get(k)!.some((pf) => pf.total < ceiling))
@@ -398,7 +425,7 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
   const packages: TripOption[] = [];
   let cheapestOver: { total: number; where: string } | null = null;
   let estimatedStays = 0;
-  let lockBroken: string | null = lock && locked.has("flight") && priced.length === 0 ? "the locked flight no longer meets your requirements" : null;
+  let lockBroken: string | null = lock && locked.has("transport") && priced.length === 0 ? "the locked transport no longer meets your requirements" : null;
   for (const key of groupKeys) {
     const fl = groups.get(key)!;
     const sample = fl[0]!;
@@ -434,7 +461,7 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
           if (!cheapestOver || total < cheapestOver.total) cheapestOver = { total, where: pf.place.name };
           continue;
         }
-        packages.push(buildOption(req, pf.offer, pf.total, pf.place, pf.pair, ro.offer, ro.total, { vp, month, target, ceiling, party, rooms, seated }));
+        packages.push(buildOption(req, pf.offer, pf.total, pf.place, pf.pair, ro.offer, ro.total, { vp, month, target, ceiling, party, rooms, seated, origin, modeTaste: taste, history: opts.history ?? {} }));
       }
     }
   }
@@ -478,10 +505,10 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
     } else if (priced.length > 0 && Math.min(...priced.map((pf) => pf.total)) >= ceiling) {
       const low = [...priced].sort((a, b) => a.total - b.total)[0]!;
       notes.push(
-        `Nothing fits inside your budget of ${formatMoney(ceiling, currency)} for ${partyLabel(req.travellers)}: the cheapest flights alone were ${formatMoney(low.total, currency)} (${low.place.name}), before accommodation. Raising the budget, or widening the dates, would open up more.`,
+        `Nothing fits inside your budget of ${formatMoney(ceiling, currency)} for ${partyLabel(req.travellers)}: the cheapest transport alone was ${formatMoney(low.total, currency)} (${low.place.name}), before accommodation. Raising the budget, or widening the dates, would open up more.`,
       );
     } else if (priced.length === 0) {
-      notes.push(`No flights were found from ${origin.name} for ${partyLabel(req.travellers)} on those dates${destination ? ` to ${destination.name}` : ""}. Try more date flexibility${req.preferences.maxStops === 0 ? ", allowing a stop" : ""}${destination ? " or leaving the destination open" : ""}.`);
+      notes.push(`No ${modes.length === TRANSPORT_MODES.length ? "transport" : modes.join(" or ")} was found from ${origin.name} for ${partyLabel(req.travellers)} on those dates${destination ? ` to ${destination.name}` : ""}. Try more date flexibility${req.preferences.maxStops === 0 ? ", allowing a stop" : ""}${modes.length < TRANSPORT_MODES.length ? ", other ways of travelling" : ""}${destination ? " or leaving the destination open" : ""}.`);
     } else {
       notes.push(`Found ${shortBy === 1 ? "one fewer" : `${shortBy} fewer`} option${shortBy === 1 ? "" : "s"} than usual: there were not enough distinct trips that meet every requirement.`);
     }
@@ -508,13 +535,13 @@ export async function runSearch(req: TripRequest, opts: SearchOptions = {}): Pro
   };
 }
 
-function placeFor(f: FlightOffer, destination?: ResolvedPlace): ResolvedPlace | null {
-  if (destination && (destination.airports.includes(f.destinationAirport) || destination.code === f.destinationCode)) return destination;
-  const p: Place | undefined = placeByCode(f.destinationCode) ?? placeByCode(f.destinationAirport);
+function placeFor(f: TransportOffer, destination?: ResolvedPlace): ResolvedPlace | null {
+  if (destination && (destination.airports.includes(f.destinationHub) || destination.code === f.destinationCode)) return destination;
+  const p: Place | undefined = placeByCode(f.destinationCode) ?? placeByCode(f.destinationHub);
   if (p) return { code: p.code, name: p.name, country: p.country, airports: p.airports, lat: p.lat, lon: p.lon, place: p };
   if (destination) return null;
   // A destination an aggregator found that we have no character data for.
-  return { code: f.destinationCode, name: f.destinationName ?? f.destinationCode, country: f.destinationCountry ?? "", airports: [f.destinationAirport] };
+  return { code: f.destinationCode, name: f.destinationName ?? f.destinationCode, country: f.destinationCountry ?? "", airports: [f.destinationHub] };
 }
 
 function differsIn(e: LockElement, a: TripOption, b: TripOption): boolean {
@@ -523,8 +550,8 @@ function differsIn(e: LockElement, a: TripOption, b: TripOption): boolean {
       return a.destination.code !== b.destination.code;
     case "dates":
       return a.dates.depart !== b.dates.depart || a.dates.return !== b.dates.return;
-    case "flight":
-      return a.flight.offerId !== b.flight.offerId;
+    case "transport":
+      return a.transport.offerId !== b.transport.offerId;
     case "stay":
       return a.stay.name !== b.stay.name;
   }
@@ -533,26 +560,30 @@ function differsIn(e: LockElement, a: TripOption, b: TripOption): boolean {
 function placeFromOption(o: TripOption): ResolvedPlace {
   const p = placeByCode(o.destination.code);
   if (p) return { code: p.code, name: p.name, country: p.country, airports: p.airports, lat: p.lat, lon: p.lon, place: p };
-  return { code: o.destination.code, name: o.destination.name, country: o.destination.country, airports: [o.flight.outbound.to] };
+  return { code: o.destination.code, name: o.destination.name, country: o.destination.country, airports: o.transport.mode === "flight" ? [o.transport.outbound.to] : [] };
 }
 
-/** A locked flight goes back through the same checks as any live fare. */
-function flightFromOption(o: TripOption): FlightOffer {
+/** Locked transport goes back through the same checks as any live fare. */
+function transportFromOption(o: TripOption): TransportOffer {
   return {
-    provider: o.flight.provider,
-    id: o.flight.offerId,
-    originAirport: o.flight.outbound.from,
-    destinationAirport: o.flight.outbound.to,
+    provider: o.transport.provider,
+    id: o.transport.offerId,
+    mode: o.transport.mode,
+    vehicles: o.transport.vehicles,
+    originCity: o.transport.originCity,
+    returnCity: o.transport.originCity,
+    originHub: o.transport.outbound.from,
+    destinationHub: o.transport.outbound.to,
     destinationCode: o.destination.code,
     destinationName: o.destination.name,
     destinationCountry: o.destination.country,
-    outbound: o.flight.outbound,
-    inbound: o.flight.inbound,
-    totalPrice: o.flight.quoted?.amount ?? o.flight.totalPrice,
-    currency: o.flight.quoted?.currency ?? o.price.currency,
+    outbound: o.transport.outbound,
+    inbound: o.transport.inbound,
+    totalPrice: o.transport.quoted?.amount ?? o.transport.totalPrice,
+    currency: o.transport.quoted?.currency ?? o.price.currency,
     pricedPassengers: o.price.travellers,
-    bookingUrl: o.flight.bookingUrl,
-    indicative: o.flight.indicative,
+    bookingUrl: o.transport.bookingUrl,
+    indicative: o.transport.indicative,
   };
 }
 
@@ -589,6 +620,9 @@ function pickStays(list: { offer: StayOffer | null; total: number }[], vp: VibeP
 
 interface Ctx {
   vp: VibeProfile;
+  origin: ResolvedPlace;
+  modeTaste: ModeTaste;
+  history: Record<string, { rating: number; name: string }>;
   month: number;
   target: number;
   ceiling: number;
@@ -597,17 +631,62 @@ interface Ctx {
   seated: number;
 }
 
-function buildOption(req: TripRequest, f: FlightOffer, flightTotal: number, place: ResolvedPlace, pair: DatePair, stay: StayOffer | null, stayTotal: number, ctx: Ctx): TripOption {
+/** What the brief says about ways of travelling: steers, never constrains (that is preferences.modes). */
+export interface ModeTaste {
+  eco: boolean;
+  liked: TransportMode[];
+  disliked: TransportMode[];
+}
+
+const MODE_WORDS: [TransportMode, RegExp][] = [
+  ["flight", /\b(fly|flying|flights?|planes?|airports?)\b/],
+  ["train", /\b(trains?|rail|railway|sleeper)\b/],
+  ["coach", /\b(coach|coaches|bus|buses)\b/],
+  ["ferry", /\b(ferry|ferries|crossing by sea)\b/],
+  ["car", /\b(road ?trip|drive|driving|car|own car)\b/],
+];
+
+export function modeTaste(req: TripRequest): ModeTaste {
+  const positive = [...req.vibe, ...req.keywords, ...req.likes].join(" ").toLowerCase();
+  const negative = req.dislikes.join(" ").toLowerCase();
+  const eco = /\b(eco|low[- ]carbon|sustainab\w*|green travel|flight[- ]?free|no[- ]fly|slow travel|carbon)\b/.test(positive);
+  const liked = MODE_WORDS.filter(([m, re]) => re.test(positive) && !(m === "flight" && /\b(flight[- ]?free|no[- ]fly)\b/.test(positive))).map(([m]) => m);
+  const disliked = MODE_WORDS.filter(([, re]) => re.test(negative)).map(([m]) => m);
+  if (/\b(flight[- ]?free|no[- ]fly)\b/.test(positive)) disliked.push("flight");
+  return { eco, liked, disliked: [...new Set(disliked)] };
+}
+
+/** Time from the front door, roughly: getting to and through an airport takes longer. */
+const OVERHEAD_HOURS: Record<TransportMode, number> = { flight: 2.5, train: 0.5, coach: 0.5, ferry: 1, car: 0 };
+const STOP_PENALTY: Record<TransportMode, number> = { flight: 0.2, train: 0.07, coach: 0.1, ferry: 0.1, car: 0.02 };
+
+export function co2PerPerson(f: TransportOffer, party: number, origin?: ResolvedPlace, place?: ResolvedPlace): number | undefined {
+  const km =
+    (f.outbound.km ?? 0) + (f.inbound.km ?? 0) ||
+    (origin?.lat !== undefined && place?.lat !== undefined ? 2 * distanceKm({ lat: origin.lat, lon: origin.lon! }, { lat: place.lat, lon: place.lon! }) * (f.mode === "flight" ? 1 : 1.3) : 0);
+  if (!km) return undefined;
+  const kg = f.mode === "car" ? (CO2_PER_KM.car * km * (f.vehicles ?? 1)) / Math.max(1, party) : CO2_PER_KM[f.mode] * km;
+  return Math.round(kg);
+}
+
+const MODE_WORD: Record<TransportMode, string> = { flight: "flights", train: "trains", coach: "coaches", ferry: "ferries", car: "driving" };
+
+function buildOption(req: TripRequest, f: TransportOffer, transportTotal: number, place: ResolvedPlace, pair: DatePair, stay: StayOffer | null, stayTotal: number, ctx: Ctx): TripOption {
   const currency = req.budget.currency;
   const extra = stay ? `${stay.name} ${stay.amenities.join(" ")}` : "";
   const vibe: VibeMatch = place.place
     ? scoreVibe(ctx.vp, place.place, ctx.month, extra)
     : { score: 0.25, matched: [], missed: ctx.vp.vibe.tags, conflicts: [] };
-  const total = round2(flightTotal + stayTotal);
+  const total = round2(transportTotal + stayTotal);
 
   const value = Math.max(0, Math.min(1, 1 - total / ctx.ceiling + 0.15));
-  const hours = (f.outbound.durationMinutes + f.inbound.durationMinutes) / 120;
-  const convenience = Math.max(0, 1 - 0.2 * (f.outbound.stops + f.inbound.stops) - Math.max(0, hours - 3) * 0.04);
+  const hours = (f.outbound.durationMinutes + f.inbound.durationMinutes) / 120 + OVERHEAD_HOURS[f.mode];
+  // Every hour past three costs a little; past eight, a lot more.
+  const convenience = Math.max(0, 1 - STOP_PENALTY[f.mode] * (f.outbound.stops + f.inbound.stops) - Math.max(0, hours - 3) * 0.04 - Math.max(0, hours - 8) * 0.06);
+  const co2 = co2PerPerson(f, ctx.party, ctx.origin, place);
+  const green = co2 === undefined ? 0.5 : Math.max(0, 1 - co2 / 500);
+  const taste = ctx.modeTaste;
+  const modeBonus = (taste.liked.includes(f.mode) ? 0.08 : 0) - (taste.disliked.includes(f.mode) ? 0.15 : 0) + (taste.eco ? 0.15 * green : 0);
   const stars = stay?.stars ?? 3;
   const quality = Math.max(0, Math.min(1, (stars / 5) * 0.6 + ((stay?.reviewScore ?? 7.5) / 10) * 0.4));
 
@@ -616,35 +695,54 @@ function buildOption(req: TripRequest, f: FlightOffer, flightTotal: number, plac
   const w = wantsLuxury ? { m: 0.45, v: 0.1, c: 0.15, q: 0.3 } : wantsBudget ? { m: 0.4, v: 0.4, c: 0.1, q: 0.1 } : { m: 0.5, v: 0.22, c: 0.14, q: 0.14 };
   const shiftDays = Math.abs(nightsBetween(req.dates.depart, pair.depart)) + Math.abs(nightsBetween(req.dates.return, pair.return));
   // A place the traveller named in their keywords gets a clear lead, not just a nudge.
-  const overall = round3(w.m * vibe.score + w.v * value + w.c * convenience + w.q * quality - 0.015 * shiftDays + (vibe.named ? 0.25 : 0));
+  // Your own reviews of earlier trips: somewhere you disliked drops back, somewhere you loved gets a nudge.
+  const past = ctx.history[place.code];
+  // Naming the place again this time wins over an old review.
+  const pastBonus = past ? (past.rating <= 2 ? (vibe.named ? 0 : -0.25) : past.rating >= 4 ? 0.05 : 0) : 0;
+  const overall = round3(w.m * vibe.score + w.v * value + w.c * convenience + w.q * quality - 0.015 * shiftDays + (vibe.named ? 0.25 : 0) + modeBonus + pastBonus);
 
   const reasons: string[] = [];
   if (vibe.keyword) reasons.push(`Matches your keyword ${quote(vibe.keyword)}.`);
   if (vibe.matched.length) reasons.push(`Ticks off ${vibe.matched.slice(0, 5).join(", ")} from your ${quote([...req.vibe, ...req.keywords].join(", "))} brief.`);
-  if (f.outbound.stops === 0 && f.inbound.stops === 0) reasons.push("Direct flights both ways.");
+  if (f.outbound.stops === 0 && f.inbound.stops === 0 && f.mode !== "car") reasons.push(f.outbound.modes.length > 1 ? `No changes: ${f.outbound.modes.join(" + ")} through.` : `Direct ${MODE_WORD[f.mode]} both ways.`);
+  if (f.mode === "car") reasons.push("Door to door in your own car, with room for luggage.");
+  if (f.mode !== "flight" && co2 !== undefined && (taste.eco || co2 < 60)) reasons.push(`Low carbon: about ${co2} kg CO2e per person return.`);
+  if (past && past.rating >= 4) reasons.push(`You rated ${place.name} ${past.rating}/5 after your last trip.`);
+  if (taste.liked.includes(f.mode)) reasons.push(`Travelling by ${f.mode === "car" ? "car" : f.mode}, as you'd like.`);
   if (stay?.reviewScore && stay.reviewScore >= 8.5) reasons.push(`${stay.name} is very well reviewed (${stay.reviewScore}/10).`);
   const watchOuts: string[] = [];
   const missedVibe = vibe.missed.filter((m) => ctx.vp.vibe.tags.includes(m));
   if (missedVibe.length) watchOuts.push(`less of: ${missedVibe.join(", ")}${missedVibe.some((m) => m === "beach" || m === "warm") ? " at this time of year" : ""}`);
   if (vibe.conflicts.length) watchOuts.push(`known for ${vibe.conflicts.join(", ")}, which you said you'd rather avoid`);
   if (shiftDays > 0) watchOuts.push(`dates moved within your flexibility (${pair.depart} to ${pair.return})`);
-  if (f.outbound.stops + f.inbound.stops > 0) watchOuts.push(`${f.outbound.stops + f.inbound.stops} stop(s) in total`);
+  const stops = f.outbound.stops + f.inbound.stops;
+  if (stops > 0 && f.mode !== "car") watchOuts.push(`${stops} ${f.mode === "flight" ? "stop(s)" : "change(s)"} in total`);
+  if (f.mode === "car") watchOuts.push("fuel, tolls, crossings and parking are estimates for your own car; rental is not included");
+  const eachWay = Math.round(Math.max(f.outbound.durationMinutes, f.inbound.durationMinutes) / 60);
+  if (f.mode === "car" ? eachWay > 6 : eachWay > 8) watchOuts.push(`a long ${f.mode === "car" ? "drive" : "journey"}: about ${eachWay} hours each way`);
+  if (past && past.rating <= 2) watchOuts.push(`you rated ${place.name} ${past.rating}/5 after your last trip`);
+  if (taste.disliked.includes(f.mode)) watchOuts.push(`travels by ${f.mode}, which you said you'd rather avoid`);
   if (!stay) watchOuts.push("accommodation is an estimate, not a live quote");
   if (stay?.refundable === false) watchOuts.push("the room rate is non-refundable");
 
   const place0 = place.place;
-  const id = createHash("sha256").update(`${f.id}|${stay?.id ?? "est"}|${pair.depart}|${pair.return}`).digest("base64url").slice(0, 12);
+  // The party and price are part of the identity: the same trip for four is not the same option as for two.
+  const id = createHash("sha256").update(`${f.id}|${stay?.id ?? "est"}|${pair.depart}|${pair.return}|${ctx.party}|${total}|${req.budget.currency}`).digest("base64url").slice(0, 12);
   return {
     id,
     label: "",
     destination: { code: place.code, name: place.name, country: place.country },
     dates: { depart: pair.depart, return: pair.return, nights: pair.nights, shiftedFromRequested: shiftDays > 0 },
-    flight: {
+    transport: {
+      mode: f.mode,
       provider: f.provider,
       offerId: f.id,
+      vehicles: f.vehicles,
+      originCity: ctx.origin.code,
+      co2KgPerPerson: co2,
       outbound: f.outbound,
       inbound: f.inbound,
-      totalPrice: flightTotal,
+      totalPrice: transportTotal,
       quoted: f.currency !== currency ? { amount: f.totalPrice, currency: f.currency } : undefined,
       bookingUrl: f.bookingUrl,
       indicative: !!f.indicative,
@@ -684,7 +782,7 @@ function buildOption(req: TripRequest, f: FlightOffer, flightTotal: number, plac
       total,
       perPerson: round2(total / ctx.party),
       travellers: ctx.party,
-      flights: flightTotal,
+      transport: transportTotal,
       stay: stayTotal,
       budget: ctx.target,
       ceiling: ctx.ceiling,
@@ -692,7 +790,7 @@ function buildOption(req: TripRequest, f: FlightOffer, flightTotal: number, plac
       dailySpendPerPerson: place0?.dailySpendGBP ? convert(place0.dailySpendGBP, "GBP", currency) ?? undefined : undefined,
     },
     match: { score: vibe.score, vibe, reasons, watchOuts },
-    scores: { overall, match: vibe.score, value: round3(value), convenience: round3(convenience), quality: round3(quality) },
+    scores: { overall, match: vibe.score, value: round3(value), convenience: round3(convenience), quality: round3(quality), green: round3(green) },
     summary: "",
     sources: [...new Set([f.provider, stay?.provider ?? "estimate"])],
     indicative: !!f.indicative || !stay || !!stay.indicative,
@@ -708,7 +806,7 @@ function buildOption(req: TripRequest, f: FlightOffer, flightTotal: number, plac
 export function choose(packages: TripOption[], kept: TripOption[], openDestination: boolean): TripOption[] {
   const chosen: TripOption[] = kept.map((k) => ({ ...k }));
   const differs = (a: TripOption, b: TripOption) =>
-    openDestination ? a.destination.code !== b.destination.code : a.stay.name !== b.stay.name || a.dates.depart !== b.dates.depart || a.flight.offerId !== b.flight.offerId;
+    openDestination ? a.destination.code !== b.destination.code : a.stay.name !== b.stay.name || a.dates.depart !== b.dates.depart || a.transport.offerId !== b.transport.offerId;
   const distinctFromChosen = (p: TripOption) => chosen.every((c) => c.id !== p.id && differs(p, c));
   // Prefer a different stay too when the destination is fixed.
   const freshStay = (p: TripOption) => openDestination || chosen.every((c) => c.stay.name !== p.stay.name);
@@ -750,6 +848,7 @@ export function choose(packages: TripOption[], kept: TripOption[], openDestinati
         (n, c) =>
           n +
           (p.destination.country !== c.destination.country ? 1 : 0) +
+          (p.transport.mode !== c.transport.mode ? 0.75 : 0) +
           ((p.stay.stars ?? 3) !== (c.stay.stars ?? 3) ? 0.5 : 0) +
           (p.dates.depart !== c.dates.depart ? 0.25 : 0),
         0,
@@ -771,7 +870,10 @@ export function choose(packages: TripOption[], kept: TripOption[], openDestinati
 
 /** A kept option survives a refinement only if it still meets every non-negotiable. */
 function stillValid(o: TripOption, req: TripRequest, origin: ResolvedPlace, ceiling: number, excluded: Set<string>, destination?: ResolvedPlace): string | null {
-  if (!origin.airports.includes(o.flight.outbound.from) || !origin.airports.includes(o.flight.inbound.to)) return "it does not fly from your new starting point";
+  const hubs = new Set(origin.specific || !origin.place ? origin.airports : hubsOf(origin.place));
+  const fromHere = !origin.specific && o.transport.originCity === origin.code;
+  if (!fromHere && (!hubs.has(o.transport.outbound.from) || !hubs.has(o.transport.inbound.to))) return "it does not leave from your new starting point";
+  if (!req.preferences.modes.includes(o.transport.mode)) return `it travels by ${o.transport.mode}, which you have ruled out`;
   if (o.price.currency !== req.budget.currency) return "the budget currency changed";
   if (o.price.travellers !== partySize(req.travellers) || o.stay.sleeps < seatedTravellers(req.travellers)) return "it was priced for a different number of travellers";
   if (o.price.total > ceiling) return `at ${formatMoney(o.price.total, o.price.currency)} it is over your new budget`;

@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, renameSync, writeFileSync, existsSync, readdirSync } from "node:fs";
+import { mkdirSync, readFileSync, renameSync, writeFileSync, existsSync, readdirSync, rmSync } from "node:fs";
 import path from "node:path";
 
 // Where searches and saved trips live. JSON documents addressed by a
@@ -10,6 +10,7 @@ export interface Store {
   get<T>(collection: string, id: string): Promise<T | null>;
   put<T>(collection: string, id: string, value: T): Promise<void>;
   list<T>(collection: string): Promise<T[]>;
+  remove(collection: string, id: string): Promise<void>;
 }
 
 export class MemoryStore implements Store {
@@ -28,6 +29,10 @@ export class MemoryStore implements Store {
 
   async list<T>(collection: string): Promise<T[]> {
     return [...(this.data.get(collection)?.values() ?? [])].map((raw) => JSON.parse(raw) as T);
+  }
+
+  async remove(collection: string, id: string): Promise<void> {
+    this.data.get(collection)?.delete(id);
   }
 }
 
@@ -64,6 +69,10 @@ export class FileStore implements Store {
     return readdirSync(dir)
       .filter((n) => n.endsWith(".json"))
       .map((n) => JSON.parse(readFileSync(path.join(dir, n), "utf8")) as T);
+  }
+
+  async remove(collection: string, id: string): Promise<void> {
+    rmSync(this.file(collection, id), { force: true });
   }
 }
 
