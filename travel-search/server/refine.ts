@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { resolvePlace } from "./places.js";
 import { tripRequestSchema, type TripRequest } from "./schema.js";
+import { LOCK_ELEMENTS } from "./search.js";
 
 // Refinement: the traveller changes anything, as often as they like. Changes
 // arrive as a partial request (merged field by field), as a plain-English
@@ -15,6 +16,11 @@ export const refineSchema = z.object({
   keep: z.array(z.string().max(32)).max(3).default([]),
   /** Option ids to swap out for something else. */
   replace: z.array(z.string().max(32)).max(3).default([]),
+});
+
+export const remixSchema = z.object({
+  /** What to keep from the option; everything else is remixed. */
+  lock: z.array(z.enum(LOCK_ELEMENTS)).min(1, "Lock at least one of destination, dates, flight or stay").max(3),
 });
 
 export type RefineInput = z.input<typeof refineSchema>;
@@ -167,6 +173,13 @@ export function interpretInstruction(text: string, current: TripRequest): Interp
       changes.origin = place.name;
       understood.push(`starting from ${place.name}`);
     }
+  }
+
+  const kw = /\b(?:keywords?|theme|something like|inspired by)\s*[:=]?\s+([^.;!]{2,80})/.exec(t);
+  if (kw) {
+    const added = kw[1]!.split(/,| and /).map((x) => x.trim()).filter(Boolean);
+    changes.keywords = [...new Set([...current.keywords, ...added])];
+    understood.push(`keywords + ${added.join(", ")}`);
   }
 
   // "more X", "add X", "with X" → vibe; "no X", "avoid X", "less X", "not X" → dislikes.

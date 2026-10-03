@@ -110,6 +110,8 @@ export const PLACES: Place[] = [
     tags: ["city", "history", "culture", "nightlife", "budget"], nightlyGBP: 80, dailySpendGBP: 40 },
   { code: "BER", name: "Berlin", country: "Germany", airports: ["BER"], lat: 52.52, lon: 13.4,
     tags: ["city", "nightlife", "art", "history", "culture", "party"], nightlyGBP: 130, dailySpendGBP: 60 },
+  { code: "MUC", name: "Munich", country: "Germany", airports: ["MUC"], lat: 48.14, lon: 11.58, aliases: ["Bavaria"],
+    tags: ["city", "beer", "culture", "festival", "history", "food"], nightlyGBP: 150, dailySpendGBP: 70 },
   { code: "VIE", name: "Vienna", country: "Austria", airports: ["VIE"], lat: 48.21, lon: 16.37,
     tags: ["city", "culture", "history", "music", "art", "food"], nightlyGBP: 140, dailySpendGBP: 65 },
   { code: "CPH", name: "Copenhagen", country: "Denmark", airports: ["CPH"], lat: 55.68, lon: 12.57,

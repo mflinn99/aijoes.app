@@ -65,7 +65,7 @@ export const preferencesSchema = z
   })
   .default({});
 
-export const tripRequestSchema = z.object({
+const tripRequestFields = z.object({
   travellers: travellersSchema,
   dates: datesSchema,
   origin: z.string().trim().min(2).max(80),
@@ -75,13 +75,20 @@ export const tripRequestSchema = z.object({
     .max(80)
     .optional()
     .transform((s) => (s ? s : undefined)),
-  vibe: tagList.refine((v) => v.length > 0, "Describe the vibe in a word or two"),
+  vibe: tagList.default([]),
+  /** Anything at all that should inform the search: places, events, themes, interests. */
+  keywords: tagList.default([]),
   likes: tagList.default([]),
   dislikes: tagList.default([]),
   budget: budgetSchema,
   preferences: preferencesSchema,
   /** Destinations the traveller has ruled out during refinement. */
   excludeDestinations: z.array(z.string().max(80)).max(50).default([]),
+});
+
+export const tripRequestSchema = tripRequestFields.refine((r) => r.vibe.length > 0 || r.keywords.length > 0, {
+  message: "Describe the vibe in a word or two, or give some keywords",
+  path: ["vibe"],
 });
 
 export type TripRequestInput = z.input<typeof tripRequestSchema>;

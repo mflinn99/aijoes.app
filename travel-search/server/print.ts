@@ -21,7 +21,7 @@ export function renderText(r: SearchResult, title: string): string {
     title,
     "=".repeat(title.length),
     `From ${r.resolved.origin.name} · ${r.resolved.destination?.name ?? "Destination open"} · ${dateRange(req.dates.depart, req.dates.return)}${req.dates.flexibilityDays ? ` (±${req.dates.flexibilityDays} days)` : ""}`,
-    `${partyLabel(req.travellers)} · Budget ${formatMoney(req.budget.amount, req.budget.currency)}${req.budget.per === "person" ? " per person" : ""}${req.budget.flexibilityPercent ? ` (+${req.budget.flexibilityPercent}%)` : ""} · Vibe: ${req.vibe.join(", ")}`,
+    `${partyLabel(req.travellers)} · Budget ${formatMoney(req.budget.amount, req.budget.currency)}${req.budget.per === "person" ? " per person" : ""}${req.budget.flexibilityPercent ? ` (+${req.budget.flexibilityPercent}%)` : ""} · Vibe: ${req.vibe.join(", ") || "–"}${req.keywords?.length ? ` · Keywords: ${req.keywords.join(", ")}` : ""}`,
     "",
   ];
   r.options.forEach((o, i) => {
@@ -52,7 +52,7 @@ export function renderHtml(r: SearchResult, title: string): string {
     <section class="option">
       <header>
         <span class="n">${i + 1}</span>
-        <div><p class="label">${e(o.label)}</p><h2>${e(o.destination.name)}${o.destination.country ? `<small>, ${e(o.destination.country)}</small>` : ""}</h2></div>
+        <div><p class="label">${e(o.label)}${o.locked?.length ? ` · locked: ${e(o.locked.join(", "))}` : ""}</p><h2>${e(o.destination.name)}${o.destination.country ? `<small>, ${e(o.destination.country)}</small>` : ""}</h2></div>
         <p class="price">${e(formatMoney(o.price.total, o.price.currency))}<small>${e(formatMoney(o.price.perPerson, o.price.currency))} per person</small></p>
       </header>
       <p>${e(o.summary)}</p>
@@ -101,7 +101,7 @@ export function renderHtml(r: SearchResult, title: string): string {
 </head>
 <body>
 <h1>${e(title)}</h1>
-<p class="brief">From ${e(r.resolved.origin.name)} · ${e(r.resolved.destination?.name ?? "Destination open")} · ${e(dateRange(req.dates.depart, req.dates.return))}${req.dates.flexibilityDays ? ` (±${req.dates.flexibilityDays} days)` : ""} · ${e(partyLabel(req.travellers))} · Budget ${e(formatMoney(req.budget.amount, req.budget.currency))}${req.budget.per === "person" ? " per person" : ""}${req.budget.flexibilityPercent ? ` (+${req.budget.flexibilityPercent}%)` : ""} · Vibe: ${e(req.vibe.join(", "))}${req.likes.length ? ` · Likes: ${e(req.likes.join(", "))}` : ""}${req.dislikes.length ? ` · Avoiding: ${e(req.dislikes.join(", "))}` : ""}</p>
+<p class="brief">From ${e(r.resolved.origin.name)} · ${e(r.resolved.destination?.name ?? "Destination open")} · ${e(dateRange(req.dates.depart, req.dates.return))}${req.dates.flexibilityDays ? ` (±${req.dates.flexibilityDays} days)` : ""} · ${e(partyLabel(req.travellers))} · Budget ${e(formatMoney(req.budget.amount, req.budget.currency))}${req.budget.per === "person" ? " per person" : ""}${req.budget.flexibilityPercent ? ` (+${req.budget.flexibilityPercent}%)` : ""} · Vibe: ${e(req.vibe.join(", ") || "–")}${req.keywords?.length ? ` · Keywords: ${e(req.keywords.join(", "))}` : ""}${req.likes.length ? ` · Likes: ${e(req.likes.join(", "))}` : ""}${req.dislikes.length ? ` · Avoiding: ${e(req.dislikes.join(", "))}` : ""}</p>
 ${options || "<p>No options matched every requirement.</p>"}
 ${r.notes.length ? `<div class="notes"><strong>Notes</strong><ul>${r.notes.map((n) => `<li>${e(n)}</li>`).join("")}</ul></div>` : ""}
 <footer><p>Searched ${e(r.searchedAt.slice(0, 16).replace("T", " "))} UTC. Prices and availability change; confirm before booking.</p></footer>

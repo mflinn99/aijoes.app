@@ -5,7 +5,7 @@ import { providerSummary } from "./providers/index.js";
 import { limitFromEnv, rateLimit } from "./rate-limit.js";
 import { formatIssues, tripRequestSchema } from "./schema.js";
 import { SearchInputError, type SearchResult } from "./search.js";
-import { createSession, current, loadSaved, loadSession, NotFoundError, refineSession, RefineError, saveTrip, type SavedTrip, type SearchSession } from "./sessions.js";
+import { createSession, current, loadSaved, loadSession, NotFoundError, refineSession, RefineError, remixOption, saveTrip, type SavedTrip, type SearchSession } from "./sessions.js";
 import { getStore } from "./store.js";
 
 // The HTTP API. Every search response carries the same three actions (refine,
@@ -16,6 +16,7 @@ function actions(sessionId: string, version: number) {
   return {
     refine: { method: "POST", href: `${base}/refine` },
     replaceOption: { method: "POST", href: `${base}/options/{optionId}/replace` },
+    remixOption: { method: "POST", href: `${base}/options/{optionId}/remix`, body: { lock: ["destination | dates | flight | stay"] } },
     save: { method: "POST", href: `${base}/save`, body: { version } },
     print: { method: "GET", href: `${base}/print?version=${version}`, text: `${base}/print?version=${version}&format=text` },
   };
@@ -41,6 +42,8 @@ function resultView(r: SearchResult) {
     resolved: r.resolved,
     options: r.options,
     notes: r.notes,
+    keywords: r.keywords ?? [],
+    remix: r.remix,
     providers: r.providers,
     searchedAt: r.searchedAt,
   };
@@ -115,7 +118,7 @@ export function createApp() {
   const windowMs = 10 * 60 * 1000;
   const searchLimit = rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_SEARCH_PER_10_MIN", 30), message: "Too many searches. Please wait a few minutes and try again." });
   app.post("/api/searches", searchLimit);
-  app.post(/^\/api\/searches\/[^/]+\/(refine|options\/[^/]+\/replace)$/, searchLimit);
+  app.post(/^\/api\/searches\/[^/]+\/(refine|options\/[^/]+\/(replace|remix))$/, searchLimit);
   app.use("/api", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_API_PER_10_MIN", 300), message: "Too many requests. Please slow down." }));
 
   // --- search -------------------------------------------------------------------
@@ -143,6 +146,12 @@ export function createApp() {
 
   app.post("/api/searches/:id/options/:optionId/replace", async (req, res) => {
     const session = await refineSession(getStore(), req.params.id, { replace: [req.params.optionId] });
+    res.json(sessionView(session));
+  });
+
+  // --- lock elements of one option, remix the rest ---------------------------------
+  app.post("/api/searches/:id/options/:optionId/remix", async (req, res) => {
+    const session = await remixOption(getStore(), req.params.id, req.params.optionId, req.body ?? {});
     res.json(sessionView(session));
   });
 

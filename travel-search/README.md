@@ -2,8 +2,9 @@
 
 Tell it who's going, when, where from, the vibe and the budget. It asks the main
 travel aggregators in parallel and comes back with **three different options**.
-Change anything, as often as you like. Every result can be **saved** and
-**printed**.
+Add **keywords**, anything at all, to steer the search. Change anything, as often
+as you like. **Lock** part of an option and **remix** the rest. Every result can
+be **saved** and **printed**.
 
 This is the API only. A front end calls it over JSON.
 
@@ -11,7 +12,7 @@ This is the API only. A front end calls it over JSON.
 cd travel-search
 npm install
 TRAVEL_PROVIDERS=mock TRAVEL_STORE=memory npm run dev   # http://localhost:3002, demo data
-npm test            # 72 tests, no network or keys needed
+npm test            # 90 tests, no network or keys needed
 npm run typecheck
 npm run build && npm start
 ```
@@ -23,7 +24,8 @@ npm run build && npm start
 | 1 | Number of travellers | `travellers`: a number (adults), or `{ adults, children, infants }` | yes |
 | 2 | Dates and flexibility | `dates`: `{ depart, return, flexibilityDays }` (0–7 days either side) | yes |
 | 3 | Starting point, optional destination | `origin` (city or airport code), `destination` | origin only |
-| 4 | Vibe | `vibe`: free text or a list, e.g. `"relaxed beach, good food"` | yes |
+| 4 | Vibe | `vibe`: free text or a list, e.g. `"relaxed beach, good food"` | vibe or keywords |
+| + | Keywords | `keywords`: anything that should inform the search, e.g. `"christmas markets, Lisbon-ish, rooftop bar"` | vibe or keywords |
 | 5 | Likes and dislikes | `likes`, `dislikes`: free text or lists | no |
 | 6 | Budget and flexibility | `budget`: `{ amount, currency, per: "total" \| "person", flexibilityPercent }` | yes |
 
@@ -47,6 +49,24 @@ Dates stay inside your window. Trip length moves by no more than your flexibilit
 If fewer than three options meet every rule, you get fewer, with a note saying
 why (for example *"the cheapest trip over it was £1,020 (Lisbon)"*). The search
 never bends a non-negotiable to fill the third slot.
+
+### Keywords
+
+The keyword box takes anything: places, events, themes, interests, half-ideas.
+Keywords steer the search but never restrict it. Each keyword is read, in turn, as:
+
+| Read as | Example | Effect |
+| --- | --- | --- |
+| a **theme** | "christmas markets", "honeymoon", "stag do", "northern lights", "tapas", "safari" | Favours the places known for it. Themes with a season (Christmas markets, cherry blossom, Oktoberfest, skiing) only nudge the search when your dates are out of season, and the response says so. |
+| a **place** | "Lisbon", "Lisbon-ish", "Iceland" | That place gets a clear lead. The other options are still somewhere else; set `destination` to search only there. |
+| a **region or country** | "Greece", "Caribbean", "canaries", "south east asia" | Favours the destinations there. |
+| a **vibe word** | "foodie", "chilled", "adrenaline" | Adds to the vibe. |
+| **free text** | "rooftop pool", "mulled" | Matched against destination and hotel names and amenities. |
+
+Every response includes `keywords`: one entry per keyword with how it was read
+and what it did, so the front end can show it and nothing is silently dropped.
+Keywords can be the only brief (no vibe), and can be added during refinement
+(`"keywords: castles and beer"` or `changes.keywords`).
 
 ### The three options
 
@@ -74,13 +94,14 @@ gives them.
 | `GET` | `/api/searches/:id/versions` | The history of every refinement. |
 | `POST` | `/api/searches/:id/refine` | Change anything; returns a new version. |
 | `POST` | `/api/searches/:id/options/:optionId/replace` | Swap out one option and keep the other two. |
+| `POST` | `/api/searches/:id/options/:optionId/remix` | Lock elements of one option and remix the rest into three new options. |
 | `POST` | `/api/searches/:id/save` | Save a version, or chosen options from it, as a fixed snapshot. |
 | `GET` | `/api/saved/:id` | Reopen a saved trip. |
 | `GET` | `/api/searches/:id/print[?version=n&format=text&download=1]` | A printable A4 page (or plain text) for any version. |
 | `GET` | `/api/saved/:id/print[?format=text&download=1]` | The same for a saved trip. |
 | `GET` | `/api/healthz`, `/api/readyz` | Liveness, and which providers are configured. |
 
-Every search response includes `actions.refine`, `actions.replaceOption`,
+Every search response includes `actions.refine`, `actions.replaceOption`, `actions.remixOption`,
 `actions.save` and `actions.print`, so a front end can always offer them. The
 print page is self-contained: no scripts, no external assets, every value
 escaped.
@@ -131,6 +152,36 @@ re-run.
 A kept option survives only if it still meets the non-negotiables. For example,
 add a traveller and an option priced for two is dropped, with a note saying why.
 
+### Lock and remix
+
+Pick one of the three options, lock what you like about it, and get three new
+options built around it:
+
+```http
+POST /api/searches/:id/options/:optionId/remix
+{ "lock": ["destination"] }        // any of: destination, dates, flight, stay
+```
+
+| Lock | Kept | Remixed |
+| --- | --- | --- |
+| `destination` | the place | dates, flights, stay |
+| `dates` | the exact dates | destination (three different places on an open search), flights, stay |
+| `flight` | the flight, so also its destination and dates | the stay |
+| `stay` | the hotel, so also its destination and dates | the flight |
+| `destination` + `dates` | the place and dates | flights, stay |
+
+Remixed options change every unlocked element where they can, and always at
+least one. Each option carries `locked`, and the response carries
+`remix: { from, locked, remixed }`. Every remix is a new version, so remixes
+chain ("lock the destination", then "lock that flight") and can be undone by
+opening an earlier version.
+
+Locked elements are checked against the non-negotiables again. A locked stay that
+no longer sleeps the party, or a locked flight no longer priced for everyone, is
+reported, never swapped quietly for something else. If nothing else fits the
+budget around what is locked, the response says so and suggests locking less.
+Locking both the flight and the stay leaves nothing to remix, so it is refused.
+
 ### Save and print
 
 ```http
@@ -171,14 +222,15 @@ or memory. For more than one replica, put a database behind the three-method
 server/
   schema.ts      the six inputs, validated (zod)
   places.ts      airports for start points; destination catalogue tagged by character and season
-  vibe.ts        free text → tags; scoring vibe, likes, dislikes
+  vibe.ts        free text → tags; scoring vibe, likes, dislikes, keywords
+  keywords.ts    the keyword box: themes, places, regions, free text
   dates.ts       flexibility → concrete date pairs, window checks
   money.ts       pessimistic currency conversion
   providers/     amadeus, duffel, kiwi, mock, behind one interface
-  search.ts      fan out, enforce the non-negotiables, rank, choose three
+  search.ts      fan out, enforce the non-negotiables, rank, choose three; locks for remix
   summary.ts     the paragraph each option leads with
   refine.ts      partial changes and plain-English instructions
-  sessions.ts    versions, keep and replace, save
+  sessions.ts    versions, keep and replace, remix, save
   print.ts       printable HTML and plain text
   app.ts         HTTP API
 ```

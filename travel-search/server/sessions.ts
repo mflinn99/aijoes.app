@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
-import { mergeRequest, interpretInstruction, type RefineInput, refineSchema } from "./refine.js";
-import { runSearch, type SearchOptions, type SearchResult, type TripOption } from "./search.js";
+import { mergeRequest, interpretInstruction, type RefineInput, refineSchema, remixSchema } from "./refine.js";
+import { runSearch, type LockElement, type SearchOptions, type SearchResult, type TripOption } from "./search.js";
 import type { Store } from "./store.js";
 import type { TripRequest } from "./schema.js";
 
@@ -12,7 +12,15 @@ import type { TripRequest } from "./schema.js";
 export interface Version {
   number: number;
   createdAt: string;
-  change: { kind: "initial" | "refine"; understood: string[]; kept: string[]; replaced: string[] };
+  change: {
+    kind: "initial" | "refine" | "remix";
+    understood: string[];
+    kept: string[];
+    replaced: string[];
+    /** For a remix: the option remixed and what was locked. */
+    remixOf?: string;
+    locked?: LockElement[];
+  };
   result: SearchResult;
 }
 
@@ -117,6 +125,31 @@ export async function refineSession(store: Store, id: string, input: RefineInput
     number: session.versions.length + 1,
     createdAt: now,
     change: { kind: "refine", understood, kept: keep.map((o) => o.id), replaced: replaced.map((o) => o.id) },
+    result,
+  });
+  session.updatedAt = now;
+  await store.put(SESSIONS, session.id, session);
+  return session;
+}
+
+/**
+ * Lock elements of one option (destination, dates, flight, stay) and remix the
+ * rest into three new options. The locked parts go back through every
+ * non-negotiable check against the current request.
+ */
+export async function remixOption(store: Store, id: string, optionId: string, input: unknown, opts: SearchOptions = {}): Promise<SearchSession> {
+  const { lock } = remixSchema.parse(input);
+  const session = await loadSession(store, id);
+  if (session.versions.length >= MAX_VERSIONS) throw new RefineError(`This search has reached ${MAX_VERSIONS} versions. Start a new one from the latest.`);
+  const latest = current(session).result;
+  const from = latest.options.find((o) => o.id === optionId);
+  if (!from) throw new RefineError(`Option ${optionId} is not in the current results`);
+  const result = await runSearch(latest.request, { ...opts, locks: { from, elements: lock }, rejectIds: [from.id] });
+  const now = new Date().toISOString();
+  session.versions.push({
+    number: session.versions.length + 1,
+    createdAt: now,
+    change: { kind: "remix", understood: [], kept: [], replaced: [], remixOf: from.id, locked: result.remix?.locked ?? lock },
     result,
   });
   session.updatedAt = now;

@@ -86,14 +86,26 @@ export function interpret(phrases: string[]): Interpreted {
 
 const STOPWORDS = new Set(["with", "and", "some", "good", "great", "lots", "plenty", "nice", "really", "very", "somewhere", "place", "places", "lovely", "proper", "want", "like", "love", "that", "this", "from", "into", "kind", "sort", "vibe", "vibes", "trip", "holiday", "break"]);
 
+/** What the keyword box contributes (see keywords.ts). */
+export interface KeywordProfile {
+  tags: string[];
+  /** Free text matched against destination and hotel names and amenities. */
+  text: string[];
+  /** Destinations a keyword points at, by city code: weight 0 to 1.2, and which keyword. */
+  boosts: Record<string, { weight: number; keyword: string }>;
+}
+
 export interface VibeProfile {
   vibe: Interpreted;
   likes: Interpreted;
   dislikes: Interpreted;
+  keywords: KeywordProfile;
 }
 
-export function profile(vibe: string[], likes: string[], dislikes: string[]): VibeProfile {
-  return { vibe: interpret(vibe), likes: interpret(likes), dislikes: interpret(dislikes) };
+const NO_KEYWORDS: KeywordProfile = { tags: [], text: [], boosts: {} };
+
+export function profile(vibe: string[], likes: string[], dislikes: string[], keywords: KeywordProfile = NO_KEYWORDS): VibeProfile {
+  return { vibe: interpret(vibe), likes: interpret(likes), dislikes: interpret(dislikes), keywords };
 }
 
 export interface VibeMatch {
@@ -103,6 +115,10 @@ export interface VibeMatch {
   missed: string[];
   /** Things the traveller dislikes that this place is known for. */
   conflicts: string[];
+  /** The keyword that points at this place, if one does. */
+  keyword?: string;
+  /** A keyword named this place outright (not just a theme or region it belongs to). */
+  named?: boolean;
 }
 
 /** Which of a place's tags hold in the given travel month. */
@@ -140,6 +156,15 @@ export function scoreVibe(p: VibeProfile, place: Place, month: number, extraText
   const likeKwHits = p.likes.keywords.filter(hasKeyword);
   const likeScore = likeTotal === 0 ? 0.5 : (likeHits.length + likeKwHits.length) / likeTotal;
 
+  // Keywords: their tags and text, plus a direct pull towards places they name.
+  const kw = p.keywords;
+  const kwTotal = kw.tags.length + kw.text.length;
+  const kwTagHits = kw.tags.filter(has);
+  const kwTextHits = kw.text.filter(hasKeyword);
+  const kwBoost = kw.boosts[place.code];
+  const kwScore = kwTotal === 0 ? (kwBoost ? 1 : 0) : Math.min(1, (kwTagHits.length + kwTextHits.length) / kwTotal + (kwBoost?.weight ?? 0) * 0.5);
+  const hasKw = kwTotal > 0 || Object.keys(kw.boosts).length > 0;
+
   const conflicts = [...p.dislikes.tags.filter(has), ...p.dislikes.keywords.filter(hasKeyword)];
   // A wanted tag's opposite counts as half a conflict.
   const implied = OPPOSITES.flatMap(([a, b]) => [
@@ -147,10 +172,14 @@ export function scoreVibe(p: VibeProfile, place: Place, month: number, extraText
     ...(wanted.includes(b) && has(a) ? [a] : []),
   ]).filter((t) => !conflicts.includes(t));
 
-  const raw = 0.65 * vibeScore + 0.35 * likeScore - 0.3 * conflicts.length - 0.1 * implied.length;
+  // Vibe leads; keywords take a share when given, and all of the vibe's share when there is no vibe.
+  const w = !hasKw ? { v: 0.65, l: 0.35, k: 0 } : vibeTotal === 0 ? { v: 0, l: 0.3, k: 0.7 } : { v: 0.45, l: 0.25, k: 0.3 };
+  const raw = w.v * vibeScore + w.l * likeScore + w.k * kwScore + (kwBoost ? 0.15 * kwBoost.weight : 0) - 0.3 * conflicts.length - 0.1 * implied.length;
   return {
     score: clamp01(raw),
-    matched: unique([...vibeHits, ...vibeKwHits, ...likeHits, ...likeKwHits]),
+    matched: unique([...vibeHits, ...vibeKwHits, ...likeHits, ...likeKwHits, ...kwTagHits, ...kwTextHits]),
+    keyword: kwBoost?.keyword,
+    named: (kwBoost?.weight ?? 0) > 1,
     missed: unique([...wanted.filter((t) => !has(t)), ...p.vibe.keywords.filter((k) => !hasKeyword(k))]),
     conflicts: unique(conflicts),
   };
