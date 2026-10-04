@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Sentinel8 Media</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400&family=Figtree:wght@400;600&display=swap">
+<style>
+:root { --ink: #13232B; --ink-2: #1B3039; --ivory: #F5F1E9; --brass: #B28A56; --line: rgba(245, 241, 233, 0.14); --dim: rgba(245, 241, 233, 0.68); }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ink); color: var(--ivory); font-family: 'Figtree', 'Segoe UI', system-ui, sans-serif; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 48px clamp(16px, 4vw, 40px) 64px; }
+a { color: var(--brass); text-underline-offset: 3px; }
+.back { font-size: 14px; }
+h1 { font-family: 'Unbounded', Arial, sans-serif; font-weight: 300; font-size: clamp(28px, 4vw, 44px); line-height: 1.15; letter-spacing: -0.02em; margin: 18px 0 10px; }
+.lede { color: var(--dim); max-width: 40em; margin: 0 0 36px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 18px; }
+.item { margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 22px; background: var(--ink-2); display: grid; gap: 12px; align-content: start; }
+.frame { display: grid; place-items: center; border-radius: 14px; overflow: hidden; background: #0E1A20; aspect-ratio: 16 / 10; }
+.frame.checker { background: repeating-conic-gradient(#22343d 0 25%, #1a2a32 0 50%) 0 0 / 22px 22px; }
+.frame { position: relative; }
+.frame video, .frame img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; }
+figcaption { display: grid; gap: 2px; }
+figcaption b { font-weight: 600; }
+figcaption span { color: var(--dim); font-size: 14px; }
+.dl { justify-self: start; display: inline-flex; padding: 9px 16px; border-radius: 999px; background: var(--brass); color: var(--ink); font-weight: 600; font-size: 14px; text-decoration: none; }
+.embed { margin-top: 40px; padding: 22px; border: 1px solid var(--line); border-radius: 22px; }
+.embed h2 { font-family: 'Unbounded', Arial, sans-serif; font-weight: 300; font-size: 20px; margin: 0 0 8px; }
+code { display: block; margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: #0E1A20; color: var(--ivory); font-size: 13px; overflow-x: auto; white-space: pre; }
+.note { margin-top: 28px; font-size: 13px; color: var(--dim); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="../">← Sentinel8</a>
+  <h1>The boardroom, in motion</h1>
+  <p class="lede">The Sentinel8 hero animation as ready-made files. Every video is an 18-second seamless loop at 30 frames a second: set it to repeat and it never shows a jump.</p>
+
+  <div class="grid">
+    <figure class="item">
+      <div class="frame"><video width="1920" height="1080" src="sentinel8-hero-16x9.mp4" poster="sentinel8-hero-poster-16x9.png" autoplay muted loop playsinline preload="metadata"></video></div>
+      <figcaption><b>Widescreen 16:9</b><span>1920 × 1080 MP4, 1.2 MB. Websites, presentations, event screens, YouTube.</span></figcaption>
+      <a class="dl" href="sentinel8-hero-16x9.mp4" download>Download</a>
+    </figure>
+    <figure class="item">
+      <div class="frame"><video width="1080" height="1080" src="sentinel8-hero-1x1.mp4" poster="poster-1x1.jpg" autoplay muted loop playsinline preload="metadata"></video></div>
+      <figcaption><b>Square 1:1</b><span>1080 × 1080 MP4, 0.8 MB. LinkedIn and Instagram feed posts.</span></figcaption>
+      <a class="dl" href="sentinel8-hero-1x1.mp4" download>Download</a>
+    </figure>
+    <figure class="item">
+      <div class="frame"><video width="1080" height="1920" src="sentinel8-hero-9x16.mp4" poster="poster-9x16.jpg" autoplay muted loop playsinline preload="metadata"></video></div>
+      <figcaption><b>Vertical 9:16</b><span>1080 × 1920 MP4, 0.8 MB. Stories, Reels and TikTok.</span></figcaption>
+      <a class="dl" href="sentinel8-hero-9x16.mp4" download>Download</a>
+    </figure>
+    <figure class="item">
+      <div class="frame"><img width="640" height="640" src="sentinel8-hero-1x1.gif" alt="The Sentinel8 boardroom animation" loading="lazy"></div>
+      <figcaption><b>Animated GIF</b><span>640 × 640, 5.3 MB. Email and anywhere video won't play.</span></figcaption>
+      <a class="dl" href="sentinel8-hero-1x1.gif" download>Download</a>
+    </figure>
+    <figure class="item">
+      <div class="frame checker"><video width="1920" height="1080" src="sentinel8-hero-transparent-16x9.webm" autoplay muted loop playsinline preload="none"></video></div>
+      <figcaption><b>Transparent background</b><span>1920 × 1080 WebM, 9.5 MB. For layering over other footage in web pages and video editors.</span></figcaption>
+      <a class="dl" href="sentinel8-hero-transparent-16x9.webm" download>Download</a>
+    </figure>
+    <figure class="item">
+      <div class="frame"><img width="1920" height="1080" src="sentinel8-hero-poster-16x9.png" alt="The Sentinel8 mark as a boardroom table" loading="lazy"></div>
+      <figcaption><b>Still image</b><span>1920 × 1080 PNG. Thumbnails and video cover images.</span></figcaption>
+      <a class="dl" href="sentinel8-hero-poster-16x9.png" download>Download</a>
+    </figure>
+  </div>
+
+  <section class="embed">
+    <h2>Embed the live animation</h2>
+    <p class="lede" style="margin:0">On another website, the animation itself can run instead of a video. It adapts to any size.</p>
+    <code>&lt;iframe src="https://www.sentinel8.ai/hero.html" style="width:100%;aspect-ratio:16/9;border:0" title="Sentinel8"&gt;&lt;/iframe&gt;</code>
+  </section>
+
+  <p class="note">Sentinel8 is part of the AIGoGo group of companies.</p>
+</main>
+</body>
+</html>
