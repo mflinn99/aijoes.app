@@ -1,0 +1,786 @@
+Hijojo Agentic Prospecting — Refined Build Remit
+
+Purpose
+
+Build one tightly bounded agentic capability inside Hijojo.
+
+Its sole purpose is to take an AIGoGo OpCo, understand what it sells and who should buy it, identify a small number of highly qualified prospects, conduct individually relevant outreach, follow up once after five days, and route positive responses to mark@aigogo.ai.
+
+This is not a generic bulk lead-generation or email-blast platform.
+
+Quality, relevance and qualification take priority over volume.
+
+⸻
+
+1. USER ENTERS OPCO
+
+User enters or selects an AIGoGo OpCo.
+
+Minimum input:
+
+* OpCo name
+* website
+* optional supporting documents/information.
+
+The platform should then perform the research itself.
+
+Do not require the user to manually create prospecting criteria where these can be reliably established from the OpCo and available evidence.
+
+⸻
+
+2. UNDERSTAND THE OPCO
+
+The platform autonomously evaluates the OpCo.
+
+Analyse:
+
+* proposition
+* products/services
+* problem solved
+* target customer
+* likely buyer
+* business benefit
+* USP
+* differentiation
+* commercial model
+* indicative customer cost
+* implementation requirements
+* proof/evidence available
+* strongest sales arguments
+* weaknesses or unsupported claims.
+
+The platform must distinguish between:
+
+FACT
+
+Supported by evidence.
+
+INFERENCE
+
+Reasonably inferred.
+
+UNKNOWN
+
+Requires confirmation.
+
+Unsupported marketing claims must not be invented to improve outreach.
+
+⸻
+
+3. CREATE PROSPECTING PROFILE
+
+Convert the analysis into a structured Prospecting Profile.
+
+Include:
+
+Proposition
+
+What exactly are we selling?
+
+Problem
+
+What identifiable problem does it solve?
+
+ICP
+
+Define tightly:
+
+* sector
+* subsector
+* geography
+* company size
+* revenue where relevant
+* employee range
+* technology/environment
+* maturity
+* ownership
+* growth profile
+* regulatory characteristics
+* other relevant attributes.
+
+Buyer
+
+Identify likely:
+
+* economic buyer
+* operational sponsor
+* technical stakeholder
+* influencer.
+
+Buying Signals
+
+Define observable conditions indicating a genuine reason to buy.
+
+Examples could include:
+
+* recruitment
+* expansion
+* acquisition
+* new leadership
+* transformation programme
+* technology change
+* supplier change
+* contract expiry
+* regulatory pressure
+* cost pressure
+* funding
+* poor performance
+* new strategic initiative.
+
+Signals must be specific to the OpCo proposition.
+
+Exclusions
+
+Explicitly identify companies that should not be approached.
+
+⸻
+
+4. PROSPECT QUALIFICATION
+
+The platform searches for potential prospects.
+
+Do not create huge generic lists.
+
+Each target must pass a qualification test.
+
+Score:
+
+ICP Fit — 30
+
+Current Need / Trigger — 30
+
+Buyer Fit — 15
+
+Timing — 10
+
+Commercial Potential — 10
+
+Evidence Quality — 5
+
+Total:
+
+100
+
+Default outreach threshold:
+
+80/100
+
+A prospect below threshold should not automatically receive outreach.
+
+The system should prefer:
+
+20 excellent prospects over 2,000 mediocre prospects.
+
+⸻
+
+5. PROSPECT EVIDENCE
+
+Every prospect record must explain:
+
+Why this company?
+
+Specific evidence.
+
+Why now?
+
+Specific trigger or current reason.
+
+Why this proposition?
+
+Connection between identified problem and the OpCo capability.
+
+Who?
+
+Best identifiable relevant decision-maker.
+
+Evidence
+
+Sources supporting the qualification.
+
+Confidence
+
+0–100%.
+
+No prospect should be contacted merely because:
+
+“They are a company in the target sector.”
+
+⸻
+
+6. PRE-CONTACT QA
+
+Before outreach, run an independent QA pass.
+
+Check:
+
+* company identity
+* decision-maker relevance
+* proposition relevance
+* evidence freshness
+* claims
+* personalisation
+* duplicate contact
+* exclusion status
+* previous response
+* suppression status
+* communication appropriateness.
+
+If QA fails:
+
+DO NOT SEND.
+
+Return prospect for research or discard.
+
+⸻
+
+7. INTRODUCTION
+
+For qualified prospects, create an individually relevant introduction.
+
+The content must reflect:
+
+THE PROSPECT
+
+not merely the OpCo.
+
+Structure:
+
+Why them → why now → relevant problem → short proposition → teaser → link
+
+Do not produce generic AI-generated sales copy.
+
+Bad:
+
+We are an innovative AI company helping organisations transform…
+
+Good communication should demonstrate that there is a specific, evidenced reason the recipient was selected.
+
+⸻
+
+8. INTRO LINK + TEASER
+
+First contact contains:
+
+* concise introduction
+* relevant observation
+* proposition teaser
+* introduction/demo link
+* clear low-friction CTA.
+
+Keep it short.
+
+Do not explain the whole product.
+
+Create enough relevance and curiosity for the prospect to investigate.
+
+All links must be checked immediately before sending.
+
+⸻
+
+9. FIVE-DAY FOLLOW-UP
+
+If there is no response after five days, send one follow-up.
+
+The follow-up must not simply say:
+
+Just following up on my previous email.
+
+It should add relevant value.
+
+Include:
+
+* short contextual reminder
+* another relevant observation or benefit
+* short teaser
+* website/product link
+* simple CTA.
+
+Where appropriate, refresh prospect intelligence before generating the follow-up so new information can improve relevance.
+
+⸻
+
+10. RESPONSE HANDLING
+
+Any prospect response immediately stops automated follow-up.
+
+Classify response:
+
+* Positive
+* Interested / question
+* Referral
+* Not now
+* Not interested
+* Unsubscribe
+* Other.
+
+For Positive, Interested / question, or a potentially useful Referral:
+
+Send to mark@aigogo.ai
+
+Include:
+
+* OpCo
+* prospect company
+* prospect name
+* role
+* contact details available
+* original outreach
+* response
+* qualification score
+* reason selected
+* supporting evidence
+* relevant links
+* recommended next action.
+
+Do not allow the prospect to continue through an autonomous sales sequence after engagement.
+
+A human takes over.
+
+⸻
+
+11. NO-RESPONSE RULE
+
+The automated sequence is deliberately constrained:
+
+Qualified
+
+↓
+
+Introduction
+
+↓
+
+Wait 5 days
+
+↓
+
+No response
+
+↓
+
+One relevant follow-up
+
+↓
+
+Stop
+
+Do not create uncontrolled sequences of automated messages.
+
+⸻
+
+12. RELEVANCE ENGINE — NON-NEGOTIABLE
+
+Every communication must pass a relevance test.
+
+Before sending, the system must be able to answer:
+
+1. Why this company?
+2. Why this person?
+3. Why now?
+4. Why this OpCo?
+5. What evidence supports the message?
+6. Is the content materially specific to this recipient?
+
+If it cannot answer all six satisfactorily:
+
+DO NOT SEND.
+
+⸻
+
+13. TDD — NON-NEGOTIABLE
+
+Build using Test-Driven Development.
+
+Tests are written before implementation for every material function.
+
+Minimum test suites:
+
+OpCo Analysis
+
+Test correct extraction of:
+
+* proposition
+* ICP
+* USP
+* cost
+* buyer
+* buying signals.
+
+Prospect Discovery
+
+Test:
+
+* ICP matching
+* exclusions
+* evidence collection
+* scoring
+* threshold enforcement.
+
+Communications
+
+Test:
+
+* prospect-specific relevance
+* unsupported claims
+* correct links
+* correct OpCo
+* correct recipient
+* appropriate CTA.
+
+Sequence
+
+Test:
+
+Qualified → Send → Wait 5 days → Check response → Follow-up OR stop.
+
+Response
+
+Test:
+
+Response received → automation stops → classify → qualifying response sent to mark@aigogo.ai.
+
+Safety
+
+Test:
+
+* duplicate prevention
+* unsubscribe
+* suppression
+* bounced address
+* invalid recipient
+* previous response
+* failed link
+* missing evidence
+* low qualification
+* conflicting prospect data.
+
+Every defect found must result in a regression test before the defect is considered fixed.
+
+⸻
+
+14. END-TO-END TESTING — NON-NEGOTIABLE
+
+Test the complete journey rather than isolated components.
+
+Create synthetic test OpCos and prospects.
+
+Required E2E scenarios:
+
+Scenario A
+
+Excellent prospect → qualified → introduction → responds → Mark receives handoff.
+
+Scenario B
+
+Excellent prospect → introduction → no response → five-day follow-up → stop.
+
+Scenario C
+
+Poor prospect → score below threshold → never contacted.
+
+Scenario D
+
+Strong company but wrong person → QA fails → never contacted.
+
+Scenario E
+
+Prospect replies before day five → follow-up cancelled.
+
+Scenario F
+
+Prospect unsubscribes → immediately suppressed.
+
+Scenario G
+
+Agent creates unsupported claim → QA rejects communication.
+
+Scenario H
+
+Broken/incorrect link → send prevented.
+
+Scenario I
+
+Duplicate prospect → duplicate communication prevented.
+
+Scenario J
+
+Positive response → complete prospect intelligence and conversation forwarded to Mark.
+
+⸻
+
+15. SELF-QA — NON-NEGOTIABLE
+
+Introduce an independent QA agent/process.
+
+The agent generating a prospect or communication must not be solely responsible for approving its own output.
+
+Use:
+
+Research Agent
+
+↓
+
+Qualification Agent
+
+↓
+
+Communication Agent
+
+↓
+
+Independent QA
+
+↓
+
+Send
+
+The QA stage can:
+
+PASS
+
+REWORK
+
+REJECT
+
+Only PASS permits external communication.
+
+⸻
+
+16. CONTINUOUS QA
+
+Monitor:
+
+* qualification accuracy
+* emails sent
+* delivery
+* opens/clicks where legitimately available
+* replies
+* positive replies
+* negative replies
+* unsubscribe rate
+* false-positive prospects
+* QA rejection rate
+* response by ICP
+* response by trigger
+* response by message approach.
+
+Use outcomes to improve qualification.
+
+Do not allow the system to weaken qualification simply to increase sending volume.
+
+⸻
+
+17. Hijojo USER EXPERIENCE
+
+Keep the interface extremely simple.
+
+User sees:
+
+Add OpCo
+
+↓
+
+Prospecting Profile
+
+Proposition
+
+ICP
+
+Buyer
+
+USP
+
+Cost
+
+Buying Signals
+
+↓
+
+Prospects
+
+Qualified
+
+Researching
+
+Rejected
+
+Contacted
+
+Follow-up Due
+
+Responded
+
+Passed to Mark
+
+Clicking any prospect shows:
+
+WHO
+
+WHY THEM
+
+WHY NOW
+
+SCORE
+
+EVIDENCE
+
+COMMUNICATION
+
+ACTIVITY
+
+⸻
+
+18. AGENTIC BOUNDARY
+
+The platform is autonomous only within this defined workflow.
+
+It may autonomously:
+
+* research the OpCo
+* construct the ICP
+* identify prospects
+* research prospects
+* score prospects
+* reject weak prospects
+* identify contacts
+* prepare communications
+* QA communications
+* send approved introductions
+* detect responses
+* send the five-day follow-up
+* classify responses
+* hand qualified responses to Mark.
+
+It must not autonomously:
+
+* negotiate
+* quote bespoke pricing
+* make contractual commitments
+* change commercial terms
+* make unsupported claims
+* continue selling after a response
+* create arbitrary additional follow-ups.
+
+⸻
+
+19. SUCCESS MEASURES
+
+Do not judge success primarily by number of prospects or messages.
+
+Primary metrics:
+
+Qualified Prospect Rate
+
+How many discovered organisations genuinely satisfy the ICP?
+
+Contact Accuracy
+
+Did we reach the correct person?
+
+Relevance
+
+Would a reasonable recipient understand specifically why they were contacted?
+
+Positive Response Rate
+
+How many qualified contacts generated useful engagement?
+
+Human-Accepted Opportunity Rate
+
+How many handoffs does Mark consider genuinely worth pursuing?
+
+False Positive Rate
+
+How many prospects should never have been contacted?
+
+This should continually decrease.
+
+⸻
+
+20. FINAL OPERATING LOOP
+
+The entire capability is:
+
+ENTER OPCO
+
+↓
+
+UNDERSTAND
+
+↓
+
+CREATE PROSPECTING PROFILE
+
+↓
+
+SEARCH
+
+↓
+
+RESEARCH
+
+↓
+
+QUALIFY
+
+↓
+
+SCORE
+
+↓
+
+SELF-QA
+
+↓
+
+SEND RELEVANT INTRO + TEASER + LINK
+
+↓
+
+MONITOR
+
+↓
+
+RESPONSE?
+
+YES → STOP AUTOMATION → HAND TO MARK
+
+NO → WAIT 5 DAYS
+
+↓
+
+RE-VALIDATE PROSPECT
+
+↓
+
+SEND ONE RELEVANT FOLLOW-UP + LINK
+
+↓
+
+STOP
+
+↓
+
+MEASURE OUTCOME
+
+↓
+
+IMPROVE QUALIFICATION
+
+⸻
+
+Non-Negotiable Acceptance Standard
+
+The capability is not production-ready merely because it can find companies and send emails.
+
+It is production-ready only when end-to-end testing demonstrates that it can repeatedly:
+
+understand an AIGoGo OpCo, identify a genuinely relevant company, establish an evidenced reason why that company should care now, identify an appropriate individual, generate communication specifically relevant to that prospect, independently QA it, send it, follow up correctly, recognise a response, stop automation and reliably hand the opportunity to mark@aigogo.ai.
+
+Precision over volume.
+
+Evidence over assumption.
+
+Relevance over generic personalisation.
+
+Qualified conversations over email activity.

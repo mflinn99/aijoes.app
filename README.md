@@ -122,6 +122,16 @@ domain checks, and real photography. "Contact Us" opens a booking calendar and a
 message form; see `sage-halpin/docs/HOSTING.md` (Contact Us) to connect them to a
 form service or a live scheduling page.
 
+## Hijojo
+
+Hijojo Agentic Prospecting lives in `hijojo/`, self-contained like
+`sage-halpin/`. Give it an AIGoGo OpCo and it finds a few evidenced, qualified
+prospects, sends each an individually relevant introduction that has passed
+independent QA, follows up once after five days, and hands engaged replies to
+mark@aigogo.ai. It runs in simulation until an AI key, outbound web access,
+Outlook and a contact-data provider are configured. Start with
+`hijojo/README.md`; the specification is `hijojo/docs/BUILD-REMIT.txt`.
+
 ## Documentation
 
 | Document | Contents |
