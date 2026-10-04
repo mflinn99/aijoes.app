@@ -81,8 +81,11 @@ the default branch once its repository variables are set.
 
 ## The website
 
-`site/` is the public website: the landing page (`site/index.html`) and the
-interactive demo (`site/demo/index.html`), plain HTML with no build step. It
+`site/` is the public website, plain HTML with no build step: the landing page
+(`site/index.html`, with Contact Us), the interactive demo (`site/demo/`), the media
+page with the hero videos (`site/media/`) and the standalone hero animation
+(`site/hero.html`). `npm run check:site` checks every page's links, files, anchors
+and contact details, and runs on every pull request and before every publish. It
 publishes to GitHub Pages at www.sentinel8.ai through
 `.github/workflows/sage-halpin-site.yml`. [`docs/HOSTING.md`](docs/HOSTING.md) has
 the publishing steps for both the website and this app.

@@ -35,6 +35,7 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run check:brand
+      - run: npm run check:site
       - name: Compile infrastructure
         run: az bicep build --file infra/main.bicep --stdout > /dev/null
       - name: Build container image

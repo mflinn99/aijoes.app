@@ -17,6 +17,7 @@ body > :not(.boot) { transition: opacity .4s ease; }
 html.booted .boot { opacity: 0; visibility: hidden; }
 @media (prefers-reduced-motion: reduce) { .boot .seat { animation: none; opacity: 1; } .boot, body > :not(.boot) { transition: none; } }
 @media print { .boot { display: none; } }
+.rail-contact { display: inline-block; margin-top: 18px; font-size: 13.5px; font-weight: 600; color: #B28A56; text-underline-offset: 3px; }
 </style>
 <script>
 (function () {
@@ -378,6 +379,7 @@ textarea, select { width: 100%; border: 1px solid var(--line); border-radius: 14
     <p class="demo-flag"><strong>Demo data.</strong> Harrow &amp; Vale Instruments and every figure, source and adviser here are fictional.</p>
     <ol class="steps" id="steps"></ol>
     <div class="rail-q" id="rail-q"></div>
+    <a class="rail-contact" href="../#contact">Contact Us →</a>
   </aside>
 
   <div class="main">

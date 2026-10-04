@@ -4,7 +4,7 @@ Sage Halpin has two parts. Each has one source in this repository and one home.
 
 | Part | Source | Host | Address | Cost |
 | --- | --- | --- | --- | --- |
-| **Website**: landing page and interactive demo | `sage-halpin/site/` (static HTML, no build) | GitHub Pages | `www.sentinel8.ai` (demo at `/demo/`; `sentinel8.ai` redirects there) | Free |
+| **Website**: landing page, interactive demo, media page and the standalone hero animation | `sage-halpin/site/` (static HTML, no build) | GitHub Pages | `www.sentinel8.ai` (see the pages below; `sentinel8.ai` redirects there) | Free |
 | **Boardroom app**: the rebranded Sixonic, calling Claude | `sage-halpin/` (Node app, Docker image) | Azure Container Apps, UK South | suggested `app.sentinel8.ai` | Azure usage plus Claude usage |
 
 Both publish from GitHub Actions when changes reach the repository's **default
@@ -45,9 +45,22 @@ shared from their own Share menu, but the website above is the public copy.
    level (**GitHub Settings → Pages → Add a domain**), so no other GitHub
    account can claim a subdomain of it.
 
-To change the website, edit `sage-halpin/site/index.html` or
-`sage-halpin/site/demo/index.html` and merge. Links inside the site are
-relative, so it works at both addresses.
+### Pages on the website
+
+| Address | File | What it is |
+| --- | --- | --- |
+| `/` | `site/index.html` | The landing page, including Contact Us (`#contact`: call booking, message form, amy@aigogo.ai, 07803 000952) |
+| `/demo/` | `site/demo/index.html` | The interactive demo, with fictional data |
+| `/media/` | `site/media/index.html` | The hero animation as videos (16:9, 1:1, 9:16, GIF, transparent WebM, still) with downloads and the embed code. Not indexed by search engines. |
+| `/hero.html` | `site/hero.html` | The hero animation on its own, for embedding (`<iframe>`) and recording. Options: `background`, `years`, `yearsAt`, `speed`, `still`. Not indexed. |
+| | `site/contact.js` | The booking calendar and message form (settings below) |
+
+To change the website, edit the files above and merge. Links inside the site are
+relative, so it works at both addresses. **Every pull request and every publish runs
+`npm run check:site`** (in `sage-halpin/`): it fails if a tag is left unclosed, a
+link, file or `#anchor` doesn't exist, the Contact Us details are missing or don't
+match `contact.js`, or "Talk to Us" reappears. A failing check stops the publish,
+so a broken page never goes live.
 
 ## 2. Publish the boardroom app (about an hour, first time)
 
