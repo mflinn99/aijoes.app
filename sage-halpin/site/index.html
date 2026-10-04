@@ -360,6 +360,29 @@ footer { background: var(--ink); color: var(--ivory); border-top: 1px solid var(
   .sti li + li { border-top: 1px solid var(--line); }
 }
 
+/* Industry voices: quotes from published research. */
+.voices { background: var(--ivory); }
+.voices-head { margin-bottom: 44px; }
+.voices-head h2 span { display: block; color: var(--brass-deep); }
+.voices-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+.voice { margin: 0; grid-column: span 2; display: flex; flex-direction: column; justify-content: space-between; gap: 22px; padding: 28px; border-radius: 28px; background: var(--paper); border: 1px solid var(--line); }
+.voice blockquote { margin: 0; }
+.voice blockquote p { font-size: 17px; line-height: 1.55; }
+.voice blockquote p::before { content: '“'; } .voice blockquote p::after { content: '”'; }
+.voice figcaption { display: grid; gap: 4px; font-size: 13.5px; }
+.voice figcaption b { font-weight: 600; }
+.voice figcaption a { color: var(--text-dim); text-underline-offset: 3px; }
+.voice-feature { grid-column: span 4; grid-row: span 2; background: var(--ink); color: var(--ivory); border-color: var(--ink); }
+.voice-feature blockquote p { font-family: var(--display); font-weight: 300; font-size: clamp(24px, 2.6vw, 36px); line-height: 1.25; letter-spacing: -0.01em; }
+.voice-feature figcaption a { color: rgba(245, 241, 233, 0.7); }
+.voice-stat { grid-column: span 3; background: var(--ivory); }
+.voice-stat blockquote p { font-family: var(--display); font-weight: 300; font-size: clamp(19px, 1.8vw, 23px); line-height: 1.35; }
+.voices-note { margin-top: 18px; font-size: 13px; color: var(--slate); }
+@media (max-width: 900px) {
+  .voices-grid { grid-template-columns: minmax(0, 1fr); }
+  .voice, .voice-feature, .voice-stat { grid-column: auto; grid-row: auto; }
+}
+
 /* Fractional expertise */
 .fractional { margin-top: 56px; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 40px; padding: clamp(24px, 4vw, 44px); border-radius: 28px; background: var(--ink); color: var(--ivory); }
 .fractional .kicker { border-color: var(--line-ink); color: var(--brass); }
@@ -698,6 +721,38 @@ button.btn-line { border: 1px solid rgba(245, 241, 233, 0.35); }
         <div class="radar-row" role="row"><span role="cell"><b>Solid-state flow sensing reaches pilot scale</b><small>Technology</small></span><span role="cell">Could make our mechanical range obsolete within a product cycle; a licensing option is being explored.</span><span role="cell">3–5 years</span><span role="cell"><span class="st st-watch">Watching</span></span></div>
       </div>
       <p class="radar-note">Example signals and insights for a fictional company.</p>
+    </div>
+  </section>
+
+  <section id="voices" class="section voices" aria-labelledby="voices-title">
+    <div class="wrap">
+      <div class="voices-head">
+        <p class="label kicker">Industry voices</p>
+        <h2 id="voices-title">The board's job is changing. <span>The research says so.</span></h2>
+      </div>
+      <div class="voices-grid">
+        <figure class="voice voice-feature">
+          <blockquote cite="https://www.mckinsey.com/capabilities/mckinsey-technology/our-insights/the-ai-reckoning-how-boards-can-evolve"><p>With trillions of dollars potentially at play and implications that could be existential to companies, AI is closer to a reckoning than a trend.</p></blockquote>
+          <figcaption><b>McKinsey &amp; Company</b><a href="https://www.mckinsey.com/capabilities/mckinsey-technology/our-insights/the-ai-reckoning-how-boards-can-evolve" target="_blank" rel="noopener">“The AI reckoning: How boards can evolve”, 2025</a></figcaption>
+        </figure>
+        <figure class="voice">
+          <blockquote cite="https://www.pwc.com/us/en/services/governance-insights-center/library/2025-board-effectiveness-survey.html"><p>As the business environment continues to transform, boards must move more rapidly to address gaps in expertise and coordinate with executives on short and long-term business priorities.</p></blockquote>
+          <figcaption><b>Ray Garcia, Leader, PwC Governance Insights Center</b><a href="https://www.pwc.com/us/en/services/governance-insights-center/library/2025-board-effectiveness-survey.html" target="_blank" rel="noopener">PwC 2025 Board Effectiveness Survey</a></figcaption>
+        </figure>
+        <figure class="voice">
+          <blockquote cite="https://hbr.org/2025/07/how-pioneering-boards-are-using-ai"><p>Few board members recognize AI’s potential to help them prepare for and engage in substantive, well-informed, and strategically focused discussions with management and their board colleagues.</p></blockquote>
+          <figcaption><b>Stanislav Shekshnia and Valery Yakubovich, INSEAD</b><a href="https://hbr.org/2025/07/how-pioneering-boards-are-using-ai" target="_blank" rel="noopener">“How Pioneering Boards Are Using AI”, Harvard Business Review, 2025</a></figcaption>
+        </figure>
+        <figure class="voice voice-stat">
+          <blockquote cite="https://www.pwc.com/gx/en/news-room/press-releases/2025/pwc-2025-global-ceo-survey.html"><p>…four in ten (42%) CEOs globally believe their company will not be viable beyond the next decade if it continues on its current path.</p></blockquote>
+          <figcaption><b>PwC</b><a href="https://www.pwc.com/gx/en/news-room/press-releases/2025/pwc-2025-global-ceo-survey.html" target="_blank" rel="noopener">28th Annual Global CEO Survey, 2025</a></figcaption>
+        </figure>
+        <figure class="voice voice-stat">
+          <blockquote cite="https://www.gartner.com/en/newsroom/press-releases/2024-11-13-gartner-says-80-percent-of-non-executive-directors-believe-current-board-practices-and-structures-are-inadequate-to-oversee-ai"><p>80% of Non-Executive Directors Believe Current Board Practices and Structures Are Inadequate to Oversee AI</p></blockquote>
+          <figcaption><b>Gartner</b><a href="https://www.gartner.com/en/newsroom/press-releases/2024-11-13-gartner-says-80-percent-of-non-executive-directors-believe-current-board-practices-and-structures-are-inadequate-to-oversee-ai" target="_blank" rel="noopener">Survey of non-executive directors, November 2024</a></figcaption>
+        </figure>
+      </div>
+      <p class="voices-note">Quoted from the published sources linked. The organisations quoted are not affiliated with Sentinel<span class="eight">8</span> and do not endorse it.</p>
     </div>
   </section>
 
