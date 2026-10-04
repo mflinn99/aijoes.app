@@ -101,7 +101,7 @@ Their settings are at the top of `sage-halpin/site/contact.js`:
 
 | Setting | Today | What it does |
 | --- | --- | --- |
-| `email` | `hello@aigogo.ai` | Where requests and messages go |
+| `email` | `amy@aigogo.ai` | Where requests and messages go (also shown on the page with the phone number, 07803 000952) |
 | `endpoint` | empty | A form service URL that accepts a JSON POST, such as Formspree. When set, messages and call requests are delivered straight to it |
 | `bookingUrl` | empty | A scheduling page: a Google Calendar appointment schedule, Microsoft Bookings or Calendly. When set, it replaces the request calendar, so visitors book live against real availability |
 | `startHour`, `endHour`, `minutes`, `days`, `leadHours` | 9, 17, 30, 15, 18 | The call times on offer, in UK time |

@@ -10,7 +10,7 @@
 //               Microsoft Bookings or Calendly). It replaces the request
 //               calendar, so visitors book live against real availability.
 var CONTACT = {
-  email: 'hello@aigogo.ai',
+  email: 'amy@aigogo.ai',
   endpoint: '',
   bookingUrl: '',
   timeZone: 'Europe/London',  // the team's working hours are in this zone
