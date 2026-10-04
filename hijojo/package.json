@@ -1,0 +1,44 @@
+{
+  "name": "hijojo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hijojo Agentic Prospecting — precision outreach for AIGoGo OpCos",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "dev:api": "tsx watch server/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "vite build && esbuild server/index.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.mjs",
+    "start": "node dist/server.mjs",
+    "seed": "tsx scripts/seed.ts",
+    "demo": "tsx scripts/demo.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "better-sqlite3": "^11.10.0",
+    "express": "^5.2.1",
+    "undici": "^7.30.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/supertest": "^7.2.1",
+    "@vitejs/plugin-react": "^5.2.0",
+    "esbuild": "^0.28.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "supertest": "^7.3.1",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9",
+    "vite": "^7.3.6",
+    "vitest": "^3.2.7"
+  }
+}
