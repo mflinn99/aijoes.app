@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Sentinel8 Boardroom</title>
+<!--
+  Sentinel8 hero animation, standalone.
+
+  Six seats around the oval table change hands between people (green) and AI
+  agents (the mark's other colours), one seat every 3.6 seconds, while faded
+  years roll from 2020 to 2030 and round again. It starts on its own, loops
+  forever and fills whatever frame it is placed in: open it in a browser, embed
+  it in an <iframe>, or point a screen recorder or headless browser at it.
+  Live copy: https://www.sentinel8.ai/hero.html
+
+  Options, as URL parameters (for example hero.html?background=transparent&speed=2):
+    background   any CSS colour, or "transparent"      default #13232B
+    years        "off" hides the rolling years          default on
+    yearsAt      where the current year sits, 0 to 1    default 0.5 (centre)
+    speed        time multiplier, e.g. 0.5 or 2         default 1
+    still        "1" draws one still frame (no motion)  default off
+  It also stays still when the viewer's system asks for reduced motion.
+-->
+<style>
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg, #13232B); overflow: hidden; display: grid; place-items: center; }
+.years { position: fixed; inset: 0; display: flex; align-items: center; pointer-events: none; overflow: hidden; }
+.years-track { display: flex; gap: 0.35em; font-family: 'Unbounded', 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif; font-weight: 500; font-size: clamp(120px, 24vw, 340px); line-height: 1; color: transparent; -webkit-text-stroke: 1px rgba(245, 241, 233, 0.07); white-space: nowrap; will-change: transform; }
+.years-track span { font-variant-numeric: tabular-nums; }
+.years-track span.now { -webkit-text-stroke: 1.5px rgba(178, 138, 86, 0.28); }
+.years.off { display: none; }
+canvas { position: relative; display: block; width: min(100vw, 140vh); aspect-ratio: 7 / 5; max-height: 100vh; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500&display=swap">
+</head>
+<body>
+<div class="years" aria-hidden="true"><div class="years-track" id="years-track"></div></div>
+<canvas id="boardroom" role="img" aria-label="The Sentinel8 mark as a boardroom: six seats around an oval table with the infinity sign at its centre, slowly change between people, shown green, and AI agents in other colours, as the years roll on from 2020 to 2030 and round again."></canvas>
+<script>
+var OPTIONS = (function () {
+  var q = new URLSearchParams(location.search);
+  var num = function (v, d) { var n = parseFloat(v); return isFinite(n) && n > 0 ? n : d; };
+  var o = {
+    background: q.get('background') || '#13232B',
+    years: q.get('years') !== 'off',
+    yearsAt: Math.min(1, Math.max(0, num(q.get('yearsAt'), 0.5))),
+    speed: num(q.get('speed'), 1),
+    still: q.get('still') === '1'
+  };
+  document.body.style.setProperty('--bg', o.background);
+  if (!o.years) document.querySelector('.years').classList.add('off');
+  return o;
+})();
+// A "still" request behaves exactly like reduced motion.
+if (OPTIONS.still) {
+  var realMatch = window.matchMedia.bind(window);
+  window.matchMedia = function (q) { return /prefers-reduced-motion/.test(q) ? { matches: true, addEventListener: function () {} } : realMatch(q); };
+}
+</script>
+<script>
+// A filled dot with a soft glow, pre-rendered to its own small canvas.
+// Returns { canvas, size } where size is the drawn width in CSS pixels.
+function glowDot(colour, r, blur, dpr) {
+  var pad = Math.ceil(blur * 1.1), size = (r + pad) * 2;
+  var c = document.createElement('canvas');
+  c.width = c.height = Math.ceil(size * dpr);
+  var g = c.getContext('2d');
+  g.scale(dpr, dpr);
+  g.shadowColor = colour; g.shadowBlur = blur * dpr;
+  g.beginPath(); g.arc(size / 2, size / 2, r, 0, Math.PI * 2);
+  g.fillStyle = colour; g.fill();
+  return { canvas: c, size: size };
+}
+</script>
+<script>
+// Hero: the logo, alive. Six seats around one oval table, as in the mark.
+// People are green; AI agents take the mark's other colours. One seat changes
+// hands at a time at a steady rhythm, while faded years roll forward 2020 → 2030
+// and on round to 2020 again, always in the same direction.
+// One animation clock drives everything and only advances while the hero is on
+// screen, so the pace is constant and the loop never jumps.
+(function () {
+  var canvas = document.getElementById('boardroom');
+  var track = document.getElementById('years-track');
+  if (!canvas || !canvas.getContext || !track) return;
+  var ctx = canvas.getContext('2d');
+  var motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  var FIRST = 2020, LAST = 2030;
+  var YEAR_MS = 14000;                // constant speed: one year every 14 seconds
+  var SWAP_EVERY = 3600;              // one seat changes hands every 3.6 seconds
+  var FADE_MS = 3200, EMPTY_MS = 1200;
+  var PERSON = '#7FB692';
+  var AGENTS = ['#F2EEE4', '#D9A15F', '#6FA8D6', '#E07F6A', '#A99BDA'];
+  var OVAL = 'rgba(245,241,233,0.9)';
+  var INFINITY = '#B28A56';
+
+  // The mark's geometry, in its 40-unit grid: an oval and six seats.
+  var CENTRE = 20, RX = 11.5, RY = 7, DOT = 3;
+  var POSITIONS = [[20, 7], [34, 13], [34, 27], [20, 33], [6, 27], [6, 13]];
+  // The infinity sign at the centre of the table, as in the mark.
+  var INFINITY_PATH = window.Path2D ? new Path2D('M20 20C18 17.2 13.5 17.2 13.5 20C13.5 22.8 18 22.8 20 20C22 17.2 26.5 17.2 26.5 20C26.5 22.8 22 22.8 20 20Z') : null;
+  // Start as the logo: one person at the head of the table, five agents.
+  var START = [PERSON].concat(AGENTS);
+
+  // The strip holds the decade three times over, so wrapping from 2030 back to
+  // 2020 lands on an identical frame and the loop has no visible seam.
+  var COUNT = LAST - FIRST + 1, COPIES = 3;
+  var spans = [];
+  for (var c = 0; c < COPIES; c++) {
+    for (var y = FIRST; y <= LAST; y++) { var s = document.createElement('span'); s.textContent = y; track.appendChild(s); spans.push(s); }
+  }
+
+  function soft(t) { return 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, Math.max(0, t))); }
+
+  // Constant forward motion, wrapping every decade.
+  function yearPosition(clock) { return (clock / YEAR_MS) % COUNT; }
+
+  // Year positions are measured once (and again on resize or when fonts load),
+  // never per frame, so the animation does no layout work while it runs.
+  var lefts = [], widths = [], stripWidth = 0;
+  function measureYears() {
+    lefts = spans.map(function (el) { return el.offsetLeft; });
+    widths = spans.map(function (el) { return el.offsetWidth; });
+    stripWidth = track.parentElement.getBoundingClientRect().width;
+  }
+
+  var shown = null;
+  function placeYears(pos) {
+    if (!lefts.length) measureYears();
+    var index = COUNT + pos;                     // always within the middle copy
+    var i = Math.floor(index), f = index - i;
+    // Interpolate between the measured positions of neighbouring years, so the
+    // copies line up exactly whatever the width of each numeral.
+    var x = lefts[i] + (lefts[i + 1] - lefts[i]) * f;
+    var centre = stripWidth * OPTIONS.yearsAt - widths[i] / 2;
+    track.style.transform = 'translate3d(' + (centre - x).toFixed(2) + 'px,0,0)';
+    var now = Math.round(index);
+    if (now !== shown) {
+      if (shown !== null) spans[shown].classList.remove('now');
+      spans[now].classList.add('now');
+      shown = now;
+    }
+  }
+
+  var seats = START.map(function (colour) {
+    return { colour: colour, person: colour === PERSON, from: 1, to: 1, start: 0, next: null, refillAt: 0 };
+  });
+  function level(seat, clock) { return seat.from + (seat.to - seat.from) * soft((clock - seat.start) / FADE_MS); }
+  function fadeTo(seat, to, clock) { seat.from = level(seat, clock); seat.to = to; seat.start = clock; }
+
+  // An agent joining takes a colour not already at the table where possible.
+  function agentColour() {
+    var used = seats.map(function (s) { return s.colour; });
+    var free = AGENTS.filter(function (c) { return used.indexOf(c) === -1; });
+    var pool = free.length ? free : AGENTS;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // Visit every seat once, in a shuffled order, then reshuffle.
+  var order = [], cursor = 0;
+  function nextSeat() {
+    if (cursor >= order.length) {
+      var prev = order[order.length - 1];
+      order = seats.map(function (_, k) { return k; });
+      for (var k = order.length - 1; k > 0; k--) { var j = Math.floor(Math.random() * (k + 1)); var tmp = order[k]; order[k] = order[j]; order[j] = tmp; }
+      if (order[0] === prev) { order.push(order.shift()); }
+      cursor = 0;
+    }
+    return seats[order[cursor++]];
+  }
+  var nextSwapAt = 1500;
+  function update(clock) {
+    while (clock >= nextSwapAt) {
+      var seat = nextSeat();
+      // Most changes hand the seat to the other kind of contributor.
+      seat.next = Math.random() < 0.7 ? !seat.person : seat.person;
+      seat.refillAt = nextSwapAt + FADE_MS + EMPTY_MS;
+      fadeTo(seat, 0, nextSwapAt);
+      nextSwapAt += SWAP_EVERY;
+    }
+    for (var n = 0; n < seats.length; n++) {
+      var st = seats[n];
+      if (st.next !== null && clock >= st.refillAt) {
+        st.person = st.next;
+        st.next = null;
+        st.colour = st.person ? PERSON : agentColour();
+        fadeTo(st, 1, st.refillAt);
+      }
+    }
+  }
+
+  var width = 0, height = 0, dpr = 1, sprites = {};
+  function resize() {
+    var r = canvas.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    width = r.width; height = r.height;
+    canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sprites = {};
+    measureYears();
+  }
+
+  // A glowing seat is drawn once per colour and size, then stamped each frame:
+  // canvas blur is far too slow to repeat sixty times a second.
+  function sprite(colour, r) {
+    var key = colour + r.toFixed(1);
+    if (!sprites[key]) sprites[key] = glowDot(colour, r, r * 0.9, dpr);
+    return sprites[key];
+  }
+
+  function draw(clock) {
+    ctx.clearRect(0, 0, width, height);
+    var u = Math.min(width, height) / 40 * 0.92;   // one unit of the mark's grid
+    var ox = width / 2 - CENTRE * u, oy = height / 2 - CENTRE * u;
+    function px(v) { return ox + v * u; }
+    function py(v) { return oy + v * u; }
+
+    ctx.beginPath();
+    ctx.ellipse(px(CENTRE), py(CENTRE), RX * u, RY * u, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = OVAL; ctx.lineWidth = Math.max(1.5, 1.6 * u / 2.2); ctx.stroke();
+
+    if (INFINITY_PATH) {
+      ctx.save();
+      ctx.translate(ox, oy); ctx.scale(u, u);
+      ctx.strokeStyle = INFINITY; ctx.lineWidth = Math.max(1.3, 1.4 * u / 2.2) / u; ctx.lineJoin = 'round';
+      ctx.stroke(INFINITY_PATH);
+      ctx.restore();
+    }
+
+    for (var k = 0; k < seats.length; k++) {
+      var seat = seats[k], lvl = level(seat, clock);
+      var x = px(POSITIONS[k][0]), y = py(POSITIONS[k][1]), r = DOT * u;
+      // The empty seat is always faintly there.
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(245,241,233,0.16)'; ctx.lineWidth = 1; ctx.stroke();
+      if (lvl > 0.01) {
+        var img = sprite(seat.colour, r), scale = 0.86 + 0.14 * lvl, size = img.size * scale;
+        ctx.globalAlpha = lvl;
+        ctx.drawImage(img.canvas, x - size / 2, y - size / 2, size, size);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  // The years glide every frame; the seats only fade slowly, so the canvas is
+  // redrawn at most 30 times a second, which looks the same at half the work.
+  var DRAW_MS = 32;
+  var clock = 0, last = 0, lastDraw = -1e9, frame = 0, visible = true;
+  function render() { update(clock); placeYears(yearPosition(clock)); draw(clock); lastDraw = clock; }
+  function tick(now) {
+    clock += Math.min(50, Math.max(0, now - last)) * OPTIONS.speed;
+    last = now;
+    update(clock);
+    placeYears(yearPosition(clock));
+    if (clock - lastDraw >= DRAW_MS) { draw(clock); lastDraw = clock; }
+    frame = requestAnimationFrame(tick);
+  }
+  function start() {
+    if (frame || !visible || document.hidden || motion.matches) return;
+    last = performance.now();
+    frame = requestAnimationFrame(tick);
+  }
+  function stop() { cancelAnimationFrame(frame); frame = 0; }
+  function still() { stop(); resize(); placeYears(6); draw(0); }
+  function apply() { if (motion.matches) still(); else { resize(); render(); start(); } }
+
+  if ('ResizeObserver' in window) new ResizeObserver(function () { resize(); motion.matches ? still() : render(); }).observe(canvas);
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (entries) { visible = !!(entries[0] && entries[0].isIntersecting); visible ? start() : stop(); }).observe(canvas);
+  }
+  document.addEventListener('visibilitychange', function () { document.hidden ? stop() : start(); });
+  if (motion.addEventListener) motion.addEventListener('change', apply);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { measureYears(); motion.matches ? still() : render(); });
+  apply();
+
+})();
+</script>
+</body>
+</html>
