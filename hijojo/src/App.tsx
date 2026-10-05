@@ -212,15 +212,15 @@ function OpcoList({ me }: { me: any }) {
               <input name="name" required maxLength={120} />
             </label>
             <label>
-              Website
-              <input name="website" type="url" placeholder="https://" required />
+              Website <span className="muted">(leave blank for a sale mandate or unlaunched OpCo)</span>
+              <input name="website" type="url" placeholder="https://" />
             </label>
             <label>
-              Intro / demo link <span className="muted">(optional; defaults to the website)</span>
+              Intro / demo link <span className="muted">(defaults to the website; required without one, e.g. an NDA request page)</span>
               <input name="introLink" type="url" placeholder="https://" />
             </label>
             <label>
-              Supporting information <span className="muted">(optional)</span>
+              Supporting information <span className="muted">(optional with a website; e.g. paste a teaser or information memorandum)</span>
               <textarea name="notes" rows={5} placeholder="Paste any documents or notes. They are stored as a source and cited like any page." />
             </label>
             <ErrorNote error={formError} />
@@ -333,7 +333,7 @@ function OpcoView({ id, me }: { id: string; me: any }) {
             {opco.name} <Badge status={opco.status} />
           </h1>
           <div className="muted">
-            {opco.website} · intro link {opco.introLink}
+            {opco.website || "No website: analysed from supplied documents"} · intro link {opco.introLink}
           </div>
           {opco.statusDetail && <p className="error">{opco.statusDetail}</p>}
         </div>

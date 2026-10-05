@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { bootstrap } from "./bootstrap";
 import { createApp } from "./app";
 import { OPCO } from "./sim/world";
+import { demoScenarios } from "./sim/scenarios";
 
 const { engine, status } = bootstrap();
 const app = createApp(engine, status, { secureCookies: process.env.NODE_ENV === "production" });
@@ -22,6 +23,7 @@ app.listen(port, () => {
 
 if (process.env.HIJOJO_DEMO === "1" && engine.d.repo.opcos().length === 0) {
   engine.addOpco(OPCO);
+  for (const sc of demoScenarios()) engine.addOpco(sc.opco);
 }
 
 // The worker: run due jobs continuously; poll the inbox on its own cadence.

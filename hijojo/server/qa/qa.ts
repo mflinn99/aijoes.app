@@ -63,8 +63,10 @@ const URL_RE = /\bhttps?:\/\/[^\s<>"')\]]+|\bwww\.[^\s<>"')\]]+/gi;
 // "Leading" only as an adjective ("the UK's leading platform"), not as a verb ("leading the move").
 const SUPERLATIVE_RE =
   /\b((?:the|a|an|our|its|[a-z]+'s)\s+(?:market[- ]|industry[- ])?leading|leading (?:provider|platform|supplier|company|solution|vendor|name)s?|market[- ]leading|industry[- ]leading|best|#1|number one|world[- ]class|unrivall?ed|unmatched|fastest|cheapest|award[- ]winning|proven|revolutionary|guaranteed)\b/gi;
+// Pricing, terms and commitments. A money figure on its own (e.g. a sourced revenue
+// figure in a sale teaser) is not a price; one framed as a price, cost or valuation is.
 const COMMITMENT_RE =
-  /\b(discount(?:s|ed)?|\d+\s?% off|special offer|free trial|trial period|guarantee[sd]?|contracts?|binding|terms and conditions|money[- ]back|price[sd]? at|pricing starts|per month|a month|per year|we will (?:deliver|commit))\b|[£$€]\s?\d/gi;
+  /\b(discount(?:s|ed)?|\d+\s?% off|special offer|free trial|trial period|guarantee[sd]?|contracts?|binding|terms and conditions|money[- ]back|price[sd]? at|pricing starts|per month|a month|per year|per annum|we will (?:deliver|commit))\b|\b(?:price[sd]?|pricing|costs?|fees?|valuation|valued at|asking|offers? (?:of|at|over))\b[^.?!]{0,30}[£$€]\s?\d|[£$€]\s?\d[\d,.]*\s?[km]?\s*(?:valuation|asking price|price|fee)/gi;
 const GENERIC_RE =
   /\b(i hope (?:this|you)[^.]*(?:well|great)|innovative|cutting[- ]edge|game[- ]chang\w*|revolutioni[sz]\w*|transform(?:ation|ational|ing)? your|synerg\w*|leverage|best[- ]in[- ]class|companies like yours|businesses like yours|quick question|touch base|circle back|reach(?:ing)? out to introduce|i wanted to introduce|we help (?:companies|organisations|organizations|businesses))\b/gi;
 const STALE_FOLLOWUP_RE = /\b(just following up|following up on my (?:previous|last|earlier)|circling back|bumping (?:this|my)|just checking in|did you (?:get|see) my (?:last|previous))\b/i;
@@ -302,6 +304,8 @@ export function runQa(ctx: QaContext): QaResult {
   const evidenceRaw = [
     ...facts(citedAll).flatMap((f) => [f.statement, ...f.evidence.flatMap((e) => [e.quote, ctx.sources(e.sourceId)?.text ?? ""])]),
     ...opcoClaims.flatMap((c) => (c ? [c.statement, ...c.evidence.map((e) => e.quote)] : [])),
+    opco.name,
+    prospect.name,
   ].join("\n");
   const shouting = (copy.match(/\b[A-Z]{5,}\b/g) ?? []).some((w) => !evidenceRaw.includes(w));
   const optOut = comm.body.includes(optOutLine(opco.name));

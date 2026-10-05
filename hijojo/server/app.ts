@@ -110,6 +110,12 @@ export function createApp(engine: Engine, status: AppStatus, opts: { secureCooki
   app.post("/api/opcos", requireRole("OPERATOR"), (req, res) => {
     const b = parse(OpcoInput, req.body, res);
     if (!b) return;
+    if (!b.website) {
+      // A sale mandate or unlaunched OpCo: the documents are the evidence and every
+      // message still needs one link of the OpCo's own (e.g. an NDA request page).
+      if (!b.notes?.trim()) return res.status(400).json({ error: "Without a website, supporting information is required" });
+      if (!b.introLink) return res.status(400).json({ error: "Without a website, an intro link is required" });
+    }
     for (const u of [b.website, b.introLink].filter(Boolean) as string[]) {
       const c = checkUrl(u);
       if (!c.ok) return res.status(400).json({ error: `${u}: ${c.error}` });

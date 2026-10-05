@@ -13,6 +13,8 @@ import { SimMailbox } from "../mail/transport";
 import { SimWeb } from "./web";
 import { StaticContactProvider, WebSearchCandidates, type ContactCandidate } from "../agents/prospect";
 import type { CommSections, Finding } from "../../shared/types";
+import { ACQUIRERS, type Scenario } from "./scenarios";
+import { normalise } from "../evidence";
 
 export const OPCO = {
   name: "Clearwater",
@@ -28,7 +30,7 @@ interface ScriptFinding {
   quote: string;
   signalId?: string;
 }
-interface ProspectScript {
+export interface ProspectScript {
   name: string;
   domain: string;
   pages: Record<string, { text: string; publishedAt?: string }>;
@@ -257,6 +259,8 @@ export const PROSPECTS: Record<string, ProspectScript> = {
   },
 };
 
+const CLEARWATER_PROSPECTS = PROSPECTS;
+
 export const RIVAL = { name: "Harbour Customs", domain: "harbourcustoms.test" };
 
 function opcoPages(): Record<string, { html?: string; text?: string; status?: number }> {
@@ -280,13 +284,44 @@ export interface WorldOptions {
   config?: Partial<Config>;
   /** Replace sections the scripted composer writes, per domain. */
   composeOverride?: (domain: string, kind: "intro" | "followup", attempt: number) => Partial<CommSections> | null;
+  /** Extra OpCos (e.g. sale mandates) the world knows how to analyse and prospect for. */
+  scenarios?: Scenario[];
+}
+
+/** Every prospect script the world knows: the Clearwater set, the fictional acquirers, and any a scenario brings. */
+export function allScripts(scenarios: Scenario[] = []): Record<string, ProspectScript> {
+  return Object.assign({}, PROSPECTS, ACQUIRERS, ...scenarios.map((sc) => sc.prospectScripts ?? {}));
+}
+
+export function contactDirectory(scenarios: Scenario[] = []) {
+  return new StaticContactProvider(
+    Object.fromEntries(Object.values(allScripts(scenarios)).map((p) => [p.domain, p.contacts])),
+    "synthetic-directory",
+  );
 }
 
 export function scriptedModel(opts: WorldOptions = {}): ScriptedLlm {
   const domainOf = (t: LlmTask<unknown>) => (t.context as any).prospect.domain as string;
+  const scenarios = opts.scenarios ?? [];
+  const PROSPECTS = allScripts(scenarios);
+  const scenarioFor = (opcoName: string | undefined) => scenarios.find((sc) => sc.opco.name === opcoName);
   return new ScriptedLlm(
     {
       opco_analysis: (t) => {
+        const sc = scenarioFor((t.context as any).opco?.name);
+        if (sc) {
+          // Cite whichever retrieved or supplied source actually contains the quotation.
+          const sources = (t.context as any).sources as { id: string; url: string; text: string }[];
+          return {
+            claims: sc.claims.map((c) => {
+              const src = c.quote ? sources.find((x) => normalise(x.text).includes(normalise(c.quote!))) : undefined;
+              return {
+                key: c.key, field: c.field, statement: c.statement, status: c.status, basis: c.basis,
+                evidence: c.quote ? [{ sourceId: src?.id ?? sources[0]?.id ?? "missing", quote: c.quote }] : [],
+              };
+            }),
+          };
+        }
         const sources = (t.context as any).sources as { id: string; url: string }[];
         const id = (p: string) => sources.find((s) => (p === "/" ? s.url === OPCO.website : s.url.endsWith(p)))?.id ?? "missing";
         return {
@@ -301,7 +336,7 @@ export function scriptedModel(opts: WorldOptions = {}): ScriptedLlm {
           ],
         };
       },
-      opco_profile: () => ({
+      opco_profile: (t) => scenarioFor((t.context as any).opco?.name)?.profile ?? ({
         proposition: { text: "Automated UK customs declarations for freight forwarders", claimKeys: ["prop"] },
         problem: { text: "Manual customs entries delay shipments and incur penalties", claimKeys: ["problem"] },
         usp: { text: "Submits directly to CDS with no broker", claimKeys: ["usp"] },
@@ -370,17 +405,22 @@ export function scriptedModel(opts: WorldOptions = {}): ScriptedLlm {
                 { section: "whyNow", findingId: bySignal(s.followup!.nowSignal) },
               ];
         const override = opts.composeOverride?.(s.domain, kind, c.attempt) ?? {};
+        // Sale mandates: the OpCo-side sentences come from the mandate's pitch.
+        const pitch = scenarioFor(c.opco?.name)?.pitch;
+        const fill = (x: string) => (pitch ? x.replace("{{proposition}}", pitch.proposition).replace("{{teaser}}", pitch.teaser) : x);
+        const sections = Object.fromEntries(Object.entries({ ...plan.sections, ...override }).map(([k, v]) => [k, fill(v as string)]));
         return {
           subject: plan.subject,
-          sections: { ...plan.sections, ...override },
+          sections,
           evidence: evidence.filter((e) => e.findingId),
           opcoClaimIds: (c.claims as any[]).filter((x) => x.status === "FACT" && x.field === "proposition").map((x) => x.id),
           approach: kind === "intro" ? "trigger-led" : "new-observation",
         };
       },
     },
-    () => {
-      const domains = opts.discover ?? [...Object.keys(PROSPECTS), RIVAL.domain];
+    (t) => {
+      const sc = scenarioFor((t.context as any)?.opco?.name);
+      const domains = sc ? sc.prospects : (opts.discover ?? [...Object.keys(CLEARWATER_PROSPECTS), RIVAL.domain]);
       const candidates = domains.map((d) => {
         const bare = d.replace(/^www\./, "");
         const s = PROSPECTS[bare];
@@ -394,9 +434,10 @@ export function scriptedModel(opts: WorldOptions = {}): ScriptedLlm {
   );
 }
 
-export function simWeb(): SimWeb {
+export function simWeb(scenarios: Scenario[] = []): SimWeb {
   const web = new SimWeb(opcoPages());
-  for (const p of Object.values(PROSPECTS)) {
+  for (const sc of scenarios) for (const [url, page] of Object.entries(sc.pages)) web.set(url, page);
+  for (const p of Object.values(allScripts(scenarios))) {
     for (const [path, page] of Object.entries(p.pages)) web.set(`https://${p.domain}${path === "/" ? "" : path}`, page);
   }
   web.set(`https://${RIVAL.domain}`, { text: "Harbour Customs provides customs clearance software for forwarders across the UK." });
@@ -406,13 +447,10 @@ export function simWeb(): SimWeb {
 export function createWorld(opts: WorldOptions = {}) {
   const clock = new FakeClock("2026-10-05T09:00:00.000Z");
   const repo = new Repo(openDb(":memory:"), clock);
-  const web = simWeb();
+  const web = simWeb(opts.scenarios);
   const llm = scriptedModel(opts);
   const mail = new SimMailbox(() => clock.now());
-  const contacts = new StaticContactProvider(
-    Object.fromEntries(Object.values(PROSPECTS).map((p) => [p.domain, p.contacts])),
-    "synthetic-directory",
-  );
+  const contacts = contactDirectory(opts.scenarios);
   const config = testConfig(opts.config);
   const engine = new Engine({
     repo, config, llm, reviewer: null, fetcher: web, contacts, candidates: [new WebSearchCandidates(llm)], transport: mail, inbox: mail,

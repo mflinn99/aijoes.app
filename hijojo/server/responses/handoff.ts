@@ -50,7 +50,7 @@ export function buildHandoff(input: {
 
   h("Prospect");
   lines.push(
-    `OpCo: ${opco.name} (${opco.website})`,
+    `OpCo: ${opco.name}${opco.website ? ` (${opco.website})` : ""}`,
     `Company: ${prospect.name} (https://${prospect.domain})`,
     `Name: ${contact.name}`,
     `Role: ${contact.title}`,
@@ -91,7 +91,7 @@ export function buildHandoff(input: {
   }
 
   h("Links");
-  lines.push(`Intro link used: ${opco.introLink}`, `OpCo website: ${opco.website}`, `Prospect website: https://${prospect.domain}`);
+  lines.push(`Intro link used: ${opco.introLink}`, ...(opco.website ? [`OpCo website: ${opco.website}`] : []), `Prospect website: https://${prospect.domain}`);
 
   return { subject: `[Hijojo] ${LABEL[cls]}: ${contact.name}, ${prospect.name} (${opco.name})`, body: lines.join("\n") };
 }

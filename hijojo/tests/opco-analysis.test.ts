@@ -137,4 +137,40 @@ describe("OpCo analysis", () => {
     expect(repo.claims(opco.id)).toHaveLength(0);
     expect(llm.calls).toHaveLength(0);
   });
+
+  it("analyses an OpCo from supplied documents alone when it has no website (e.g. a sale mandate)", async () => {
+    const doc = "Project SLATE is an established Lancashire managed IT services provider. 100% share sale sought.";
+    const llm = new ScriptedLlm({
+      opco_analysis: (t) => {
+        const src = (t.context as any).sources[0];
+        expect(src.url).toBe("supplied:notes");
+        return { claims: [{ key: "prop", field: "proposition", statement: "Sale of an established MSP", status: "FACT", evidence: [{ sourceId: src.id, quote: "established Lancashire managed IT services provider" }], basis: null }] };
+      },
+      opco_profile: () => ({
+        proposition: { text: "Acquisition of an established Lancashire MSP", claimKeys: ["prop"] },
+        problem: { text: "Acquirers need regional scale", claimKeys: ["prop"] },
+        usp: { text: "", claimKeys: [] },
+        cost: { text: "", claimKeys: [] },
+        icp: { sectors: ["Managed IT services"], subsectors: [], geographies: ["United Kingdom"], employeeMin: null, employeeMax: null, revenue: null, technology: [], maturity: null, ownership: [], growth: null, regulatory: [], other: [] },
+        buyers: { economic: ["Chief Executive Officer"], operational: [], technical: [], influencer: [] },
+        signals: [{ id: "recent-acquisition", name: "Recent MSP acquisition", description: "", whyItMatters: "", keywords: [] }],
+        exclusions: [],
+      }),
+    });
+    const fetcher = new SimWeb();
+    const opco = repo.createOpco({ name: "Project SLATE", website: "", introLink: "https://slate.test/nda", notes: doc });
+    const profile = await analyseOpco({ repo, llm, fetcher }, opco.id);
+    expect(profile?.complete).toBe(true);
+    expect(fetcher.requests).toHaveLength(0);
+    expect(profile!.exclusions.every((x) => x.value !== "")).toBe(true);
+    expect(repo.opco(opco.id)!.status).toBe("PROFILED");
+  });
+
+  it("fails honestly when there is neither a website nor a document", async () => {
+    const opco = repo.createOpco({ name: "Empty", website: "", introLink: "https://x.test" });
+    const llm = analyst();
+    await analyseOpco({ repo, llm, fetcher: new SimWeb() }, opco.id);
+    expect(repo.opco(opco.id)!.status).toBe("FAILED");
+    expect(llm.calls).toHaveLength(0);
+  });
 });

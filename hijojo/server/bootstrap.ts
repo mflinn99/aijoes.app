@@ -9,10 +9,11 @@ import { loadConfig } from "./config";
 import { Engine } from "./engine";
 import { AnthropicLlm, UnconfiguredLlm, type Llm } from "./llm/client";
 import { LiveFetcher } from "./research/fetcher";
-import { UnconfiguredContactProvider, WebSearchCandidates, StaticContactProvider } from "./agents/prospect";
+import { UnconfiguredContactProvider, WebSearchCandidates } from "./agents/prospect";
 import { SimMailbox } from "./mail/transport";
 import { GraphMail, graphConfigFromEnv } from "./mail/graph";
-import { scriptedModel, simWeb, PROSPECTS } from "./sim/world";
+import { contactDirectory, scriptedModel, simWeb } from "./sim/world";
+import { demoScenarios } from "./sim/scenarios";
 import type { AppStatus } from "./app";
 
 export function bootstrap(env: NodeJS.ProcessEnv = process.env): { engine: Engine; status: AppStatus } {
@@ -21,15 +22,16 @@ export function bootstrap(env: NodeJS.ProcessEnv = process.env): { engine: Engin
 
   if (env.HIJOJO_DEMO === "1") {
     if (config.sendMode === "live") throw new Error("HIJOJO_DEMO cannot run in live mode");
-    const llm = scriptedModel();
+    const scenarios = demoScenarios();
+    const llm = scriptedModel({ scenarios });
     const mail = new SimMailbox();
     const engine = new Engine({
       repo,
       config: { ...config, senderName: config.senderName === "AIGoGo" ? "Alex Morgan" : config.senderName },
       llm,
       reviewer: null,
-      fetcher: simWeb(),
-      contacts: new StaticContactProvider(Object.fromEntries(Object.values(PROSPECTS).map((p) => [p.domain, p.contacts])), "synthetic-directory"),
+      fetcher: simWeb(scenarios),
+      contacts: contactDirectory(scenarios),
       candidates: [new WebSearchCandidates(llm)],
       transport: mail,
       inbox: mail,

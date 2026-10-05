@@ -126,4 +126,15 @@ describe("API", () => {
     expect(m.emailsSent.intro).toBe(3);
     expect(m.opensAndClicks).toMatch(/Not tracked/);
   });
+
+  it("accepts an OpCo without a website if a document and an intro link are supplied", async () => {
+    const op = await signIn("op@aigogo.test");
+    const noDoc = await op.post("/api/opcos").set("x-hijojo", "1").send({ name: "Project SLATE", website: "", introLink: "https://slate.test/nda" });
+    expect(noDoc.status).toBe(400);
+    const noLink = await op.post("/api/opcos").set("x-hijojo", "1").send({ name: "Project SLATE", website: "", notes: "Teaser text" });
+    expect(noLink.status).toBe(400);
+    const ok = await op.post("/api/opcos").set("x-hijojo", "1").send({ name: "Project SLATE", website: "", introLink: "https://slate.test/nda", notes: "Teaser text" });
+    expect(ok.status).toBe(201);
+    expect(ok.body.introLink).toBe("https://slate.test/nda");
+  });
 });

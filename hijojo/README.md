@@ -20,7 +20,7 @@ ENTER OPCO → UNDERSTAND → PROFILE → SEARCH → RESEARCH → QUALIFY → SC
 ```bash
 cd hijojo
 npm install
-npm test          # 165 tests, including acceptance scenarios A–J
+npm test          # 175 tests, including acceptance scenarios A–J
 npm run demo      # http://localhost:5050, synthetic world, prints sign-ins
 ```
 
@@ -69,6 +69,21 @@ unconfigured and deferred are different things.
 demonstrated repeatedly against real companies. That needs an API key, outbound
 web access, Outlook connected and a contact provider. Nothing has been sent to
 anyone.
+
+## Sale mandates and private scenarios
+
+An OpCo can be a business for sale. Leave the website blank, paste the teaser or
+information memorandum as supporting information, and give an intro link of the
+OpCo's own (typically an NDA request page). Hijojo analyses the document alone,
+prospects for acquirers, and QA lets sourced figures from the teaser through
+while still rejecting anything framed as a price or valuation. The fictional
+mandate *Project SLATE* (`server/sim/scenarios.ts`, `tests/sale-mandate.test.ts`)
+exercises this end to end.
+
+Real mandates are confidential. Put them as JSON scenario files in
+`.data/private-scenarios/` (git-ignored); `npm run demo` runs them in place of
+SLATE, and `tests/private-scenarios.test.ts` checks every quotation against the
+document. They are never committed.
 
 ## How the rules are enforced
 

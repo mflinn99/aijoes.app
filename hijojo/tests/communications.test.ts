@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { runQa } from "../server/qa/qa";
-import { comm, contact, ctx, findings, opco, sections } from "./qa-fixture";
+import { comm, contact, ctx, findings, opco, sections, sources } from "./qa-fixture";
 import { renderBody } from "../server/agents/compose";
 
 const failed = (r: ReturnType<typeof runQa>) => r.checks.filter((c) => !c.passed).map((c) => c.name);
@@ -185,5 +185,25 @@ describe("regressions", () => {
     expect(failed(runQa(ctx({ comm: c, findings: withAcronym })))).not.toContain("format");
     const shouty = withSections({ cta: "Would it be useful to see it before the opening? URGENT." });
     expect(failed(runQa(ctx({ comm: shouty })))).toContain("format");
+  });
+});
+
+describe("regressions: sale mandates", () => {
+  it("allows a sourced financial figure that is not a price, but still rejects pricing", () => {
+    const sale = sources.map((s) => (s.id === "s-opco" ? { ...s, text: `${s.text} Revenue of £640k in FY25/26.` } : s));
+    const byId = new Map(sale.map((s) => [s.id, s]));
+    const c = withSections({ teaser: "The business turned over £640k in FY25/26; the walkthrough is here:" });
+    expect(failed(runQa(ctx({ comm: c, sources: (id) => byId.get(id) })))).not.toContain("claims.noCommitments");
+    for (const cta of ["The asking price is £1.2m.", "It costs £900 per month.", "Valuation of £2m is expected."]) {
+      expect(failed(runQa(ctx({ comm: withSections({ cta }), sources: (id) => byId.get(id) })))).toContain("claims.noCommitments");
+    }
+  });
+
+  it("does not treat the OpCo's own capitalised name (e.g. Project SLATE) as shouting", () => {
+    const rock = { ...opco, name: "Project SLATE" };
+    const s2 = { ...sections, proposition: "Project SLATE files UK customs declarations automatically for freight forwarders." };
+    const c = comm({}, s2);
+    const body = c.body.replace(/Clearwater/g, "Project SLATE");
+    expect(failed(runQa(ctx({ opco: rock, comm: { ...c, body } })))).not.toContain("format");
   });
 });

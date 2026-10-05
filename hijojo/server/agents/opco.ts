@@ -7,7 +7,7 @@ import type { Repo } from "../repo";
 import { newId } from "../repo";
 import type { Fetcher } from "../research/fetcher";
 import { sourceBlock, UNTRUSTED_NOTICE, type Llm } from "../llm/client";
-import { settleStatus } from "../evidence";
+import { hashText, settleStatus } from "../evidence";
 import { bareDomain } from "../qualification";
 import { ANALYSIS_FIELDS, type Claim, type Epistemic, type Exclusion, type ProfileItem, type ProspectingProfile } from "../../shared/types";
 import { EpistemicSchema, EvidenceSchema, pageUrl, retrieve } from "./common";
@@ -87,27 +87,32 @@ export async function analyseOpco(deps: OpcoDeps, opcoId: string): Promise<Prosp
   const opco = repo.opco(opcoId);
   if (!opco) throw new Error(`No OpCo ${opcoId}`);
   repo.setOpcoStatus(opcoId, "ANALYSING");
-  repo.event("opco.analysis.started", opco.website, { opcoId });
+  const hasWebsite = opco.website.trim() !== "";
+  repo.event("opco.analysis.started", hasWebsite ? opco.website : "From supplied documents only (no website)", { opcoId });
 
-  const fetched = await retrieve(
-    repo,
-    fetcher,
-    OPCO_PATHS.map((path) => ({ url: pageUrl(opco.website, path), kind: "opco-site" as const })),
-    { opcoId },
-  );
+  // A sale mandate or an unlaunched OpCo may have no website; documents are then the only source.
+  const fetched = hasWebsite
+    ? await retrieve(repo, fetcher, OPCO_PATHS.map((path) => ({ url: pageUrl(opco.website, path), kind: "opco-site" as const })), { opcoId })
+    : { sources: [], failures: [] as string[] };
   const sources = [...fetched.sources];
   if (opco.notes.trim()) {
     sources.push(
       repo.addSource(
-        { url: "supplied:notes", kind: "opco-document", title: "Supplied information", retrievedAt: repo.now(), publishedAt: null, contentHash: "", text: opco.notes },
+        { url: "supplied:notes", kind: "opco-document", title: "Supplied information", retrievedAt: repo.now(), publishedAt: null, contentHash: hashText(opco.notes), text: opco.notes },
         { opcoId },
       ),
     );
   }
-  if (!fetched.sources.length) {
-    const detail = `Could not retrieve the website: ${fetched.failures.slice(0, 3).join("; ")}`;
-    repo.setOpcoStatus(opcoId, "FAILED", detail);
-    repo.event("opco.analysis.failed", detail, { opcoId });
+  const failure = hasWebsite
+    ? fetched.sources.length
+      ? null
+      : `Could not retrieve the website: ${fetched.failures.slice(0, 3).join("; ")}`
+    : sources.length
+      ? null
+      : "No website and no supporting document to analyse";
+  if (failure) {
+    repo.setOpcoStatus(opcoId, "FAILED", failure);
+    repo.event("opco.analysis.failed", failure, { opcoId });
     return null;
   }
 
@@ -116,8 +121,8 @@ export async function analyseOpco(deps: OpcoDeps, opcoId: string): Promise<Prosp
     task: "opco_analysis",
     system: ANALYST_SYSTEM,
     effort: "high",
-    prompt: `OpCo: ${opco.name}\nWebsite: ${opco.website}\n\nAnalyse: proposition, products/services, problem solved, target customer, likely buyer, business benefit, USP, differentiation, commercial model, indicative customer cost, implementation requirements, proof/evidence available, strongest sales arguments, weaknesses or unsupported claims.\n\n${sources.map((s) => sourceBlock(s)).join("\n\n")}`,
-    context: { opco, sources: sources.map((s) => ({ id: s.id, url: s.url })) },
+    prompt: `OpCo: ${opco.name}\nWebsite: ${opco.website || "none (analyse the supplied documents)"}\n\nAnalyse: proposition, products/services, problem solved, target customer, likely buyer, business benefit, USP, differentiation, commercial model, indicative customer cost, implementation requirements, proof/evidence available, strongest sales arguments, weaknesses or unsupported claims.\n\n${sources.map((s) => sourceBlock(s)).join("\n\n")}`,
+    context: { opco, sources: sources.map((s) => ({ id: s.id, url: s.url, text: s.text })) },
     schema: AnalysisSchema,
   });
 
@@ -136,7 +141,7 @@ export async function analyseOpco(deps: OpcoDeps, opcoId: string): Promise<Prosp
     task: "opco_profile",
     system: PROFILE_SYSTEM,
     effort: "high",
-    prompt: `OpCo: ${opco.name} (${opco.website})\n\nSettled claims:\n${[...byKey]
+    prompt: `OpCo: ${opco.name}${opco.website ? ` (${opco.website})` : ""}\n\nSettled claims:\n${[...byKey]
       .map(([k, c]) => `- [${k}] ${c.field} | ${c.status} | ${c.statement}${c.basis ? ` (basis: ${c.basis})` : ""}`)
       .join("\n")}`,
     context: { opco, claims: [...byKey].map(([key, c]) => ({ key, ...c })) },
@@ -144,7 +149,7 @@ export async function analyseOpco(deps: OpcoDeps, opcoId: string): Promise<Prosp
   });
 
   // Never prospect an AIGoGo company, this one included.
-  const ownDomains = repo.opcos().map((o) => bareDomain(o.website));
+  const ownDomains = repo.opcos().map((o) => bareDomain(o.website)).filter(Boolean);
   const exclusions: Exclusion[] = [
     ...ownDomains.map((d) => ({ kind: "domain" as const, value: d, reason: "AIGoGo company" })),
     ...draft.exclusions.filter((x) => !(x.kind === "domain" && ownDomains.includes(bareDomain(x.value)))),
