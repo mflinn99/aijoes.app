@@ -13,7 +13,7 @@
 //               Calendar or Calendly page. It replaces the request calendar,
 //               so visitors book live against real availability.
 var CONTACT = {
-  email: 'amy@aigogo.ai',
+  email: 'customer@sentinel8.ai',
   endpoint: '',
   bookingUrl: 'https://bookings.cloud.microsoft/bookwithme/user/34043a2e1522444297ea800ffcd00a8c%40aigogo.ai?anonymous',
   timeZone: 'Europe/London',  // the team's working hours are in this zone

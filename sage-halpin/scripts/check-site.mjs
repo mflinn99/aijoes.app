@@ -97,7 +97,7 @@ if (!idsOf(home).has('contact')) fail(home, 'has no #contact section');
 if (!/class="nav-cta" href="#contact">Contact Us</.test(homeHtml)) fail(home, 'the header pill does not read "Contact Us"');
 if (!jsEmail) fail(path.join(SITE, 'contact.js'), 'has no email setting');
 else if (!homeHtml.includes(`mailto:${jsEmail}`)) fail(home, `does not show ${jsEmail}, the address contact.js sends to`);
-if (!homeHtml.includes('tel:+447803000952')) fail(home, 'is missing the contact phone number');
+if (!homeHtml.includes('tel:+442081291416')) fail(home, 'is missing the contact phone number');
 
 if (problems.length) {
   console.error(`Site check failed (${problems.length}):\n  ` + problems.join('\n  '));

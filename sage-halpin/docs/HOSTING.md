@@ -49,7 +49,7 @@ shared from their own Share menu, but the website above is the public copy.
 
 | Address | File | What it is |
 | --- | --- | --- |
-| `/` | `site/index.html` | The landing page, including Contact Us (`#contact`: call booking, message form, amy@aigogo.ai, 07803 000952) |
+| `/` | `site/index.html` | The landing page, including Contact Us (`#contact`: call booking, message form, customer@sentinel8.ai, +44 (0)208 1291416) |
 | `/demo/` | `site/demo/index.html` | The interactive demo, with fictional data |
 | `/media/` | `site/media/index.html` | The hero animation as videos (16:9, 1:1, 9:16, GIF, transparent WebM, still) with downloads and the embed code. Not indexed by search engines. |
 | `/hero.html` | `site/hero.html` | The hero animation on its own, for embedding (`<iframe>`) and recording. Options: `background`, `years`, `yearsAt`, `speed`, `still`. Not indexed. |
@@ -114,7 +114,7 @@ Their settings are at the top of `sage-halpin/site/contact.js`:
 
 | Setting | Today | What it does |
 | --- | --- | --- |
-| `email` | `amy@aigogo.ai` | Where requests and messages go (also shown on the page with the phone number, 07803 000952) |
+| `email` | `customer@sentinel8.ai` | Where requests and messages go (also shown on the page with the phone number, +44 (0)208 1291416) |
 | `endpoint` | empty | A form service URL that accepts a JSON POST, such as Formspree. When set, messages and call requests are delivered straight to it |
 | `bookingUrl` | Mike's Microsoft "Bookings with me" page (`bookings.cloud.microsoft/bookwithme/…`) | A live booking page connected to a real calendar. When set, it replaces the request calendar, so visitors book live against real availability. A personal Bookings with me page opens from a button; a shared booking page would be embedded (see below) |
 | `startHour`, `endHour`, `minutes`, `days`, `leadHours` | 9, 17, 30, 15, 18 | The call times on offer, in UK time |
