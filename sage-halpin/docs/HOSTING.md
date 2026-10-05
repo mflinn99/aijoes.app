@@ -116,7 +116,7 @@ Their settings are at the top of `sage-halpin/site/contact.js`:
 | --- | --- | --- |
 | `email` | `amy@aigogo.ai` | Where requests and messages go (also shown on the page with the phone number, 07803 000952) |
 | `endpoint` | empty | A form service URL that accepts a JSON POST, such as Formspree. When set, messages and call requests are delivered straight to it |
-| `bookingUrl` | empty | A live booking page connected to a real calendar, ideally a Microsoft Bookings shared booking page (see below). When set, it replaces the request calendar, so visitors book live against real availability |
+| `bookingUrl` | Mike's Microsoft "Bookings with me" page (`bookings.cloud.microsoft/bookwithme/…`) | A live booking page connected to a real calendar. When set, it replaces the request calendar, so visitors book live against real availability. A personal Bookings with me page opens from a button; a shared booking page would be embedded (see below) |
 | `startHour`, `endHour`, `minutes`, `days`, `leadHours` | 9, 17, 30, 15, 18 | The call times on offer, in UK time |
 
 ### Link the booking calendar to your Microsoft 365 (Outlook) calendar
