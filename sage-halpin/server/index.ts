@@ -6,6 +6,7 @@ import { assertEmailConfigured, emailProvider } from "./email.js";
 import { sweepExpired } from "./routes/consultations.js";
 import { scanDueWorkspaces } from "./horizon.js";
 import { getStore } from "./store.js";
+import { authConfigured } from "./auth.js";
 
 // Fail fast on a misconfigured AI provider rather than serving a board that
 // cannot answer.
@@ -17,7 +18,7 @@ const port = Number(process.env.PORT || 3001);
 if (!Number.isInteger(port) || port <= 0) throw new Error("PORT must be a positive integer");
 
 createApp().listen(port, "0.0.0.0", () =>
-  console.info(`Sentinel8 listening on port ${port} (AI: ${aiProvider()}, model ${aiModel()}; store: ${storeKind()}; email: ${emailProvider()})`),
+  console.info(`Sentinel8 listening on port ${port} (AI: ${aiProvider()}, model ${aiModel()}; store: ${storeKind()}; email: ${emailProvider()}; accounts: ${authConfigured() ? "on" : "off, set SESSION_SECRET"})`),
 );
 
 // Delete consultations past their retention date, whether or not anyone opens them again.

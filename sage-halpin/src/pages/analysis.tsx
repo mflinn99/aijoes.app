@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { CheckpointPill } from "@/components/CheckpointPill";
+import { AccountMenu } from "@/components/AccountProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import TraditionalView, { type TraditionalViewData } from "../components/TraditionalView";
@@ -248,14 +249,15 @@ export default function Analysis() {
   return (
     <div style={{ background: BG, minHeight: "100vh", fontFamily: "var(--font-sans)", color: TEXT }} data-testid="analysis-page">
       {/* Top bar */}
-      <div style={{ position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 32px", borderBottom: `1px solid ${BORDER}`, background: "hsl(var(--background) / 0.95)", backdropFilter: "blur(8px)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", rowGap: 12, columnGap: 16, padding: "16px clamp(16px, 4vw, 32px)", borderBottom: `1px solid ${BORDER}`, background: "hsl(var(--background) / 0.95)", backdropFilter: "blur(8px)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", rowGap: 10 }}>
           <button onClick={() => setLocation("/")} style={{ background: "none", border: "none", color: TEXT_SEC, fontSize: 13, letterSpacing: "0.2em", textTransform: "uppercase", cursor: "pointer", fontWeight: 700 }} onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "hsl(var(--primary))")} onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_SEC)}>
             ← SENTINEL<span className="sentinel-eight">8</span>
           </button>
           <span style={{ color: BORDER_BRIGHT, fontSize: 12 }}>|</span>
           <span style={{ color: TEXT, fontSize: 11, letterSpacing: "0.3em", fontWeight: 500, textTransform: "uppercase" }}>Analysis Engine</span>
           <CheckpointPill />
+          <AccountMenu compact />
           <button onClick={() => setLocation("/log")} style={{ background: "none", border: "none", color: TEXT_MUTED, fontSize: 10, letterSpacing: "0.2em", textTransform: "uppercase", cursor: "pointer", fontWeight: 600 }} onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "hsl(var(--primary))")} onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_MUTED)}>
             Decision Log
           </button>

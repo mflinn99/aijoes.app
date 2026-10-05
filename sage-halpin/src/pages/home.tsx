@@ -6,6 +6,7 @@ import { Boardroom } from "@/components/Boardroom";
 import { Mark } from "@/components/Mark";
 import { scopedKey } from "@/lib/userScope";
 import { loadOrganisation } from "@/lib/organisation";
+import { AccountMenu, useAccount } from "@/components/AccountProvider";
 
 const BG = "hsl(var(--background))";
 const TEXT_PRIMARY = "hsl(var(--foreground))";
@@ -13,6 +14,7 @@ const TEXT_SECONDARY = "hsl(var(--muted-foreground))";
 const PRIMARY = "hsl(var(--primary))";
 
 export default function Home() {
+  const { account } = useAccount();
   const [hasSession, setHasSession] = useState(false);
   const [, setLocation] = useLocation();
 
@@ -55,9 +57,10 @@ export default function Home() {
         <nav className="flex flex-wrap items-center gap-3" aria-label="Workspace access">
           <CheckpointPill />
           <PrimaryButton label="Enter Workspace" onClick={() => setLocation("/dashboard")} primary testId="button-enter-workspace" />
-          <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground bg-muted px-3 py-1.5 rounded-sm">
-            Saved in this browser
+          <div className="text-xs font-medium uppercase tracking-widest text-muted-foreground bg-muted px-3 py-1.5 rounded-sm" data-testid="save-location">
+            {account ? "Saved to your account" : "Saved in this browser"}
           </div>
+          <AccountMenu />
         </nav>
       </motion.header>
 

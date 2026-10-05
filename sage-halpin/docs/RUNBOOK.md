@@ -95,6 +95,31 @@ shadow board makes one per seated agent, and each summary makes one. Watch Found
   summaries) share `RATE_LIMIT_CONSULT_AI_PER_10_MIN` (20); answering a
   questionnaire is limited to 60 requests per client per 10 minutes.
 
+## Accounts
+
+People create an account at `/signup` (linked from the website's **Sign in** and
+**Create account** buttons) and sign in at `/signin`. Their workspace (organisation,
+people, question links, decision log) is kept in the browser and saved to the
+account every few seconds, so it follows them to another device.
+
+- **Session secret.** `SESSION_SECRET` signs session cookies and encrypts each
+  account's saved workspace. `deploy.sh` creates it in Key Vault
+  (`session-secret`) on the first deploy and keeps it afterwards; the Container
+  App reads it by Key Vault reference. Without it in production, accounts are
+  switched off (the account endpoints answer 503) and the rest of the app works.
+- **Storage.** Accounts and their saved workspaces live in the `consultations`
+  table, partition `accounts`. Each saved workspace is encrypted with AES-256-GCM;
+  passwords are stored as scrypt hashes. A saved workspace is limited to 1 MB.
+- **Sessions** last 14 days in an `HttpOnly`, `Secure`, `SameSite=Lax` cookie.
+  Signing out clears the account's copy from that browser.
+- **Limits.** Sign-in and sign-up share `RATE_LIMIT_AUTH_PER_10_MIN` (10 per
+  client per 10 minutes); saving the workspace is limited to 240 requests.
+- **Forgotten passwords** are handled by hand for now: the sign-in page asks
+  people to email customer@sentinel8.ai. To reset one, delete the account's rows
+  (partition `accounts`, row `a-<sha256 of the lower-cased email>` and its
+  `data-<id>` row) and ask the person to sign up again; this also deletes their
+  saved workspace.
+
 ## Agent learning and horizon scanning
 
 - **Workspace.** Each organisation has a workspace in the same `consultations`
@@ -149,6 +174,9 @@ logged. Model refusals are logged as warnings with their category.
 - **Managed identity**: nothing to rotate.
 - **Foundry key** (if used): add a new secret version in Key Vault, then restart
   the revision (`az containerapp revision restart`).
+- **Session secret**: redeploy with `ROTATE_SESSION_SECRET=1`. This signs
+  everyone out and makes saved workspaces unreadable: people can still sign in,
+  but start with an empty board. Rotate only if the secret may have leaked.
 
 ## Custom domain
 

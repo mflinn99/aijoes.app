@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { Mark } from "@/components/Mark";
 import { CheckpointPill } from "@/components/CheckpointPill";
+import { AccountMenu } from "@/components/AccountProvider";
 
 // The frame for the board pages: brand, page title and the workspace
 // navigation, then the page itself.
@@ -46,6 +47,7 @@ export function WorkspaceShell({ title, children, actions }: { title: string; ch
               );
             })}
           </nav>
+          <AccountMenu className="sm:ml-auto" />
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-8">

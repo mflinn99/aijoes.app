@@ -4,7 +4,7 @@ import type { Request, Response, NextFunction } from "express";
 // session fans out to several model calls, so this caps cost and abuse. It is
 // per replica; put Azure Front Door WAF rate limiting in front for a global cap.
 
-export function rateLimit({ windowMs, max }: { windowMs: number; max: number }) {
+export function rateLimit({ windowMs, max, message = "Too many board sessions. Please wait before convening again." }: { windowMs: number; max: number; message?: string }) {
   const hits = new Map<string, { count: number; resetAt: number }>();
 
   return (req: Request, res: Response, next: NextFunction) => {
@@ -24,7 +24,7 @@ export function rateLimit({ windowMs, max }: { windowMs: number; max: number }) 
 
     if (entry.count > max) {
       res.setHeader("Retry-After", String(Math.ceil((entry.resetAt - now) / 1000)));
-      res.status(429).json({ error: "Too many board sessions. Please wait before convening again." });
+      res.status(429).json({ error: message });
       return;
     }
     next();
