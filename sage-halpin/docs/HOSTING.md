@@ -136,6 +136,25 @@ embed code for it.
    `https://outlook.office.com/book/`.
 5. Put that address in `bookingUrl` in `site/contact.js` and merge.
 
+#### The live setup: Mike's Bookings with me page
+
+The site links to Mike's Microsoft **Bookings with me** page
+(`bookings.cloud.microsoft/bookwithme/…`). Its meeting types are set in Outlook on
+the web → **Calendar → Bookings with me**. The website's wording assumes the first one.
+
+| Meeting type | Visibility | Duration | Description to use |
+| --- | --- | --- | --- |
+| Sentinel8 introductory call | Public | 30 min, Microsoft Teams | A 30-minute call with the Sentinel8 team. We'll talk through the decisions your board faces, what an evolving team of experienced people and AI advisers would look like around it, and how a first engagement runs. No preparation needed. If you have a specific question in mind, add it in the notes when you book. |
+| Sentinel8 board walkthrough (optional) | Public | 45 min, Teams | A 45-minute walkthrough for a chair or board member: we take one real decision your board is facing and show how Sentinel8 would assemble the people and AI advisers around it, test it against scenarios, and record the outcome. Bring a question you're working on. |
+| Sentinel8 engagement session (optional) | Private (link only) | 60 min, Teams | Working session for an active Sentinel8 engagement. |
+
+Suggested for each: custom hours Monday to Friday 09:00–17:00 UK time, 10-minute
+buffer before and 15 after, start times every 30 minutes, at least 24 hours' notice,
+up to 30 days ahead. Check the page in a private browser window: it should show the
+public meeting types without asking visitors to sign in. Bookings with me shows the
+Microsoft 365 profile name and photo and has no logo or colour settings; for Sentinel8
+branding, use a shared booking page instead (steps above), which the site embeds.
+
 A personal **Bookings with me** page (`…/bookwithme/…`) also works, but Microsoft
 doesn't allow it to be embedded, so the site shows a "Choose a time in our calendar"
 button that opens it instead. A Google Calendar appointment page or Calendly link
