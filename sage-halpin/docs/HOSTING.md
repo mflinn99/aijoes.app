@@ -122,49 +122,59 @@ Their settings are at the top of `sage-halpin/site/contact.js`:
 | --- | --- | --- |
 | `email` | `customer@sentinel8.ai` | Where requests and messages go (also shown on the page with the phone number, +44 (0)208 1291416) |
 | `endpoint` | empty | A form service URL that accepts a JSON POST, such as Formspree. When set, messages and call requests are delivered straight to it |
-| `bookingUrl` | Mike's Microsoft "Bookings with me" page (`bookings.cloud.microsoft/bookwithme/…`) | A live booking page connected to a real calendar. When set, it replaces the request calendar, so visitors book live against real availability. A personal Bookings with me page opens from a button; a shared booking page would be embedded (see below) |
+| `bookingUrl` | The Sentinel8 Microsoft Bookings shared page (`https://bookings.cloud.microsoft/book/SENTINEL81%40aigogo.ai/`) | A live booking page connected to a real calendar. When set, it replaces the request calendar, so visitors book live against real availability. A Microsoft Bookings page opens from a **Schedule online** button in a new tab; a Google Calendar or Calendly page is embedded. Keep it the same as `BOOKING_URL` in `shared/contact.ts` |
 | `startHour`, `endHour`, `minutes`, `days`, `leadHours` | 9, 17, 30, 15, 18 | The call times on offer, in UK time |
 
 ### Link the booking calendar to your Microsoft 365 (Outlook) calendar
 
 Use a **Microsoft Bookings shared booking page**: it reads the Outlook calendar's
-free/busy times and puts every booking straight into it, and Microsoft provides
-embed code for it.
+free/busy times and puts every booking straight into it.
 
 1. Sign in at https://outlook.office.com/bookings (or open **Bookings** from the
    Microsoft 365 app launcher) and create a **shared booking page**, for example
-   "Sentinel8 introductory call".
+   "Sentinel8".
 2. Add a service of 30 minutes, turn on **Add online meeting** (Teams), add
    yourself as staff, and set your business hours.
 3. On the booking page settings, set it to be bookable by anyone, then **Save and publish**.
-4. Choose **Embed** (or **Share → Embed**) and copy the address from the `src` of the
-   iframe code. It starts `https://outlook.office365.com/book/` or
-   `https://outlook.office.com/book/`.
-5. Put that address in `bookingUrl` in `site/contact.js` and merge.
+4. Copy the page's link (**Share → Copy link**). Leave off anything after `?`, such
+   as `?ismsaljsauthenabled`: that is a sign-in flag for your own session, not for visitors.
+5. Put that address in `bookingUrl` in `site/contact.js` and `BOOKING_URL` in
+   `shared/contact.ts`, and merge.
 
-#### The live setup: Mike's Bookings with me page
+#### The live setup: the Sentinel8 shared booking page
 
-The site links to Mike's Microsoft **Bookings with me** page
-(`bookings.cloud.microsoft/bookwithme/…`). Its meeting types are set in Outlook on
-the web → **Calendar → Bookings with me**. The website's wording assumes the first one.
+The website and every email footer link to the Sentinel8 Microsoft Bookings shared
+page: https://bookings.cloud.microsoft/book/SENTINEL81%40aigogo.ai/ (`@` is
+written `%40` so mail apps don't mistake part of it for an email address). Its
+services, staff and hours are set in the Bookings app (https://outlook.office.com/bookings).
+To move to a different page, change `bookingUrl` in `site/contact.js` and
+`BOOKING_URL` in `shared/contact.ts` together.
 
-| Meeting type | Visibility | Duration | Description to use |
+Suggested services, all on Microsoft Teams:
+
+| Service | Visibility | Duration | Description to use |
 | --- | --- | --- | --- |
-| Sentinel8 introductory call | Public | 30 min, Microsoft Teams | A 30-minute call with the Sentinel8 team. We'll talk through the decisions your board faces, what an evolving team of experienced people and AI advisers would look like around it, and how a first engagement runs. No preparation needed. If you have a specific question in mind, add it in the notes when you book. |
-| Sentinel8 board walkthrough (optional) | Public | 45 min, Teams | A 45-minute walkthrough for a chair or board member: we take one real decision your board is facing and show how Sentinel8 would assemble the people and AI advisers around it, test it against scenarios, and record the outcome. Bring a question you're working on. |
-| Sentinel8 engagement session (optional) | Private (link only) | 60 min, Teams | Working session for an active Sentinel8 engagement. |
+| Sentinel8 introductory call | Public | 30 min | A 30-minute call with the Sentinel8 team. We'll talk through the decisions your board faces, what an evolving team of experienced people and AI advisers would look like around it, and how a first engagement runs. No preparation needed. If you have a specific question in mind, add it in the notes when you book. |
+| Sentinel8 board walkthrough (optional) | Public | 45 min | A 45-minute walkthrough for a chair or board member: we take one real decision your board is facing and show how Sentinel8 would assemble the people and AI advisers around it, test it against scenarios, and record the outcome. Bring a question you're working on. |
+| Sentinel8 engagement session (optional) | Private (link only) | 60 min | Working session for an active Sentinel8 engagement. |
 
-Suggested for each: custom hours Monday to Friday 09:00–17:00 UK time, 10-minute
-buffer before and 15 after, start times every 30 minutes, at least 24 hours' notice,
-up to 30 days ahead. Check the page in a private browser window: it should show the
-public meeting types without asking visitors to sign in. Bookings with me shows the
-Microsoft 365 profile name and photo and has no logo or colour settings; for Sentinel8
-branding, use a shared booking page instead (steps above), which the site embeds.
+Suggested for each: Monday to Friday 09:00–17:00 UK time, 10-minute buffer before
+and 15 after, at least 24 hours' notice, up to 30 days ahead. Set the business email
+to customer@sentinel8.ai so confirmations and replies use it. Check the page in a
+private browser window: it should list the public services without asking visitors
+to sign in.
 
-A personal **Bookings with me** page (`…/bookwithme/…`) also works, but Microsoft
-doesn't allow it to be embedded, so the site shows a "Choose a time in our calendar"
-button that opens it instead. A Google Calendar appointment page or Calendly link
-works too.
+### Email footers
+
+Every email Sentinel8 sends or drafts ends with the same footer: a **Schedule
+online** button linking to the booking page, plus customer@sentinel8.ai and
++44 (0)208 1291416. It is defined once in `shared/contact.ts` (HTML and plain-text
+versions) and used by the questionnaire invitation the app emails and the
+invitation it drafts for the lead to send from their own mailbox.
+
+A personal **Bookings with me** page (`…/bookwithme/…`) also works and opens from
+the same button. A Google Calendar appointment page or Calendly link works too, and
+is embedded in the panel.
 
 With neither service set, the page still works: a visitor picks a weekday slot
 (UK working hours, bank holidays excluded, shown in their own time zone), enters

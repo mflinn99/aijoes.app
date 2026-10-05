@@ -1,5 +1,6 @@
 import { scopedKey } from "./userScope";
 import type { AgentId, Answer, DecisionMode, Position, QuestionnaireItem } from "../../shared/board";
+import { EMAIL_FOOTER_TEXT } from "../../shared/contact";
 
 // Client for board questions (consultations). The lead's browser keeps each
 // question's id and admin token; the server keeps the question, the people
@@ -127,7 +128,9 @@ Please answer a short questionnaire: ${link}
 ${c.dueDate ? `\nPlease reply by ${c.dueDate}.\n` : ""}
 Your answers come to me. They are compared with the views of our board's AI agents and summarised with AI to support the decision, which the people accountable for ${c.organisation} make.
 
-${c.leadName}`;
+${c.leadName}
+
+${EMAIL_FOOTER_TEXT}`;
   return `mailto:${encodeURIComponent(invitee.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 

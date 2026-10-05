@@ -6,16 +6,17 @@
 // Two optional settings connect real services without changing the page:
 //   endpoint    a form service that accepts a JSON POST (for example Formspree).
 //               Messages and booking requests are sent there directly instead.
-//   bookingUrl  a live scheduling page connected to a real calendar: a
-//               Microsoft Bookings shared booking page (embedded in the panel),
-//               a Microsoft "Bookings with me" personal page (opened from a
-//               button, as Microsoft doesn't allow embedding it), or a Google
-//               Calendar or Calendly page. It replaces the request calendar,
-//               so visitors book live against real availability.
+//   bookingUrl  a live scheduling page connected to a real calendar. A
+//               Microsoft Bookings page (shared or "Bookings with me") opens
+//               from a "Schedule online" button in a new tab, which always
+//               works; a Google Calendar or Calendly page is embedded. It
+//               replaces the request calendar, so visitors book live against
+//               real availability. Keep it the same as BOOKING_URL in
+//               shared/contact.ts (the email footers).
 var CONTACT = {
   email: 'customer@sentinel8.ai',
   endpoint: '',
-  bookingUrl: 'https://bookings.cloud.microsoft/bookwithme/user/34043a2e1522444297ea800ffcd00a8c%40aigogo.ai?anonymous',
+  bookingUrl: 'https://bookings.cloud.microsoft/book/SENTINEL81%40aigogo.ai/',
   timeZone: 'Europe/London',  // the team's working hours are in this zone
   startHour: 9,               // first call starts 09:00
   endHour: 17,                // last call ends by 17:00
@@ -163,11 +164,12 @@ var CONTACT = {
       var picker = book.querySelector('[data-booking-picker]');
       var src = CONTACT.bookingUrl;
       var hintEl = tzLabel && tzLabel.closest('.hint');
-      if (/\/bookwithme\//i.test(src)) {
-        // Microsoft's personal booking pages can't be embedded: open them instead.
+      if (/^https:\/\/(bookings\.cloud\.microsoft|outlook\.office(365)?\.com)\//i.test(src)) {
+        // Microsoft booking pages: open in a new tab rather than embed, since
+        // Microsoft blocks some of them inside other sites.
         var go = document.createElement('div');
         go.className = 'form-actions';
-        go.innerHTML = '<a class="btn btn-primary" target="_blank" rel="noopener">Choose a time in our calendar</a><span class="form-note">Opens our Microsoft booking page in a new tab. No account needed.</span>';
+        go.innerHTML = '<a class="btn btn-primary" target="_blank" rel="noopener" data-schedule>Schedule online</a><span class="form-note">Opens our Microsoft booking page in a new tab. No account needed.</span>';
         go.querySelector('a').href = src;
         picker.replaceWith(go);
         if (hintEl) hintEl.textContent = 'Pick a time for a 30-minute introductory call on Microsoft Teams. It goes straight into our calendar, and you get the Teams invitation by email.';

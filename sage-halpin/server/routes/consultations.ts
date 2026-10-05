@@ -21,6 +21,7 @@ import { PERSONAS } from "../personas/boardroom-personas.js";
 import { AIRefusalError, complete } from "../ai.js";
 import { getStore, type Store } from "../store.js";
 import { emailProvider, escapeHtml, publicBaseUrl, sendEmail } from "../email.js";
+import { EMAIL_FOOTER_HTML, EMAIL_FOOTER_TEXT } from "../../shared/contact.js";
 import { addLesson, agentKnowledge, authorisedWorkspace, saveDecision, type DecisionRecord } from "../workspace.js";
 
 // A consultation is one board question put to the people around the table and
@@ -543,13 +544,13 @@ Please answer a short questionnaire: ${link}
 ${due}
 Your answers go to ${c.leadName}. They are compared with the views of the board's AI agents and summarised with AI to support the decision. The people accountable for ${c.organisation} make the decision.
 
-Sentinel8`;
+${EMAIL_FOOTER_TEXT}`;
   const html = `<p>Dear ${escapeHtml(invitee.name)},</p>
 <p>${escapeHtml(c.leadName)} at ${escapeHtml(c.organisation)} would like your input, as ${escapeHtml(invitee.role)}, on a board question:</p>
 <blockquote>${escapeHtml(c.question)}</blockquote>
 <p><a href="${escapeHtml(link)}">Answer the questionnaire</a>${c.dueDate ? ` by ${escapeHtml(c.dueDate)}` : ""}.</p>
 <p style="color:#555">Your answers go to ${escapeHtml(c.leadName)}. They are compared with the views of the board's AI agents and summarised with AI to support the decision. The people accountable for ${escapeHtml(c.organisation)} make the decision.</p>
-<p>Sentinel<span style="display:inline-block;transform:rotate(90deg)">8</span></p>`;
+${EMAIL_FOOTER_HTML}`;
   return { subject, text, html };
 }
 
