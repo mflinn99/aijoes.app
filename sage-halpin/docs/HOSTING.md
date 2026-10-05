@@ -116,20 +116,30 @@ Their settings are at the top of `sage-halpin/site/contact.js`:
 | --- | --- | --- |
 | `email` | `amy@aigogo.ai` | Where requests and messages go (also shown on the page with the phone number, 07803 000952) |
 | `endpoint` | empty | A form service URL that accepts a JSON POST, such as Formspree. When set, messages and call requests are delivered straight to it |
-| `bookingUrl` | empty | A scheduling page: a Google Calendar appointment schedule, Microsoft Bookings or Calendly. When set, it replaces the request calendar, so visitors book live against real availability |
+| `bookingUrl` | empty | A live booking page connected to a real calendar, ideally a Microsoft Bookings shared booking page (see below). When set, it replaces the request calendar, so visitors book live against real availability |
 | `startHour`, `endHour`, `minutes`, `days`, `leadHours` | 9, 17, 30, 15, 18 | The call times on offer, in UK time |
 
-### Link the booking calendar to a real Google Calendar
+### Link the booking calendar to your Microsoft 365 (Outlook) calendar
 
-1. In Google Calendar on a computer, click **Create → Appointment schedule**.
-   Set the title (for example "Sentinel8 introductory call"), 30 minutes, your
-   available hours, buffers and a Google Meet link, then **Save**.
-2. Under **Booking pages**, hover over it, click **Options → Sharing options →
-   Website embed → Inline booking page**, and copy the `src` address from the
-   code (it starts `https://calendar.google.com/calendar/appointments/schedules/`).
-3. Put that address in `bookingUrl` in `site/contact.js` and merge. Visitors then
-   see only your free times, and every booking goes straight into your calendar
-   with a confirmation email to both sides.
+Use a **Microsoft Bookings shared booking page**: it reads the Outlook calendar's
+free/busy times and puts every booking straight into it, and Microsoft provides
+embed code for it.
+
+1. Sign in at https://outlook.office.com/bookings (or open **Bookings** from the
+   Microsoft 365 app launcher) and create a **shared booking page**, for example
+   "Sentinel8 introductory call".
+2. Add a service of 30 minutes, turn on **Add online meeting** (Teams), add
+   yourself as staff, and set your business hours.
+3. On the booking page settings, set it to be bookable by anyone, then **Save and publish**.
+4. Choose **Embed** (or **Share → Embed**) and copy the address from the `src` of the
+   iframe code. It starts `https://outlook.office365.com/book/` or
+   `https://outlook.office.com/book/`.
+5. Put that address in `bookingUrl` in `site/contact.js` and merge.
+
+A personal **Bookings with me** page (`…/bookwithme/…`) also works, but Microsoft
+doesn't allow it to be embedded, so the site shows a "Choose a time in our calendar"
+button that opens it instead. A Google Calendar appointment page or Calendly link
+works too.
 
 With neither service set, the page still works: a visitor picks a weekday slot
 (UK working hours, bank holidays excluded, shown in their own time zone), enters
