@@ -22,7 +22,7 @@ interface Run {
 export function AnalyseForm({
   examples,
 }: {
-  examples: { domain: string; name: string; description: string }[];
+  examples: { input: string; name: string; description: string; notice?: string }[];
 }) {
   const router = useRouter();
   const [input, setInput] = useState('');
@@ -114,12 +114,13 @@ export function AnalyseForm({
             calls. Any real domain also works — the platform will fetch and analyse the live website.
           </p>
           {examples.map((ex) => (
-            <div key={ex.domain} className="row between" style={{ padding: '10px 0', borderTop: '1px solid var(--border)' }}>
+            <div key={ex.input} className="row between" style={{ padding: '10px 0', borderTop: '1px solid var(--border)' }}>
               <div>
                 <div style={{ fontWeight: 600 }}>{ex.name}</div>
                 <div className="tiny faint">{ex.description}</div>
+                {ex.notice ? <div className="tiny warn-text">{ex.notice}</div> : null}
               </div>
-              <button className="btn small" type="button" onClick={() => { setInput(ex.domain); void start(ex.domain); }}>
+              <button className="btn small" type="button" onClick={() => { setInput(ex.input); void start(ex.input); }}>
                 Analyse
               </button>
             </div>

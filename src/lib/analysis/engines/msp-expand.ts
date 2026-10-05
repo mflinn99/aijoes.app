@@ -77,6 +77,10 @@ export const MSP_SERVICES: MspServiceDefinition[] = [
     timeToValue: 60,
     capabilities: ['strata-metamsp'],
     applies: (ctx) => {
+      // "Nothing on the website" only means something when the website was
+      // read. Without it, this would be a claim about our reach dressed up as
+      // a claim about their security posture.
+      if (!ctx.hasWebsiteData) return false;
       const indicators = (valueOf(ctx.twin.cyberIndicators) as Signal[] | null) ?? [];
       return !indicators.some((i) => /cyber essentials|iso\s*27001/i.test(i.summary));
     },
@@ -289,6 +293,13 @@ function nextConversation(def: MspServiceDefinition, ctx: AnalysisContext): stri
 }
 
 export function mspExpandOpportunities(ctx: AnalysisContext): Opportunity[] {
+  // Proposing managed Microsoft 365 to a managed services provider is the
+  // clearest possible signal that the platform has not understood who it is
+  // looking at. They sell this; they are not a prospect for it. An MSP is a
+  // partner, an acquisition target or a competitor, and which of those it is
+  // is a commercial judgement rather than something to guess at here.
+  if (ctx.isItselfAnMsp) return [];
+
   const currentServices = ((valueOf(ctx.twin.currentMSPServices) as string[] | null) ?? []).map((s) => s.toLowerCase());
   const out: Opportunity[] = [];
 

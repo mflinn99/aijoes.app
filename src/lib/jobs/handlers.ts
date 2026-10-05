@@ -8,6 +8,7 @@ import { getDb } from '../db/client';
 import type { JobRecord } from './queue';
 import { analyseCompany, getRun } from '../analysis/pipeline';
 import { getSynthetic } from '../fixtures/synthetic';
+import { getDemoCompany } from '../fixtures/demo';
 import type { AnalysisJobPayload } from './queue';
 
 export type JobHandler = (job: JobRecord) => Promise<void>;
@@ -26,13 +27,19 @@ const analysisHandler: JobHandler = async (job) => {
   if (run && run.status === 'completed') return;
 
   const synthetic = payload.syntheticKey ? getSynthetic(payload.syntheticKey) : undefined;
+  // A document-sourced demo company has no records to seed — it has supplied
+  // facts and counted financials instead, and they must reach the engines on
+  // this run rather than the next one.
+  const demo = getDemoCompany(payload.input);
 
   await analyseCompany(db, payload.input, {
     runId: payload.runId,
     customerId: payload.customerId,
-    offline: payload.offline,
-    seedRecords: synthetic?.records,
-    userSupplied: synthetic?.userSupplied,
+    offline: payload.offline || demo !== undefined,
+    ...(synthetic?.records ? { seedRecords: synthetic.records } : {}),
+    ...(synthetic?.userSupplied ? { userSupplied: synthetic.userSupplied } : {}),
+    // Demo last: an exact match on a named demo company beats a fixture lookup.
+    ...(demo ? { userSupplied: demo.userSupplied, userSuppliedSource: demo.source, suppliedFinancialFacts: demo.financialFacts } : {}),
   });
 };
 

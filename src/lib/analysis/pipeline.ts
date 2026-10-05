@@ -15,7 +15,7 @@ import { connectorsFor, recommendedConnections } from '../discovery/registry';
 import { computeLicenceFacts } from '../discovery/microsoft365-connector';
 import { computeFinancialFacts } from '../discovery/xero-connector';
 import { computeCrmFacts } from '../discovery/hubspot-connector';
-import { getFacts, putFacts } from '../db/repositories/facts';
+import { getFacts, putFacts, type FinancialFacts } from '../db/repositories/facts';
 import { scheduleRefresh } from './refresh';
 import { normaliseDomain, looksLikeDomain } from '../discovery/http';
 import type { CompanyIdentity, SourceRecord } from '../discovery/connector';
@@ -142,6 +142,23 @@ export interface AnalyseOptions {
   seedRecords?: SourceRecord[];
   /** Facts the user supplied directly, e.g. a known headcount. */
   userSupplied?: Partial<Record<TwinFieldKey, unknown>>;
+  /**
+   * Where the supplied facts came from. "Supplied by user" is true but useless
+   * when the facts are figures from a named document — an acquisition teaser
+   * deserves to be cited as one, so the number can be checked against its source
+   * rather than taken on trust.
+   */
+  userSuppliedSource?: { label: string; locator?: string; confidence?: number };
+  /**
+   * Counted financial figures the caller already holds — from a diligence
+   * document, say, rather than a connected ledger.
+   *
+   * Written before the engines run, so they take the counted path. Writing them
+   * afterwards looks equivalent and is not: the analysis would complete against
+   * benchmarks and the facts would only take effect on the next run, which is
+   * how a counted customer base of 43 came out as an estimated 50.
+   */
+  suppliedFinancialFacts?: { connectorId: string; facts: FinancialFacts };
   /** Continue an already-created run, so a caller can poll it while this works. */
   runId?: string;
 }
@@ -239,9 +256,10 @@ export async function analyseCompany(
         field,
         claim(value, {
           connectorId: 'user',
-          label: 'Supplied by user',
+          label: options.userSuppliedSource?.label ?? 'Supplied by user',
+          ...(options.userSuppliedSource?.locator ? { locator: options.userSuppliedSource.locator } : {}),
           method: 'user-supplied',
-          confidence: 0.9,
+          confidence: options.userSuppliedSource?.confidence ?? 0.9,
         }),
       );
     }
@@ -279,6 +297,9 @@ export async function analyseCompany(
 
     const financialFacts = computeFinancialFacts(allRecords);
     if (financialFacts) putFacts(db, twin.id, 'financial', 'accounting', financialFacts);
+    else if (options.suppliedFinancialFacts) {
+      putFacts(db, twin.id, 'financial', options.suppliedFinancialFacts.connectorId, options.suppliedFinancialFacts.facts);
+    }
 
     const crmFacts = computeCrmFacts(allRecords);
     if (crmFacts) putFacts(db, twin.id, 'crm', 'crm', crmFacts);

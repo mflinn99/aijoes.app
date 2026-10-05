@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { guardRoute } from '@/lib/session';
 import { createRun } from '@/lib/analysis/pipeline';
 import { getSynthetic } from '@/lib/fixtures/synthetic';
+import { getDemoCompany } from '@/lib/fixtures/demo';
 import { upsertCustomer, listCustomers } from '@/lib/db/repositories/tenant-data';
 import { normaliseDomain } from '@/lib/discovery/http';
 import { rateLimit, ANALYSIS_LIMIT } from '@/lib/rate-limit';
@@ -35,12 +36,15 @@ export async function POST(request: Request) {
   if (!input) return NextResponse.json({ error: 'input is required' }, { status: 400 });
 
   const synthetic = getSynthetic(input);
+  const demo = getDemoCompany(input);
   const run = createRun(database, input);
 
   // Re-analysing a company the MSP already has must not create a second
   // customer record for it; the twin would attach to the first one and the new
   // record would sit in the estate for ever as "never analysed".
-  const domain = synthetic?.domain ?? normaliseDomain(input);
+  // A document-sourced demo company is anonymised and has no domain. Deriving
+  // one from its codename would attach a fabricated identity to real figures.
+  const domain = demo ? null : synthetic?.domain ?? normaliseDomain(input);
   const existing = listCustomers(database).find(
     (c) => (domain && c.domain === domain) || c.name.toLowerCase() === input.toLowerCase(),
   );
@@ -49,10 +53,10 @@ export async function POST(request: Request) {
   if (!body.customerId && !existing) {
     upsertCustomer(database, {
       id: customerId,
-      name: synthetic?.name ?? input,
+      name: demo?.name ?? synthetic?.name ?? input,
       domain: domain ?? null,
       currentMrr: synthetic?.currentMrr ?? 0,
-      relationshipNote: 'Added via company analysis',
+      relationshipNote: demo ? 'Demo company. Figures from a supplied document.' : 'Added via company analysis',
       renewalDate: null,
     });
   }

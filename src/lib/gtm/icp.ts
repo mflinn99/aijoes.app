@@ -65,8 +65,19 @@ export interface IcpContext {
   segments: string[];
   technology: TechnologyItem[];
   signals: Signal[];
-  /** Lower-cased blob of every text claim, for keyword matching. */
+  /**
+   * Lower-cased blob of what the company IS — its own sectors, services,
+   * products, proposition and markets.
+   *
+   * Deliberately excludes customerSegments. Who a company sells to is not who
+   * it is, and folding the two together makes every B2B supplier look like its
+   * own customer base: an MSP whose clients include councils and charities was
+   * matching the public sector archetype at 80% fit, which would have put it on
+   * a G-Cloud approach list it has no business being on.
+   */
   haystack: string;
+  /** Who the company sells TO. Matched separately, and only where that is the question. */
+  customerHaystack: string;
   /** How much of the twin is actually populated, 0..100. */
   understanding: number;
 }
@@ -75,6 +86,11 @@ export interface IcpContext {
 
 function hits(ctx: IcpContext, terms: string[]): string[] {
   return terms.filter((t) => ctx.haystack.includes(t.toLowerCase()));
+}
+
+/** Matches against who the company sells to, for the few questions that is. */
+function customerHits(ctx: IcpContext, terms: string[]): string[] {
+  return terms.filter((t) => ctx.customerHaystack.includes(t.toLowerCase()));
 }
 
 function tech(ctx: IcpContext, pattern: RegExp): TechnologyItem[] {
@@ -295,10 +311,23 @@ export const ARCHETYPES: Archetype[] = [
     buyerRoles: ['Head of ICT', 'Digital Lead', 'Procurement Manager'],
     match: (ctx) => {
       const evidence: string[] = [];
-      const publicish = hits(ctx, ['local authority', 'council', 'nhs', 'public sector', 'government', 'academy trust', 'school', 'university', 'housing association', 'charity']);
-      if (publicish.length > 0) evidence.push(`Public sector indicators: ${publicish.join(', ')}`);
-      if (publicish.length > 0) evidence.push('Onward holds a G-Cloud listing, which is a route in without a full tender');
-      return { fit: publicish.length > 0 ? 0.8 : 0.05, evidence };
+      const TERMS = ['local authority', 'council', 'nhs', 'public sector', 'government', 'academy trust', 'school', 'university', 'housing association', 'charity'];
+      const publicish = hits(ctx, TERMS);
+      if (publicish.length > 0) {
+        evidence.push(`Public sector indicators: ${publicish.join(', ')}`);
+        evidence.push('Onward holds a G-Cloud listing, which is a route in without a full tender');
+        return { fit: 0.8, evidence };
+      }
+
+      // Selling INTO the public sector is not the same as being in it. It is a
+      // weak secondary signal at most — the buying rules that make this
+      // archetype worth anything apply to the body, not to its suppliers.
+      const sellsToPublic = customerHits(ctx, TERMS);
+      if (sellsToPublic.length > 0) {
+        evidence.push(`Serves public sector customers (${sellsToPublic.join(', ')}), but is not itself a public body — framework routes do not apply`);
+        return { fit: 0.1, evidence };
+      }
+      return { fit: 0.05, evidence };
     },
   },
   {
@@ -309,10 +338,27 @@ export const ARCHETYPES: Archetype[] = [
     buyerRoles: ['Finance Director', 'Managing Director', 'Integration Lead'],
     match: (ctx) => {
       const evidence: string[] = [];
-      const events = signalsMatching(ctx, /acquisition|acquired|merger|merged|investment|private equity|mbo|takeover/i);
-      const terms = hits(ctx, ['acquisition', 'acquired', 'merger', 'private equity', 'group of companies']);
+      const events = signalsMatching(ctx, /acquisition|acquired|merger|merged|investment|private equity|mbo|takeover|share sale|sale process|exit|succession/i);
+      const terms = hits(ctx, ['acquisition', 'acquired', 'merger', 'private equity', 'group of companies', 'share sale', 'sale sought', 'succession']);
       if (events.length > 0) evidence.push(`Change event signal: ${events[0]!.summary}`);
       if (terms.length > 0) evidence.push(`Corporate change language: ${terms.join(', ')}`);
+      // Buy-side and sell-side are opposite situations wearing the same
+      // keywords. A company that has ACQUIRED something has two estates and a
+      // deadline, and wants delivery help. A company that is BEING SOLD wants a
+      // buyer, and pitching it managed services during its own sale process
+      // reads as not having understood the document you were sent.
+      const sellSide = /share sale|sale process|seeking (?:a )?(?:buyer|sale)|exit|succession|for sale/i;
+      const isSellSide =
+        events.some((e) => sellSide.test(e.summary)) || sellSide.test(ctx.haystack);
+
+      if (isSellSide) {
+        evidence.push('This company is on the sell side: it is seeking a buyer, not a supplier');
+        evidence.push('The approach is a corporate development conversation through whoever is running the process, not a services pitch');
+        // Deliberately low. It is a real and timely opportunity, but not one
+        // this engine should be opening with a service proposition.
+        return { fit: 0.15, evidence };
+      }
+
       // The strongest timing signal there is: two estates and a deadline.
       const fit = events.length > 0 ? 0.95 : terms.length > 0 ? 0.6 : 0.05;
       return { fit, evidence };
@@ -432,9 +478,20 @@ export function buildIcpContext(twin: CompanyTwin, profile: MspProfile, understa
     else if (v && typeof v === 'object') textBits.push(JSON.stringify(v));
   };
 
-  for (const key of ['valuePropositions', 'services', 'products', 'sectors', 'industries', 'customerSegments', 'markets', 'partners', 'suppliers'] as const) {
+  // 'ownership' matters here: "100% share sale sought" is the strongest timing
+  // signal a company can carry, and leaving it out of the haystack meant a
+  // business actively in a sale process scored 9% on timing.
+  for (const key of ['valuePropositions', 'services', 'products', 'sectors', 'industries', 'markets', 'partners', 'suppliers'] as const) {
     push(valueOf(twin[key]));
   }
+  // Ownership is a single string rather than a list, but it carries the same
+  // weight: "100% share sale sought" is the strongest timing signal a company
+  // can have, and leaving it out meant a business in an active sale process
+  // scored 9% on timing.
+  push(valueOf(twin.ownership));
+
+  const customerBits: string[] = [];
+  for (const segment of (valueOf(twin.customerSegments) as string[] | null) ?? []) customerBits.push(segment);
   const signals = [
     ...((valueOf(twin.recruitmentSignals) as Signal[] | null) ?? []),
     ...((valueOf(twin.strategicSignals) as Signal[] | null) ?? []),
@@ -462,6 +519,7 @@ export function buildIcpContext(twin: CompanyTwin, profile: MspProfile, understa
     technology,
     signals,
     haystack: ` ${textBits.join(' ').toLowerCase()} `,
+    customerHaystack: ` ${customerBits.join(' ').toLowerCase()} `,
     understanding,
   };
 }
@@ -533,6 +591,11 @@ export function scoreAccount(
 
   // TIMING: is there a reason to contact now rather than ever?
   const changeEvent = matches.find((m) => m.archetype === 'ma-change-event');
+  // A sale process is demoted out of `matches` on purpose (see the archetype),
+  // so it has to be read from the signals directly or it disappears entirely.
+  const sellSideEvent = ctx.signals.find((s) =>
+    /share sale|sale process|seeking (?:a )?(?:buyer|sale)|exit|succession|for sale/i.test(s.summary),
+  ) ?? null;
   const hiring = ctx.signals.filter((s) => s.kind === 'open-role').length;
   const migration = matches.find((m) => m.archetype === 'technology-migration');
   const timing = score(
@@ -542,7 +605,17 @@ export function scoreAccount(
       { label: 'Migration in flight', weight: 20, input: migration ? migration.fit : 0, why: migration ? migration.rationale : 'No migration signal' },
       { label: 'Recency of evidence', weight: 15, input: ctx.understanding > 0 ? 0.6 : 0, why: 'Signals are as fresh as the last analysis of this account' },
     ],
-    changeEvent ? 'A change event is the strongest reason to contact now' : hiring > 0 ? 'Hiring is the main timing signal' : 'No strong timing signal — this is a nurture account, not a call today',
+    changeEvent
+      ? 'A change event is the strongest reason to contact now'
+      : sellSideEvent
+        // Losing this to "no timing signal" would be the worst of both: the
+        // engine would have read that the company is being sold and then
+        // reported that nothing is happening. The event is real and urgent;
+        // it is simply not a reason to send a services email.
+        ? `${sellSideEvent.summary} That is urgent, but it is a corporate development conversation, not a services approach — which is why this scores low for outreach rather than high.`
+        : hiring > 0
+          ? 'Hiring is the main timing signal'
+          : 'No strong timing signal — this is a nurture account, not a call today',
   );
 
   // NEED: how badly do they appear to need what Onward sells?

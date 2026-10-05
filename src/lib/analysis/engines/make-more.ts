@@ -109,7 +109,18 @@ const dormantReactivation: Rule = (ctx) => {
     category: 'MAKE_MORE',
     subcategory: 'Existing customer expansion',
     title: 'Dormant customer reactivation',
-    summary: `${dormant} customer records are likely dormant. A structured reactivation campaign against a prior relationship converts far better than cold outreach.`,
+    // Dormancy is NEVER counted on this path — only a CRM can observe it, and
+    // that is the dormantFromCrm branch above. What `counted` buys here is a
+    // real customer base to apply the share to, not knowledge of who has gone
+    // quiet. Saying "15 customer records are dormant" because the base of 43
+    // was counted would be the same overstatement as before, dressed in a
+    // better number.
+    summary:
+      `If this base behaves like a typical one, roughly ${dormant} of its ${estimatedCustomers} customers will be dormant. ` +
+      (counted
+        ? 'The customer count is counted; the dormant share is an industry average applied to it. Nobody has looked at who has actually gone quiet.'
+        : 'Both the customer count and the dormant share are modelled, so treat the number as an order of magnitude.') +
+      ' Reactivation converts far better than cold outreach, which is why it is worth counting properly.',
     problem:
       'Customers who bought before and stopped are the cheapest revenue available, and they are almost never worked systematically because nobody owns them.',
     lines: [
@@ -188,9 +199,22 @@ const pipelineGeneration: Rule = (ctx) => {
   const crm = ctx.facts.crm;
 
   // A counted conversion rate and deal value beat any benchmark, and they are
-  // the two numbers this model is most sensitive to.
-  const customerValue = crm?.averageDealValue ?? ctx.turnover.value * BENCHMARKS.averageCustomerValueRatio.value;
-  const meetings = BENCHMARKS.outboundMeetingsPerRepPerMonth.value * 12;
+  // the two numbers this model is most sensitive to. A counted average customer
+  // value from the ledger counts too — it was previously skipped in favour of a
+  // 2%-of-turnover benchmark even when the real figure was sitting in facts.
+  const countedCustomerValue = crm?.averageDealValue ?? ctx.facts.financial?.averageCustomerValue ?? null;
+  const customerValue = countedCustomerValue ?? ctx.turnover.value * BENCHMARKS.averageCustomerValueRatio.value;
+
+  // The benchmark is meetings per REP per month, and it was being applied to
+  // companies with no rep. A five-person MSP running three service desk staff,
+  // an account manager and an operations lead cannot produce ten qualified
+  // meetings a month, so sizing a motion on that figure describes a business
+  // this one is not. Capacity scales the target down to what the people here
+  // could actually run alongside their day jobs.
+  const salesCapacity = Math.min(1, ctx.employees.value / 25);
+  const meetingsPerMonth = Math.max(2, Math.round(BENCHMARKS.outboundMeetingsPerRepPerMonth.value * salesCapacity));
+  const capped = meetingsPerMonth < BENCHMARKS.outboundMeetingsPerRepPerMonth.value;
+  const meetings = meetingsPerMonth * 12;
   const winRate = crm?.conversionRate !== null && crm?.conversionRate !== undefined
     ? { rate: crm.conversionRate, note: `Counted: ${crm.wonLast12m} won of ${crm.wonLast12m + crm.lostLast12m} closed deals in the last 12 months.` }
     : winRateForDealSize(customerValue);
@@ -198,7 +222,7 @@ const pipelineGeneration: Rule = (ctx) => {
   const value = wins * customerValue * FIRST_YEAR_RAMP;
   if (value < 10_000) return null;
 
-  const countedBasis: FinancialLine['basis'] = crm?.averageDealValue ? 'connected' : ctx.turnover.basis;
+  const countedBasis: FinancialLine['basis'] = countedCustomerValue !== null ? 'connected' : ctx.turnover.basis;
 
   const hasOutbound =
     ((valueOf(ctx.twin.salesChannels) as string[] | null) ?? []).length > 0 ||
@@ -208,18 +232,22 @@ const pipelineGeneration: Rule = (ctx) => {
     category: 'MAKE_MORE',
     subcategory: 'New business',
     title: 'Build a repeatable outbound pipeline',
-    summary: `A working outbound motion producing ${BENCHMARKS.outboundMeetingsPerRepPerMonth.value} qualified meetings a month is worth roughly ${money(value)} a year at this company's average deal size.`,
+    summary:
+      `A working outbound motion producing ${meetingsPerMonth} qualified meeting(s) a month is worth roughly ${money(value)} a year at this company's average customer value.` +
+      (capped
+        ? ` Scaled down from the ${BENCHMARKS.outboundMeetingsPerRepPerMonth.value}-a-month benchmark: at ${ctx.employees.value} employee(s) there is no dedicated sales capacity, so the motion is sized to what the existing team could run.`
+        : ''),
     problem: crm
       ? `The CRM holds ${crm.openDeals} open deal(s) worth ${money(crm.openPipelineValue)}, of which ${crm.stalledDeals} have not been touched in 60 days. Pipeline is not being generated or worked systematically.`
       : hasOutbound
         ? 'Sales tooling is present but there is no visible systematic outbound motion — pipeline depends on referral and inbound, which cannot be turned up on demand.'
         : 'No outbound sales motion is detectable. Growth is therefore capped by inbound volume, which the company does not control.',
     lines: [
-      { label: 'Qualified meetings per month', value: BENCHMARKS.outboundMeetingsPerRepPerMonth.value, unit: 'count', basis: 'benchmark', note: BENCHMARKS.outboundMeetingsPerRepPerMonth.note },
+      { label: 'Qualified meetings per month', value: meetingsPerMonth, unit: 'count', basis: 'benchmark', note: capped ? `${BENCHMARKS.outboundMeetingsPerRepPerMonth.note} Scaled by headcount: ${ctx.employees.value} employee(s) implies no dedicated sales resource.` : BENCHMARKS.outboundMeetingsPerRepPerMonth.note },
       { label: 'Meetings per year', value: meetings, unit: 'count', basis: 'benchmark', note: 'Monthly target × 12.' },
       { label: 'Meeting to win rate', value: Math.round(winRate.rate * 1000) / 10, unit: 'percent', basis: crm?.conversionRate != null ? 'connected' : 'benchmark', note: winRate.note },
       { label: 'New customers per year', value: Math.round(wins), unit: 'count', basis: 'benchmark', note: 'Meetings × win rate.' },
-      { label: 'Average annual customer value', value: Math.round(customerValue), unit: 'GBP', basis: countedBasis, note: crm?.averageDealValue ? 'Counted from closed-won deals in the last 12 months.' : ctx.turnover.note },
+      { label: 'Average annual customer value', value: Math.round(customerValue), unit: 'GBP', basis: countedBasis, note: crm?.averageDealValue ? 'Counted from closed-won deals in the last 12 months.' : ctx.facts.financial?.averageCustomerValue ? `Counted: turnover divided by ${ctx.facts.financial.customerCount ?? 'the'} customer organisations.` : ctx.turnover.note },
       { label: 'First-year revenue ramp', value: FIRST_YEAR_RAMP * 100, unit: 'percent', basis: 'assumption', note: 'Deals land across the year, so year one yields roughly half of each contract\u2019s annual value.' },
       { label: 'New revenue in year one', value: Math.round(value), unit: 'GBP', basis: 'benchmark', note: 'New customers × average customer value × first-year ramp.' },
     ],
@@ -336,6 +364,11 @@ const pricingReview: Rule = (ctx) => {
 };
 
 const propositionClarity: Rule = (ctx) => {
+  // "The proposition is thin" requires having looked at it. With no website
+  // read, an empty valuePropositions field says we did not look, not that
+  // there is nothing there — and the two must not produce the same finding.
+  if (!ctx.hasWebsiteData) return null;
+
   const props = (valueOf(ctx.twin.valuePropositions) as string[] | null) ?? [];
   const weak = props.length === 0 || (props[0] ?? '').length < 60;
   if (!weak) return null;

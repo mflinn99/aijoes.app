@@ -24,6 +24,18 @@ export interface AnalysisContext {
   hasFinancialData: boolean;
   hasCrmData: boolean;
   hasLicenceData: boolean;
+  /**
+   * True only when the public website was actually read.
+   *
+   * Several rules key off things NOT being on a company's site — no security
+   * certification, a thin proposition. Those are findings when the site was
+   * read and the thing was absent. When the site was never fetched they are
+   * findings about this platform's reach, and stating them as findings about
+   * the company is how an engine ends up asserting something it never observed.
+   */
+  hasWebsiteData: boolean;
+  /** True when the company sells managed IT services itself. */
+  isItselfAnMsp: boolean;
   itSpendEstimate: number;
   /**
    * Counted figures from connected systems. When these are present an engine
@@ -36,12 +48,28 @@ export interface AnalysisContext {
 const FINANCIAL_CONNECTORS = ['accounting', 'banking', 'erp'];
 const CRM_CONNECTORS = ['crm', 'psa'];
 const LICENCE_CONNECTORS = ['microsoft-365', 'licence-portal'];
+const WEBSITE_CONNECTORS = ['website'];
+
+/**
+ * Does this company sell managed IT services itself? An MSP is not a prospect
+ * for managed IT, and proposing it tells the reader the platform has not
+ * understood who it is looking at.
+ */
+const MSP_SECTOR_MARKERS = [
+  'managed it', 'managed service', 'msp', 'it support', 'it services',
+  'managed services provider', 'information technology services',
+];
 
 export function buildContext(twin: CompanyTwin, facts: ConnectedFacts = {}): AnalysisContext {
   const sectors = (valueOf(twin.sectors) as string[] | null) ?? [];
   const segments = (valueOf(twin.customerSegments) as string[] | null) ?? [];
   const technology = (valueOf(twin.technologyEstate) as TechnologyItem[] | null) ?? [];
   const connectedSources = twin.dataSources;
+  const services = (valueOf(twin.services) as string[] | null) ?? [];
+  const haystack = [...sectors, ...(valueOf(twin.industries) as string[] | null) ?? [], ...services]
+    .join(' ')
+    .toLowerCase();
+  const isItselfAnMsp = MSP_SECTOR_MARKERS.some((m) => haystack.includes(m));
   const mult = sectorMultiplier(sectors);
 
   const observedEmployees = facts.licence?.enabledUsers ?? (valueOf(twin.employeesEstimate) as number | null);
@@ -119,6 +147,8 @@ export function buildContext(twin: CompanyTwin, facts: ConnectedFacts = {}): Ana
     hasFinancialData: Boolean(facts.financial) || connectedSources.some((s) => FINANCIAL_CONNECTORS.includes(s)),
     hasCrmData: Boolean(facts.crm) || connectedSources.some((s) => CRM_CONNECTORS.includes(s)),
     hasLicenceData: Boolean(facts.licence) || connectedSources.some((s) => LICENCE_CONNECTORS.includes(s)),
+    hasWebsiteData: connectedSources.some((s) => WEBSITE_CONNECTORS.includes(s)),
+    isItselfAnMsp,
     itSpendEstimate,
     facts,
   };
