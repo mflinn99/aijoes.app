@@ -4,6 +4,7 @@ import path from "node:path";
 import boardroom from "./routes/boardroom.js";
 import consultations from "./routes/consultations.js";
 import workspaces from "./routes/workspaces.js";
+import auth from "./routes/auth.js";
 import { aiProvider } from "./ai.js";
 import { limitFromEnv, rateLimit } from "./rate-limit.js";
 
@@ -74,6 +75,11 @@ export function createApp({ publicDir = path.resolve(process.cwd(), "dist/public
     next();
   });
 
+  // Accounts: slow down password guessing per IP.
+  const authMessage = "Too many sign-in attempts. Please wait a few minutes and try again.";
+  app.use(["/api/auth/signin", "/api/auth/signup"], rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_AUTH_PER_10_MIN", 10), message: authMessage }));
+  app.use("/api/account", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_ACCOUNT_PER_10_MIN", 240), message: authMessage }));
+  app.use("/api", auth);
   app.use("/api", boardroom);
   app.use("/api", consultations);
   app.use("/api", workspaces);

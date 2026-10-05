@@ -1,6 +1,5 @@
 import { Switch, Route, Redirect, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { setStorageUser } from "@/lib/userScope";
 import { PageMetadata } from "@/components/PageMetadata";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
@@ -15,6 +14,8 @@ import AgentsPage from "@/pages/agents";
 import HorizonPage from "@/pages/horizon";
 import CheckpointPage from "@/pages/checkpoint";
 import NotFound from "@/pages/not-found";
+import { SignInPage, SignUpPage } from "@/pages/auth";
+import { AccountProvider } from "@/components/AccountProvider";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,8 @@ function Router() {
       <Route path="/questions/new" component={NewQuestion} />
       <Route path="/questions/:id" component={QuestionRoom} />
       <Route path="/respond/:token" component={Respond} />
+      <Route path="/signin" component={SignInPage} />
+      <Route path="/signup" component={SignUpPage} />
       <Route path="/agents" component={AgentsPage} />
       <Route path="/horizon" component={HorizonPage} />
       <Route path="/checkpoint" component={CheckpointPage} />
@@ -43,15 +46,13 @@ function Router() {
 }
 
 function App() {
-  // Public access never adopts an existing Supabase session or reads its data.
-  // Keep historical per-account storage untouched for possible future access.
-  setStorageUser(null);
-
   return (
     <QueryClientProvider client={queryClient}>
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <PageMetadata />
-        <Router />
+        <AccountProvider>
+          <Router />
+        </AccountProvider>
       </WouterRouter>
     </QueryClientProvider>
   );

@@ -54,6 +54,7 @@ shared from their own Share menu, but the website above is the public copy.
 | `/media/` | `site/media/index.html` | The hero animation as videos (16:9, 1:1, 9:16, GIF, transparent WebM, still) with downloads and the embed code. Not indexed by search engines. |
 | `/hero.html` | `site/hero.html` | The hero animation on its own, for embedding (`<iframe>`) and recording. Options: `background`, `years`, `yearsAt`, `speed`, `still`. Not indexed. |
 | | `site/contact.js` | The booking calendar and message form (settings below) |
+| | `site/app-links.js` | Where **Sign in** and **Create account** go: `APP_URL` (default `https://app.sentinel8.ai`) plus `/signin` or `/signup` |
 
 To change the website, edit the files above and merge. Links inside the site are
 relative, so it works at both addresses. **Every pull request and every publish runs
@@ -99,8 +100,13 @@ The app needs Azure and a Claude deployment on Microsoft Foundry.
    az containerapp hostname bind -g rg-sagehalpin-prod -n ca-sagehalpin-prod --hostname app.sentinel8.ai --environment cae-sagehalpin-prod --validation-method CNAME
    ```
 
-5. When the app is live, a "Sign in" or "Open the boardroom" link can be added
-   to the website. It is left out until the address works.
+5. The website's **Sign in** and **Create account** buttons open
+   `https://app.sentinel8.ai/signin` and `/signup` (set by `APP_URL` in
+   `site/app-links.js`; change it there if the app lives elsewhere). Until that
+   address answers, a click shows "Accounts open when the platform launches" with
+   the contact email instead of a broken page, so the buttons can stay up before
+   launch. Accounts need the session secret, which `deploy.sh` creates (see
+   `RUNBOOK.md`, Accounts).
 
 ## Before anything is public
 

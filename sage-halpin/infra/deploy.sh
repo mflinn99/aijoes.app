@@ -9,6 +9,10 @@
 # AI_MODEL, VITE_ENQUIRY_EMAIL, PUBLIC_BASE_URL (address in emailed links),
 # EMAIL_ENDPOINT and EMAIL_SENDER (Azure Communication Services, to email
 # questionnaires; without them the lead sends each link themselves).
+#
+# Accounts need a session secret in Key Vault. The first deploy creates one and
+# later deploys keep it. To rotate it (this signs everyone out), set
+# ROTATE_SESSION_SECRET=1.
 set -euo pipefail
 
 : "${RESOURCE_GROUP:?Set RESOURCE_GROUP}"
@@ -26,6 +30,18 @@ az group create --name "$RESOURCE_GROUP" --location "$LOCATION" --output none
 CURRENT_IMAGE="$(az containerapp show -g "$RESOURCE_GROUP" -n "$APP_NAME" --query 'properties.template.containers[0].image' -o tsv 2>/dev/null || true)"
 CURRENT_IMAGE="${CURRENT_IMAGE:-mcr.microsoft.com/k8se/quickstart:latest}"
 
+# Create the session secret once; afterwards keep the one in Key Vault, so
+# deploys never sign people out. (Checked through Azure Resource Manager, which
+# needs no access to secret values.)
+SESSION_SECRET_PARAM=""
+VAULT="$(az keyvault list -g "$RESOURCE_GROUP" --query "[?starts_with(name, 'kv-sh-${ENVIRONMENT_NAME}-')].name | [0]" -o tsv 2>/dev/null || true)"
+if [[ "${ROTATE_SESSION_SECRET:-}" == "1" ]] || [[ -z "$VAULT" ]] || \
+   ! az resource show -g "$RESOURCE_GROUP" --namespace Microsoft.KeyVault --parent "vaults/$VAULT" \
+       --resource-type secrets --name session-secret --output none 2>/dev/null; then
+  echo "Creating the account session secret…"
+  SESSION_SECRET_PARAM="$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')"
+fi
+
 echo "Applying infrastructure to $RESOURCE_GROUP ($ENVIRONMENT_NAME)…"
 OUTPUTS="$(az deployment group create \
   --resource-group "$RESOURCE_GROUP" \
@@ -34,6 +50,7 @@ OUTPUTS="$(az deployment group create \
                foundryResourceName="$FOUNDRY_RESOURCE_NAME" aiModel="$AI_MODEL" \
                containerImage="$CURRENT_IMAGE" \
                publicBaseUrl="${PUBLIC_BASE_URL:-}" emailEndpoint="${EMAIL_ENDPOINT:-}" emailSender="${EMAIL_SENDER:-}" \
+               sessionSecret="$SESSION_SECRET_PARAM" \
   --query properties.outputs -o json)"
 
 REGISTRY="$(echo "$OUTPUTS" | python3 -c 'import json,sys; print(json.load(sys.stdin)["registryName"]["value"])')"

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckpointPill } from "@/components/CheckpointPill";
+import { AccountMenu } from "@/components/AccountProvider";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { store, generateAlerts, KPIData, Decision, GrowthLever, Risk, Alert } from "@/lib/store";
@@ -51,14 +52,17 @@ export default function Dashboard() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "16px 32px",
+          flexWrap: "wrap",
+          rowGap: 12,
+          columnGap: 16,
+          padding: "16px clamp(16px, 4vw, 32px)",
           borderBottom: `1px solid ${BORDER}`,
           background: "hsl(var(--background) / 0.95)",
           backdropFilter: "blur(8px)",
         }}
         data-testid="dashboard-topbar"
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", rowGap: 10 }}>
           <button
             onClick={() => setLocation("/")}
             style={{ background: "none", border: "none", color: TEXT_MUTED, fontSize: 13, letterSpacing: "0.28em", textTransform: "uppercase", cursor: "pointer", transition: "color 0.2s", fontWeight: 700 }}
@@ -72,9 +76,10 @@ export default function Dashboard() {
             Executive Workspace
           </span>
           <CheckpointPill />
+          <AccountMenu compact />
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", rowGap: 10 }}>
           {criticalCount > 0 && (
             <motion.div
               animate={{ opacity: [0.7, 1, 0.7] }}

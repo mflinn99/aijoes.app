@@ -25,7 +25,7 @@
       @media (prefers-reduced-motion: reduce) { .boot circle { animation: none; opacity: 1; } .boot, #root { transition: none; } }
       @media print { .boot { display: none; } }
     </style>
-    <script>document.documentElement.classList.add("booting"); setTimeout(function () { document.documentElement.classList.replace("booting", "booted"); }, 4000);</script>
+    <script src="%BASE_URL%boot.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;400;500&family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
   </head>
   <body>

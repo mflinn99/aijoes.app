@@ -35,6 +35,10 @@ param foundryRoleDefinitionId string = 'a97b65f3-24c7-4388-baec-2e87135dc908'
 @description('Optional: name of a Key Vault secret holding a Foundry API key. Leave empty to authenticate with the managed identity (recommended).')
 param foundryApiKeySecretName string = ''
 
+@secure()
+@description('Signs account sessions and encrypts saved workspaces (at least 32 characters). Pass it only to create the secret (first deploy) or to rotate it, which signs everyone out; left empty, the secret already in Key Vault is kept. deploy.sh handles this.')
+param sessionSecret string = ''
+
 @description('Minimum replicas. 1 avoids cold starts; 0 scales to zero when idle.')
 @minValue(0)
 param minReplicas int = 1
@@ -121,6 +125,12 @@ resource vault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enablePurgeProtection: true
     publicNetworkAccess: 'Enabled'
   }
+}
+
+resource sessionSecretValue 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if (!empty(sessionSecret)) {
+  parent: vault
+  name: 'session-secret'
+  properties: { value: sessionSecret }
 }
 
 resource vaultSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -223,6 +233,8 @@ var baseEnv = [
   { name: 'EMAIL_PROVIDER', value: useEmail ? 'acs' : 'manual' }
   { name: 'ACS_ENDPOINT', value: emailEndpoint }
   { name: 'EMAIL_SENDER', value: emailSender }
+  // Accounts: signs sessions and encrypts saved workspaces.
+  { name: 'SESSION_SECRET', secretRef: 'session-secret' }
 ]
 
 resource app 'Microsoft.App/containerApps@2024-03-01' = {
@@ -233,7 +245,7 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
     type: 'UserAssigned'
     userAssignedIdentities: { '${identity.id}': {} }
   }
-  dependsOn: [acrPull, vaultSecretsUser, tableAccess]
+  dependsOn: [acrPull, vaultSecretsUser, tableAccess, sessionSecretValue]
   properties: {
     managedEnvironmentId: environment.id
     configuration: {
@@ -250,15 +262,24 @@ resource app 'Microsoft.App/containerApps@2024-03-01' = {
           identity: identity.id
         }
       ]
-      secrets: useApiKey
-        ? [
-            {
-              name: 'foundry-api-key'
-              keyVaultUrl: '${vault.properties.vaultUri}secrets/${foundryApiKeySecretName}'
-              identity: identity.id
-            }
-          ]
-        : []
+      secrets: concat(
+        [
+          {
+            name: 'session-secret'
+            keyVaultUrl: '${vault.properties.vaultUri}secrets/session-secret'
+            identity: identity.id
+          }
+        ],
+        useApiKey
+          ? [
+              {
+                name: 'foundry-api-key'
+                keyVaultUrl: '${vault.properties.vaultUri}secrets/${foundryApiKeySecretName}'
+                identity: identity.id
+              }
+            ]
+          : []
+      )
     }
     template: {
       containers: [

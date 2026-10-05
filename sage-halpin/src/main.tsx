@@ -8,6 +8,9 @@ createRoot(document.getElementById("root")!).render(<App />);
 const fonts = document.fonts?.ready ?? Promise.resolve();
 fonts.then(() =>
   requestAnimationFrame(() =>
-    requestAnimationFrame(() => document.documentElement.classList.replace("booting", "booted")),
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove("booting");
+      document.documentElement.classList.add("booted");
+    }),
   ),
 );

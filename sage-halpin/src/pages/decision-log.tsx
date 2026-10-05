@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { CheckpointPill } from "@/components/CheckpointPill";
+import { AccountMenu } from "@/components/AccountProvider";
 import { useLocation } from "wouter";
 import { loadDecisionLog, saveLog, type DecisionLogEntry } from "@/lib/decisionLog";
 
@@ -49,7 +50,7 @@ export default function DecisionLog() {
   return (
     <div style={{ background: BG, minHeight: "100vh", fontFamily: "var(--font-sans)", color: TEXT }}>
       {/* Top bar */}
-      <div style={{ position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center", gap: 20, padding: "16px 32px", borderBottom: `1px solid ${BORDER}`, background: "hsl(var(--background) / 0.95)", backdropFilter: "blur(8px)" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 40, display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap", rowGap: 10, padding: "16px clamp(16px, 4vw, 32px)", borderBottom: `1px solid ${BORDER}`, background: "hsl(var(--background) / 0.95)", backdropFilter: "blur(8px)" }}>
         <button
           onClick={() => setLocation("/analysis")}
           style={{ background: "none", border: "none", color: TEXT_SEC, fontSize: 13, letterSpacing: "0.2em", textTransform: "uppercase", cursor: "pointer", fontWeight: 700 }}
@@ -61,6 +62,7 @@ export default function DecisionLog() {
         <span style={{ color: BORDER_BRIGHT, fontSize: 12 }}>|</span>
         <span style={{ color: TEXT, fontSize: 11, letterSpacing: "0.3em", fontWeight: 500, textTransform: "uppercase" }}>Decision Log</span>
         <CheckpointPill />
+        <AccountMenu compact />
       </div>
 
       <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 32px 80px" }}>
