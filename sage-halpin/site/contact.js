@@ -167,10 +167,10 @@ var CONTACT = {
         // Microsoft's personal booking pages can't be embedded: open them instead.
         var go = document.createElement('div');
         go.className = 'form-actions';
-        go.innerHTML = '<a class="btn btn-primary" target="_blank" rel="noopener">Choose a time in our calendar</a><span class="form-note">Opens our booking page in a new tab.</span>';
+        go.innerHTML = '<a class="btn btn-primary" target="_blank" rel="noopener">Choose a time in our calendar</a><span class="form-note">Opens our Microsoft booking page in a new tab. No account needed.</span>';
         go.querySelector('a').href = src;
         picker.replaceWith(go);
-        if (hintEl) hintEl.textContent = 'See our real availability and book straight into our calendar. You get a confirmation by email.';
+        if (hintEl) hintEl.textContent = 'Pick a time for a 30-minute introductory call on Microsoft Teams. It goes straight into our calendar, and you get the Teams invitation by email.';
       } else {
         // Google's appointment pages need gv=true to show inside another site.
         if (/calendar\.google\.com\/calendar\/appointments\//.test(src) && !/[?&]gv=true/.test(src)) src += (src.indexOf('?') === -1 ? '?' : '&') + 'gv=true';
