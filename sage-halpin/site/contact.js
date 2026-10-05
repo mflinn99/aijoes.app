@@ -15,7 +15,7 @@
 var CONTACT = {
   email: 'amy@aigogo.ai',
   endpoint: '',
-  bookingUrl: '',
+  bookingUrl: 'https://bookings.cloud.microsoft/bookwithme/user/34043a2e1522444297ea800ffcd00a8c%40aigogo.ai?anonymous',
   timeZone: 'Europe/London',  // the team's working hours are in this zone
   startHour: 9,               // first call starts 09:00
   endHour: 17,                // last call ends by 17:00
