@@ -119,6 +119,18 @@ Their settings are at the top of `sage-halpin/site/contact.js`:
 | `bookingUrl` | empty | A scheduling page: a Google Calendar appointment schedule, Microsoft Bookings or Calendly. When set, it replaces the request calendar, so visitors book live against real availability |
 | `startHour`, `endHour`, `minutes`, `days`, `leadHours` | 9, 17, 30, 15, 18 | The call times on offer, in UK time |
 
+### Link the booking calendar to a real Google Calendar
+
+1. In Google Calendar on a computer, click **Create → Appointment schedule**.
+   Set the title (for example "Sentinel8 introductory call"), 30 minutes, your
+   available hours, buffers and a Google Meet link, then **Save**.
+2. Under **Booking pages**, hover over it, click **Options → Sharing options →
+   Website embed → Inline booking page**, and copy the `src` address from the
+   code (it starts `https://calendar.google.com/calendar/appointments/schedules/`).
+3. Put that address in `bookingUrl` in `site/contact.js` and merge. Visitors then
+   see only your free times, and every booking goes straight into your calendar
+   with a confirmation email to both sides.
+
 With neither service set, the page still works: a visitor picks a weekday slot
 (UK working hours, bank holidays excluded, shown in their own time zone), enters
 their details, and their email app opens with the request addressed to `email`.
