@@ -3,6 +3,7 @@ import request from "supertest";
 import { createApp } from "../server/app.js";
 import { parseOpinion } from "../server/routes/consultations.js";
 import { setEmailSenderForTests, type OutgoingEmail } from "../server/email.js";
+import { BOOKING_URL, EMAIL_FOOTER_TEXT } from "../shared/contact.js";
 
 // Consultations: a board question put to the people (by questionnaire) and to
 // the shadow board of AI agents, seen as people only, agents only or both.
@@ -144,6 +145,28 @@ describe("invitations", () => {
       await request(app).post(`/api/consultations/${id}/invitations`).set(bearer(admin)).send({}).expect(200);
       expect(sent[0].html).not.toContain("<script>");
       expect(sent[0].html).toContain("&lt;script&gt;");
+    } finally {
+      delete process.env.EMAIL_PROVIDER;
+      delete process.env.PUBLIC_BASE_URL;
+    }
+  });
+
+  it("ends every invitation with the Schedule online footer", async () => {
+    const sent: OutgoingEmail[] = [];
+    setEmailSenderForTests(async (email) => void sent.push(email));
+    process.env.EMAIL_PROVIDER = "acs";
+    process.env.PUBLIC_BASE_URL = "https://app.example.com";
+    try {
+      const { app, id, admin } = await createConsultation();
+      await request(app).post(`/api/consultations/${id}/invitations`).set(bearer(admin)).send({}).expect(200);
+      for (const email of sent) {
+        expect(email.html).toContain(`<a href="${BOOKING_URL}" target="_blank" rel="noopener"`);
+        expect(email.html).toContain(">Schedule online</a>");
+        expect(email.html).toContain('href="mailto:customer@sentinel8.ai"');
+        expect(email.html).toContain('href="tel:+442081291416"');
+        expect(email.text.trimEnd().endsWith(EMAIL_FOOTER_TEXT)).toBe(true);
+        expect(email.text).toContain(`Schedule online: ${BOOKING_URL}`);
+      }
     } finally {
       delete process.env.EMAIL_PROVIDER;
       delete process.env.PUBLIC_BASE_URL;
