@@ -155,14 +155,23 @@ var CONTACT = {
     if (tzLabel && localZone) tzLabel.textContent = localZone.replace(/_/g, ' ');
 
     if (CONTACT.bookingUrl) {
-      // A live scheduling page replaces the request calendar.
+      // A live scheduling page replaces the request calendar: visitors see only
+      // genuinely free times, and a booking goes straight into the calendar.
       var picker = book.querySelector('[data-booking-picker]');
+      var src = CONTACT.bookingUrl;
+      // Google's appointment pages need gv=true to show inside another site.
+      if (/calendar\.google\.com\/calendar\/appointments\//.test(src) && !/[?&]gv=true/.test(src)) src += (src.indexOf('?') === -1 ? '?' : '&') + 'gv=true';
       var frame = document.createElement('iframe');
       frame.className = 'booking-frame';
-      frame.src = CONTACT.bookingUrl;
+      frame.src = src;
       frame.title = 'Book a call with Sentinel8';
       frame.loading = 'lazy';
-      picker.replaceWith(frame);
+      var open = document.createElement('p');
+      open.className = 'form-note';
+      open.innerHTML = 'Calendar not showing? <a target="_blank" rel="noopener">Open the booking page in a new tab</a>.';
+      open.querySelector('a').href = CONTACT.bookingUrl;
+      picker.replaceWith(frame, open);
+      if (tzLabel) tzLabel.closest('.hint').textContent = 'Pick any free time below. It books straight into our calendar and you get a confirmation by email.';
     } else {
       var daysEl = book.querySelector('[data-days]');
       var slotsEl = book.querySelector('[data-slots]');
