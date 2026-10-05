@@ -1,0 +1,188 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card-border: hsl(var(--card-border));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover-border: hsl(var(--popover-border));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-border: var(--primary-border);
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary-border: var(--secondary-border);
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted-border: var(--muted-border);
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-border: var(--accent-border);
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-destructive-border: var(--destructive-border);
+
+  --font-sans: 'Figtree', 'Nunito Sans', 'Segoe UI', system-ui, sans-serif;
+  /* The display face: wide and rounded. Kept on the serif token so existing font-serif headings pick it up. */
+  --font-serif: 'Unbounded', 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: Menlo, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* The 8 in the Sentinel8 wordmark lies on its side, as the infinity sign. */
+.sentinel-eight { display: inline-block; transform: rotate(90deg); font-size: 1.12em; line-height: 1; margin: 0 0.16em 0 0.2em; letter-spacing: 0; }
+
+/* Sentinel8 — midnight ink, warm ivory, muted brass, slate.
+   #13232B = 200 39% 12%, #F5F1E9 = 40 38% 94%, #B28A56 = 34 37% 52%, #65737A = 200 9% 44%. */
+:root {
+  --button-outline: rgba(19,35,43,0.10);
+  --badge-outline: rgba(19,35,43,0.06);
+  --elevate-1: rgba(19,35,43,0.03);
+  --elevate-2: rgba(19,35,43,0.06);
+
+  --background: 40 38% 94%;
+  --foreground: 200 39% 12%;
+
+  --border: 40 20% 83%;
+  --card: 0 0% 100%;
+  --card-foreground: 200 39% 12%;
+  --card-border: 40 20% 83%;
+
+  --sidebar: 40 38% 94%;
+  --sidebar-foreground: 200 39% 12%;
+  --sidebar-border: 40 20% 83%;
+  --sidebar-primary: 200 39% 12%;
+  --sidebar-primary-foreground: 40 38% 94%;
+  --sidebar-accent: 40 25% 89%;
+  --sidebar-accent-foreground: 200 39% 12%;
+  --sidebar-ring: 34 37% 52%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 200 39% 12%;
+  --popover-border: 40 20% 83%;
+
+  --primary: 200 39% 12%; /* Midnight ink */
+  --primary-foreground: 40 38% 94%;
+  --primary-border: hsl(200 39% 12%);
+
+  --secondary: 40 25% 89%;
+  --secondary-foreground: 200 39% 12%;
+  --secondary-border: hsl(40 25% 89%);
+
+  --muted: 40 25% 89%;
+  --muted-foreground: 200 9% 40%;
+  --muted-border: hsl(40 25% 89%);
+
+  --accent: 34 37% 52%; /* Muted brass */
+  --accent-foreground: 200 39% 12%;
+  --accent-border: hsl(34 37% 52%);
+
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 0 0% 100%;
+  --destructive-border: hsl(0 72% 45%);
+
+  --input: 40 18% 78%;
+  --ring: 34 37% 52%;
+
+  --radius: 0.25rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    letter-spacing: 0.01em;
+  }
+
+  html, body, #root {
+    height: 100%;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--accent));
+    outline-offset: 2px;
+  }
+}
+
+/* Node glow pulse animation */
+@keyframes nodePulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.9; }
+}
+
+/* Ambient table glow */
+@keyframes tableGlow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.5; }
+}
+
+.persona-node-idle {
+  animation: nodePulse 3s ease-in-out infinite;
+}
+
+.table-ambient {
+  animation: tableGlow 4s ease-in-out infinite;
+}
+
+@media (max-width: 700px) {
+  .boardroom-persona-chips {
+    display: none !important;
+  }
+
+  [data-testid="dashboard-grid"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding: 20px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .boardroom-visual {
+    aspect-ratio: 600 / 390 !important;
+  }
+
+  .boardroom-nodes {
+    display: none;
+  }
+
+  .boardroom-visual > svg {
+    overflow: hidden !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Loading: the mark's seats pulse in turn while a page's data arrives. */
+.page-loader-mark circle { animation: seat-pulse 1.5s ease-in-out infinite; }
+@keyframes seat-pulse { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .page-loader-mark circle { animation: none; } }

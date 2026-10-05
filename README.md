@@ -89,7 +89,7 @@ can act: an emergency stop that needs an administrator is not an emergency stop.
 ## Status
 
 Every AIGoGo opco capability (Toleron, SaleSonic, ListeningPost, SourcingAI, Buyonic,
-GrothOS, Sixonic, Strata/MetaMSP, Onward) is **simulated** — none is reachable as code
+GrothOS, Sage Halpin (formerly Sixonic), Strata/MetaMSP, Onward) is **simulated** — none is reachable as code
 or as a service. Each is registered with its real interface and a deterministic mock,
 so each becomes real by writing one adapter. Simulated value can reach `REALISED` in
 the ledger but never `VERIFIED`.
@@ -97,6 +97,30 @@ the ledger but never `VERIFIED`.
 Remaining before an internet-facing deployment: Postgres with row-level security
 (isolation is currently enforced by a tested guard layer), encryption at rest for the
 database file, and shared-store rate limiting. See `docs/security-model.md`.
+
+## Sage Halpin
+
+Sage Halpin is the new name and brand for Sixonic: the functionality stays, and it
+remains a mixed people-and-AI platform. In this platform's capability registry it
+shows as Sage Halpin (its id is still `sixonic`, so stored plans and playbooks keep
+resolving).
+
+Everything else about Sage Halpin lives in `sage-halpin/`, self-contained, with
+its own package, tests and pipelines:
+
+- the **website** (landing page and interactive demo) in `sage-halpin/site/`,
+  published by GitHub Pages at www.sentinel8.ai;
+- the **boardroom app** (the rebranded Sixonic, calling Claude on Microsoft
+  Foundry), published to Azure Container Apps from `sage-halpin/infra/`.
+
+`sage-halpin/docs/HOSTING.md` says how to publish each. Start with
+`sage-halpin/README.md`; `docs/sage-halpin/BUILD-INSTRUCTION.md` is the
+instruction it was built from.
+
+Before launch: Bryn Sage's and Mark Halpin's consent to the name, trade mark and
+domain checks, and real photography. "Contact Us" opens a booking calendar and a
+message form; see `sage-halpin/docs/HOSTING.md` (Contact Us) to connect them to a
+form service or a live scheduling page.
 
 ## Documentation
 

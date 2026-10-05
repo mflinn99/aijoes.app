@@ -12,7 +12,7 @@ Directive §5, §14, §31.
 | SourcingAI | SourcingAI | procurement | mock | 3 |
 | Buyonic | Buyonic | procurement | mock | 4 |
 | GrothOS | GrothOS | growth | mock | 3 |
-| Sixonic | Sixonic | automation | mock | 2 |
+| Sentinel8 (formerly Sixonic; id `sixonic`) | Sentinel8 | automation | mock | 2 |
 | Strata / MetaMSP | Strata | msp | mock | 4 |
 | Onward | Onward | msp | mock (unavailable) | 2 |
 | JoJo | AIGoGo | intelligence | **beta — implemented here** | 2 |

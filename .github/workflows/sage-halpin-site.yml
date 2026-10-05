@@ -1,0 +1,44 @@
+name: Sage Halpin site
+
+# Publishes sage-halpin/site (the landing page and the interactive demo) to
+# GitHub Pages. Served at www.sentinel8.ai once the custom domain is set in
+# Settings → Pages and the DNS record points at GitHub Pages; until then at
+# https://mflinn99.github.io/aijoes.app/. See sage-halpin/docs/HOSTING.md.
+
+on:
+  push:
+    # The repository's default branch today, and main if it is renamed.
+    branches: [main, claude/aiogo-metamsp-build-directive-2lsui2]
+    paths: ["sage-halpin/site/**", ".github/workflows/sage-halpin-site.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: sage-halpin-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Pages only accepts deployments from the default branch.
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the site (links, files, anchors, contact details)
+        run: node sage-halpin/scripts/check-site.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: sage-halpin/site
+      - id: deployment
+        uses: actions/deploy-pages@v4
