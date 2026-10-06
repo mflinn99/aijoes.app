@@ -79,8 +79,8 @@ export function assertAIConfigured(): void {
     }
     return;
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new AIConfigError("Set ANTHROPIC_API_KEY for AI_PROVIDER=anthropic");
+  if (!anthropicCredentials().apiKey) {
+    throw new AIConfigError("Set ANTHROPIC_API_KEY (or enable Replit's Anthropic AI integration) for AI_PROVIDER=anthropic");
   }
 }
 
@@ -100,9 +100,26 @@ function getClient(): MessagesClient {
           azureADTokenProvider: getBearerTokenProvider(new DefaultAzureCredential(), FOUNDRY_SCOPE),
         });
   } else {
-    client = new Anthropic();
+    client = new Anthropic(anthropicCredentials());
   }
   return client;
+}
+
+/**
+ * The Anthropic API key and address: ANTHROPIC_API_KEY (and optional
+ * ANTHROPIC_BASE_URL) when set, otherwise Replit's built-in Anthropic AI
+ * integration, which provides AI_INTEGRATIONS_ANTHROPIC_API_KEY and
+ * AI_INTEGRATIONS_ANTHROPIC_BASE_URL and bills the Replit account.
+ */
+export function anthropicCredentials(env: NodeJS.ProcessEnv = process.env): { apiKey?: string; baseURL?: string } {
+  if (env.ANTHROPIC_API_KEY) return { apiKey: env.ANTHROPIC_API_KEY, ...(env.ANTHROPIC_BASE_URL ? { baseURL: env.ANTHROPIC_BASE_URL } : {}) };
+  if (env.AI_INTEGRATIONS_ANTHROPIC_API_KEY) {
+    return {
+      apiKey: env.AI_INTEGRATIONS_ANTHROPIC_API_KEY,
+      ...(env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL ? { baseURL: env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL } : {}),
+    };
+  }
+  return {};
 }
 
 /**
