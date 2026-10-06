@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import request from "supertest";
 import { createApp } from "../server/app.js";
-import { assertAIConfigured, AIConfigError } from "../server/ai.js";
+import { assertAIConfigured, AIConfigError, anthropicCredentials } from "../server/ai.js";
 
 // Parity: these assert the request and response contracts the Sixonic web app
 // relies on, run against the deterministic mock provider (no network, no keys).
@@ -10,6 +10,21 @@ const CHAT_ORDER = ["orion", "grimm", "solara", "zephyr", "mira", "aquila"];
 const SEATS = ["dr_white", "cmdr_black", "ms_gold", "dr_green", "lt_red", "col_blue"];
 const FUNCTIONS = ["sales", "finance", "hr", "product", "legal", "governance"];
 const CALIBRATION = { risk: 0.5, ambition: 0.5, time: 0.5, cost: 0.5 };
+
+describe("Anthropic credentials", () => {
+  it("prefers ANTHROPIC_API_KEY, with its optional address", () => {
+    expect(anthropicCredentials({ ANTHROPIC_API_KEY: "k1", AI_INTEGRATIONS_ANTHROPIC_API_KEY: "k2" })).toEqual({ apiKey: "k1" });
+    expect(anthropicCredentials({ ANTHROPIC_API_KEY: "k1", ANTHROPIC_BASE_URL: "https://proxy.example" })).toEqual({ apiKey: "k1", baseURL: "https://proxy.example" });
+  });
+
+  it("falls back to Replit's Anthropic AI integration", () => {
+    expect(anthropicCredentials({ AI_INTEGRATIONS_ANTHROPIC_API_KEY: "k2", AI_INTEGRATIONS_ANTHROPIC_BASE_URL: "https://replit.example/anthropic" })).toEqual({
+      apiKey: "k2",
+      baseURL: "https://replit.example/anthropic",
+    });
+    expect(anthropicCredentials({})).toEqual({});
+  });
+});
 
 describe("health", () => {
   it("reports liveness and readiness", async () => {
