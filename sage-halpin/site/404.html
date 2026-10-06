@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#13232B">
+<title>Page not found · Sentinel8</title>
+<!-- GitHub Pages serves this page for any address the site doesn't have, at any
+     depth, so every link is absolute. Sign-in and sign-up addresses (/signin,
+     /signup) belong to the Sentinel8 platform, not the website: they get the
+     account buttons, which app-links.js sends to the platform once it is live. -->
+<link rel="icon" type="image/svg+xml" href="https://www.sentinel8.ai/favicon.svg">
+<style>
+  :root { --ink: #13232B; --ivory: #F5F1E9; --brass: #B28A56; --dim: rgba(245, 241, 233, 0.72); }
+  * { box-sizing: border-box; margin: 0; }
+  body { min-height: 100vh; display: grid; place-items: center; padding: 32px 16px; background: var(--ink); color: var(--ivory); font: 17px/1.6 'Figtree', 'Segoe UI', system-ui, sans-serif; }
+  main { max-width: 560px; }
+  .mark { font-size: 13px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--brass); margin-bottom: 28px; }
+  h1 { font-weight: 300; font-size: clamp(28px, 5vw, 40px); line-height: 1.15; margin-bottom: 14px; }
+  p { color: var(--dim); }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+  .btn { display: inline-flex; padding: 12px 22px; border-radius: 999px; text-decoration: none; font-weight: 600; font-size: 15px; }
+  .primary { background: var(--brass); color: var(--ink); }
+  .ghost { border: 1px solid rgba(245, 241, 233, 0.35); color: var(--ivory); }
+  a { color: var(--brass); }
+  [hidden] { display: none !important; }
+  .app-note { position: absolute; z-index: 60; width: 320px; padding: 16px 18px; border-radius: 16px; background: var(--ivory); color: var(--ink); box-shadow: 0 12px 32px rgba(19, 35, 43, 0.28); font-size: 14px; line-height: 1.5; }
+  .app-note p { color: var(--ink); }
+  .app-note p + p { margin-top: 6px; }
+  .app-note a { color: #8C6A3E; }
+  .app-note-close { margin-top: 10px; border: 1px solid rgba(19, 35, 43, 0.12); background: transparent; border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <p class="mark">Sentinel8 · The evolving board</p>
+  <section id="account" hidden>
+    <h1>Sign in and create your account on the Sentinel8 platform.</h1>
+    <p>Accounts live on the platform, not on this website. Use the buttons below.</p>
+    <div class="actions">
+      <a class="btn primary" data-app-path="/signup" href="https://app.sentinel8.ai/signup">Create account</a>
+      <a class="btn ghost" data-app-path="/signin" href="https://app.sentinel8.ai/signin">Sign in</a>
+      <a class="btn ghost" href="https://www.sentinel8.ai/">Back to the website</a>
+    </div>
+  </section>
+  <section id="missing">
+    <h1>This page isn't here.</h1>
+    <p>The link may be old or mistyped. Everything about Sentinel8 starts on the home page, or email <a href="mailto:customer@sentinel8.ai">customer@sentinel8.ai</a>.</p>
+    <div class="actions">
+      <a class="btn primary" href="https://www.sentinel8.ai/">Go to the home page</a>
+      <a class="btn ghost" href="https://www.sentinel8.ai/#contact">Contact Us</a>
+    </div>
+  </section>
+</main>
+<script>
+  if (/\/(signin|signup|sign-in|sign-up|login|register)\/?$/i.test(location.pathname)) {
+    document.getElementById('account').hidden = false;
+    document.getElementById('missing').hidden = true;
+  }
+</script>
+<script src="https://www.sentinel8.ai/app-links.js"></script>
+</body>
+</html>

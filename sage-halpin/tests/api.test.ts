@@ -14,9 +14,34 @@ const CALIBRATION = { risk: 0.5, ambition: 0.5, time: 0.5, cost: 0.5 };
 describe("health", () => {
   it("reports liveness and readiness", async () => {
     const app = createApp();
-    await request(app).get("/api/healthz").expect(200, { status: "ok" });
+    await request(app).get("/api/healthz").expect(200, { status: "ok", service: "sentinel8", accounts: true });
     const ready = await request(app).get("/api/readyz").expect(200);
     expect(ready.body).toEqual({ status: "ready", ai: "mock" });
+  });
+
+  it("lets the website confirm the platform is live and accepting accounts", async () => {
+    const res = await request(createApp()).get("/api/healthz").set("Origin", "https://www.sentinel8.ai").expect(200);
+    expect(res.headers["access-control-allow-origin"]).toBe("*");
+    expect(res.headers["cache-control"]).toBe("no-store");
+    expect(res.body).toMatchObject({ service: "sentinel8", accounts: true });
+    // Only the health check is readable from other sites.
+    const other = await request(createApp()).get("/api/readyz").set("Origin", "https://www.sentinel8.ai");
+    expect(other.headers["access-control-allow-origin"]).toBeUndefined();
+  });
+
+  it("tells the website when accounts are switched off", async () => {
+    const saved = { NODE_ENV: process.env.NODE_ENV, SESSION_SECRET: process.env.SESSION_SECRET };
+    try {
+      process.env.NODE_ENV = "production";
+      delete process.env.SESSION_SECRET;
+      const res = await request(createApp()).get("/api/healthz").expect(200);
+      expect(res.body.accounts).toBe(false);
+    } finally {
+      for (const [k, v] of Object.entries(saved)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
   });
 
   it("sends security headers", async () => {

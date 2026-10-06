@@ -103,7 +103,10 @@ for (const path of ['/signin', '/signup']) if (!homeHtml.includes(`data-app-path
 // The links' own addresses (used if scripts don't run) match APP_URL in app-links.js.
 const appUrl = (fs.readFileSync(path.join(SITE, 'app-links.js'), 'utf8').match(/var APP_URL = '([^']+)'/) || [])[1];
 if (!appUrl) fail('app-links.js', 'has no APP_URL');
-for (const m of homeHtml.matchAll(/data-app-path="([^"]+)" href="([^"]+)"/g)) if (m[2] !== appUrl + m[1]) fail(home, `links ${m[2]}, expected ${appUrl}${m[1]} (APP_URL)`);
+for (const file of [home, path.join(SITE, '404.html')]) {
+  const html = fs.readFileSync(file, 'utf8');
+  for (const m of html.matchAll(/data-app-path="([^"]+)" href="([^"]+)"/g)) if (m[2] !== appUrl + m[1]) fail(file, `links ${m[2]}, expected ${appUrl}${m[1]} (APP_URL)`);
+}
 // Sign in and Create account sit on the header's one line, beside the navigation.
 const topLine = (homeHtml.match(/<div class="wrap top-inner">([\s\S]*?)<details class="menu">/) || [])[1] ?? '';
 for (const path of ['/signin', '/signup']) if (!topLine.includes(`data-app-path="${path}"`)) fail(home, `has no ${path} link on the header's top line`);

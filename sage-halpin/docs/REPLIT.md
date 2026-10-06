@@ -89,15 +89,18 @@ Autoscale also works; scans then run only while the app is awake.
 
 ## Connect the website
 
-**Live:** the platform runs on Replit at **https://sentinel8.ai** (custom domain),
-and the website's buttons point there. Set `PUBLIC_BASE_URL=https://sentinel8.ai`
-in the Replit app so questionnaire links use that address.
+The website's buttons point at **https://app.sentinel8.ai** (`APP_URL` in
+`site/app-links.js`). Give the published app that address: in the Replit
+deployment's settings, add the custom domain `app.sentinel8.ai` and create the
+DNS records Replit shows at the domain registrar. Set
+`PUBLIC_BASE_URL=https://app.sentinel8.ai` in the app.
 
-Once published, set `APP_URL` in `site/app-links.js` to the published address
-(or to `https://app.sentinel8.ai` after adding that custom domain in Replit's
-deployment settings and its DNS records at the registrar), then merge. The
-website's **Sign in** and **Create account** buttons then open the live
-platform instead of the "Accounts open when the platform launches" note.
+Nothing else changes. The website asks `https://app.sentinel8.ai/api/healthz`
+before sending anyone there, and opens the platform only when it answers as
+Sentinel8 with accounts on. Until then the buttons show "Accounts open when the
+platform launches". Do not use `sentinel8.ai` or `www.sentinel8.ai` for the
+platform: they are the website (GitHub Pages), and its pages such as `/signup`
+do not exist there.
 
 ## Moving to Azure later
 
