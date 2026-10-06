@@ -4,7 +4,7 @@
 // page of it (/signin, /signup). The page checks the platform is reachable;
 // until it is (before launch, or during an outage), a click explains how to get
 // access instead of opening a page that won't load.
-var APP_URL = 'https://app.sentinel8.ai';
+var APP_URL = 'https://sentinel8.ai';
 
 (function () {
   var links = Array.prototype.slice.call(document.querySelectorAll('[data-app-path]'));
