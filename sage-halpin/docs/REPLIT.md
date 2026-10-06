@@ -89,6 +89,10 @@ Autoscale also works; scans then run only while the app is awake.
 
 ## Connect the website
 
+**Live:** the platform runs on Replit at **https://sentinel8.ai** (custom domain),
+and the website's buttons point there. Set `PUBLIC_BASE_URL=https://sentinel8.ai`
+in the Replit app so questionnaire links use that address.
+
 Once published, set `APP_URL` in `site/app-links.js` to the published address
 (or to `https://app.sentinel8.ai` after adding that custom domain in Replit's
 deployment settings and its DNS records at the registrar), then merge. The
