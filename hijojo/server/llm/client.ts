@@ -3,6 +3,8 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { AnthropicFoundry } from "@anthropic-ai/foundry-sdk";
+import { DefaultAzureCredential, getBearerTokenProvider } from "@azure/identity";
 import { z } from "zod/v4";
 
 export interface LlmTask<T> {
@@ -44,7 +46,7 @@ export class LlmRefused extends Error {}
 export class UnconfiguredLlm implements Llm {
   readonly name = "unconfigured";
   async run<T>(t: LlmTask<T>): Promise<T> {
-    throw new LlmUnavailable(`No AI provider configured; cannot run "${t.task}". Set ANTHROPIC_API_KEY.`);
+    throw new LlmUnavailable(`No AI provider configured; cannot run "${t.task}". Configure Claude on Microsoft Foundry or the Claude API.`);
   }
   async webSearch(t: WebSearchTask): Promise<WebSearchResult> {
     throw new LlmUnavailable(`No AI provider configured; cannot run "${t.task}". Set ANTHROPIC_API_KEY.`);
@@ -60,29 +62,45 @@ export function sourceBlock(s: { id: string; url: string; retrievedAt: string; p
   return `<source id="${s.id}" url="${s.url}" retrieved="${s.retrievedAt}"${s.publishedAt ? ` published="${s.publishedAt}"` : ""}>\n${safe}\n</source>`;
 }
 
+/**
+ * Where Claude runs. "anthropic" is the Claude API; "foundry" is Claude on
+ * Microsoft Foundry in your Azure subscription, which (as of writing) does not
+ * accept server-side fallbacks and, for Azure-hosted deployments, offers only
+ * the basic web search tool.
+ */
+export type ClaudePlatform = "anthropic" | "foundry";
+
+type MessagesClient = { messages: { create(p: any): Promise<any> }; beta: { messages: { create(p: any): Promise<any> } } };
+
 export class AnthropicLlm implements Llm {
   readonly name: string;
-  private client: Anthropic;
+  private client: MessagesClient;
+  private model: string;
+  private platform: ClaudePlatform;
+  private webSearchTool: string;
 
-  constructor(
-    private model = process.env.HIJOJO_MODEL || "claude-opus-5-5",
-    client?: Anthropic,
-  ) {
-    this.client = client ?? new Anthropic();
-    this.name = `anthropic:${model}`;
+  constructor(opts: { client?: MessagesClient; platform?: ClaudePlatform; model?: string; webSearchTool?: string } = {}) {
+    this.platform = opts.platform ?? "anthropic";
+    this.model = opts.model ?? "claude-opus-5-5";
+    this.client = opts.client ?? (new Anthropic() as unknown as MessagesClient);
+    this.webSearchTool = opts.webSearchTool ?? (this.platform === "foundry" ? "web_search_20250305" : "web_search_20260209");
+    this.name = `${this.platform}:${this.model}`;
+  }
+
+  /** One request, shaped for the platform. */
+  private create(params: Record<string, unknown>): Promise<Anthropic.Message> {
+    if (this.platform === "foundry") return this.client.messages.create(params);
+    return this.client.beta.messages.create({ ...params, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" });
   }
 
   async run<T>(t: LlmTask<T>): Promise<T> {
-    const response = await this.client.beta.messages.create({
+    const msg = await this.create({
       model: this.model,
       max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
       system: t.system,
       output_config: { effort: t.effort ?? "high", format: zodOutputFormat(t.schema) },
       messages: [{ role: "user", content: t.prompt }],
-    } as any);
-    const msg = response as unknown as Anthropic.Beta.BetaMessage;
+    });
     if (msg.stop_reason === "refusal") throw new LlmRefused(`Model declined "${t.task}"`);
     if (msg.stop_reason === "max_tokens") throw new Error(`Model output truncated for "${t.task}"`);
     const text = msg.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
@@ -90,20 +108,18 @@ export class AnthropicLlm implements Llm {
   }
 
   async webSearch(t: WebSearchTask): Promise<WebSearchResult> {
-    const messages: Anthropic.Beta.BetaMessageParam[] = [{ role: "user", content: t.prompt }];
+    const messages: Anthropic.MessageParam[] = [{ role: "user", content: t.prompt }];
     const urls = new Map<string, string | null>();
     let text = "";
     for (let turn = 0; turn < 5; turn++) {
-      const msg = (await this.client.beta.messages.create({
+      const msg = await this.create({
         model: this.model,
         max_tokens: 16000,
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
         system: t.system,
         output_config: { effort: "high" },
-        tools: [{ type: "web_search_20260209", name: "web_search", max_uses: t.maxUses }],
+        tools: [{ type: this.webSearchTool, name: "web_search", max_uses: t.maxUses }],
         messages,
-      } as any)) as unknown as Anthropic.Beta.BetaMessage;
+      });
       if (msg.stop_reason === "refusal") throw new LlmRefused(`Model declined "${t.task}"`);
       for (const block of msg.content as any[]) {
         if (block.type === "web_search_tool_result" && Array.isArray(block.content)) {
@@ -116,6 +132,45 @@ export class AnthropicLlm implements Llm {
     }
     return { text, urls: [...urls].map(([url, title]) => ({ url, title })) };
   }
+}
+
+/**
+ * Choose the model from the environment. HIJOJO_AI_PROVIDER picks explicitly;
+ * otherwise Foundry is used when a Foundry resource is configured, then the
+ * Claude API when a key is present. On Foundry the managed identity is used
+ * unless ANTHROPIC_FOUNDRY_API_KEY is set.
+ */
+export function llmFromEnv(env: NodeJS.ProcessEnv = process.env): { llm: Llm; status: { configured: boolean; detail: string } } {
+  const model = env.HIJOJO_MODEL || "claude-opus-5-5";
+  const foundryTarget = env.ANTHROPIC_FOUNDRY_RESOURCE || env.ANTHROPIC_FOUNDRY_BASE_URL;
+  const hasKey = !!(env.ANTHROPIC_API_KEY || env.ANTHROPIC_AUTH_TOKEN);
+  const provider = env.HIJOJO_AI_PROVIDER ?? (foundryTarget ? "foundry" : hasKey ? "anthropic" : "none");
+
+  if (provider === "foundry") {
+    if (!foundryTarget) {
+      return { llm: new UnconfiguredLlm(), status: { configured: false, detail: "HIJOJO_AI_PROVIDER=foundry but ANTHROPIC_FOUNDRY_RESOURCE (or ANTHROPIC_FOUNDRY_BASE_URL) is not set" } };
+    }
+    const client = env.ANTHROPIC_FOUNDRY_API_KEY
+      ? new AnthropicFoundry({ resource: env.ANTHROPIC_FOUNDRY_RESOURCE, baseURL: env.ANTHROPIC_FOUNDRY_BASE_URL, apiKey: env.ANTHROPIC_FOUNDRY_API_KEY })
+      : new AnthropicFoundry({
+          resource: env.ANTHROPIC_FOUNDRY_RESOURCE,
+          baseURL: env.ANTHROPIC_FOUNDRY_BASE_URL,
+          azureADTokenProvider: getBearerTokenProvider(new DefaultAzureCredential(), "https://ai.azure.com/.default"),
+        });
+    const llm = new AnthropicLlm({ client: client as unknown as MessagesClient, platform: "foundry", model, webSearchTool: env.HIJOJO_WEB_SEARCH_TOOL });
+    return {
+      llm,
+      status: { configured: true, detail: `Claude on Microsoft Foundry (${foundryTarget}, ${model}; ${env.ANTHROPIC_FOUNDRY_API_KEY ? "API key" : "managed identity"})` },
+    };
+  }
+  if (provider === "anthropic") {
+    if (!hasKey) return { llm: new UnconfiguredLlm(), status: { configured: false, detail: "HIJOJO_AI_PROVIDER=anthropic but ANTHROPIC_API_KEY is not set" } };
+    return { llm: new AnthropicLlm({ platform: "anthropic", model }), status: { configured: true, detail: `Claude API (${model})` } };
+  }
+  return {
+    llm: new UnconfiguredLlm(),
+    status: { configured: false, detail: "No AI provider: set ANTHROPIC_FOUNDRY_RESOURCE (Claude on Microsoft Foundry) or ANTHROPIC_API_KEY" },
+  };
 }
 
 /** Pulls the last fenced JSON block out of free text. */

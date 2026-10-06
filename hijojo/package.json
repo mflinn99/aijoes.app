@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Hijojo Agentic Prospecting — precision outreach for AIGoGo OpCos",
+  "description": "Hijojo Agentic Prospecting \u2014 precision outreach for AIGoGo OpCos",
   "engines": {
     "node": ">=22"
   },
@@ -12,16 +12,21 @@
     "dev:api": "tsx watch server/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "build": "node scripts/build-client.mjs && esbuild server/index.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.mjs",
+    "build": "node scripts/build-client.mjs && esbuild server/index.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.mjs && esbuild scripts/seed.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/seed.mjs",
     "start": "node dist/server.mjs",
     "seed": "tsx scripts/seed.ts",
-    "demo": "tsx scripts/demo.ts"
+    "demo": "tsx scripts/demo.ts",
+    "copilot:package": "node scripts/copilot-package.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/foundry-sdk": "^0.5.2",
     "@anthropic-ai/sdk": "^0.131.0",
+    "@azure/identity": "^4.13.3",
     "better-sqlite3": "^11.10.0",
     "express": "^5.2.1",
+    "jose": "^6.2.12",
     "undici": "^7.30.0",
+    "yaml": "^2.9.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {

@@ -20,7 +20,7 @@ ENTER OPCO → UNDERSTAND → PROFILE → SEARCH → RESEARCH → QUALIFY → SC
 ```bash
 cd hijojo
 npm install
-npm test          # 175 tests, including acceptance scenarios A–J
+npm test          # 200 tests, including acceptance scenarios A–J
 npm run demo      # http://localhost:5050, synthetic world, prints sign-ins
 ```
 
@@ -37,8 +37,9 @@ npm run seed      # creates admin/operator/viewer; prints passwords once
 npm start         # simulation mode until configured otherwise
 ```
 
-Configuration is in [`.env.example`](.env.example). Outlook setup is in
-[`docs/OUTLOOK.md`](docs/OUTLOOK.md).
+Configuration is in [`.env.example`](.env.example). Azure hosting is in
+[`docs/AZURE.md`](docs/AZURE.md), Microsoft 365 Copilot in
+[`docs/COPILOT.md`](docs/COPILOT.md), Outlook in [`docs/OUTLOOK.md`](docs/OUTLOOK.md).
 
 ## Status
 
@@ -58,10 +59,12 @@ unconfigured and deferred are different things.
 | Continuous QA metrics; learning suspends signals that produce false positives | Working; tested |
 | Web UI, authentication, roles (admin / operator / viewer) | Working; tested (API) and exercised in a browser |
 | Acceptance scenarios A–J | Passing on synthetic data with a fake clock |
-| Claude for analysis, research, discovery (web search), drafting, QA review, reply triage | **Implemented, never run against the API.** No `ANTHROPIC_API_KEY` in the build environment. Tests use a scripted model through the same code path. |
+| Claude for analysis, research, discovery (web search), drafting, QA review, reply triage | **Implemented for Microsoft Foundry (managed identity) and the Claude API; never run against either.** Tests check the exact requests each platform gets. |
 | Live web retrieval | **Implemented, not exercised.** The build environment blocks outbound web access; only the private-network guard is tested. |
 | Outlook (Microsoft Graph) sending and reply detection | **Implemented; tested against a fake Graph. Not connected.** Authorisation was not completed. |
 | Contact-data provider | **Unconfigured: the provider has not been named.** Decision-makers can be entered by hand per prospect; without one a prospect waits in Researching. |
+| Azure hosting (Container Apps, Foundry, managed identity, Azure Files) | **Template written and compiled; not deployed.** Production bundle run locally on production dependencies. See `docs/AZURE.md`. |
+| Microsoft 365 Copilot (declarative agent + API plugin, Entra SSO) | **API implemented and tested with signed tokens; app package built; not registered in a tenant.** See `docs/COPILOT.md`. |
 | Graph change notifications (instead of polling) | Deferred; polling every 5 minutes |
 | PostgreSQL | Deferred; SQLite with write transactions (the existing MetaMSP pattern). The schema's safety rules are database constraints, so they move with it. |
 

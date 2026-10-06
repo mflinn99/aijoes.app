@@ -11,6 +11,9 @@ import { checkUrl } from "./research/netguard";
 import { bareDomain, effectiveThreshold } from "./qualification";
 import { SimMailbox } from "./mail/transport";
 import { STAGE_GROUPS } from "../shared/types";
+import { OpcoInput, opcoInputProblem } from "./opco-input";
+import { createCopilotRouter } from "./copilot";
+import type { EntraVerifier } from "./entra";
 
 export interface AppStatus {
   ai: { configured: boolean; detail: string };
@@ -19,7 +22,7 @@ export interface AppStatus {
   mail: { configured: boolean; detail: string };
 }
 
-export function createApp(engine: Engine, status: AppStatus, opts: { secureCookies?: boolean } = {}) {
+export function createApp(engine: Engine, status: AppStatus, opts: { secureCookies?: boolean; entra?: EntraVerifier | null } = {}) {
   const repo: Repo = engine.d.repo;
   const app = express();
   app.disable("x-powered-by");
@@ -30,6 +33,20 @@ export function createApp(engine: Engine, status: AppStatus, opts: { secureCooki
     res.setHeader("x-frame-options", "DENY");
     next();
   });
+
+  // Probes for Azure Container Apps (no authentication, no data).
+  app.get("/api/healthz", (_req, res) => res.json({ ok: true }));
+  app.get("/api/readyz", (_req, res) => {
+    try {
+      repo.db.prepare("SELECT 1").get();
+      res.json({ ok: true, sending: engine.sendingState().mode });
+    } catch {
+      res.status(503).json({ ok: false });
+    }
+  });
+
+  // Microsoft 365 Copilot: Entra ID bearer tokens only, so no cookie session and no CSRF exposure.
+  app.use("/api/copilot", createCopilotRouter(engine, opts.entra ?? null));
 
   // Session and CSRF.
   app.use("/api", (req, res, next) => {
@@ -91,13 +108,6 @@ export function createApp(engine: Engine, status: AppStatus, opts: { secureCooki
   });
 
   // ---- OpCos ---------------------------------------------------------------------
-  const OpcoInput = z.object({
-    name: z.string().trim().min(1).max(120),
-    website: z.string().trim().max(500),
-    introLink: z.string().trim().max(500).optional().nullable(),
-    notes: z.string().max(50_000).optional(),
-  });
-
   app.get("/api/opcos", requireRole("VIEWER"), (_req, res) => {
     res.json(
       repo.opcos().map((o) => {
@@ -110,16 +120,8 @@ export function createApp(engine: Engine, status: AppStatus, opts: { secureCooki
   app.post("/api/opcos", requireRole("OPERATOR"), (req, res) => {
     const b = parse(OpcoInput, req.body, res);
     if (!b) return;
-    if (!b.website) {
-      // A sale mandate or unlaunched OpCo: the documents are the evidence and every
-      // message still needs one link of the OpCo's own (e.g. an NDA request page).
-      if (!b.notes?.trim()) return res.status(400).json({ error: "Without a website, supporting information is required" });
-      if (!b.introLink) return res.status(400).json({ error: "Without a website, an intro link is required" });
-    }
-    for (const u of [b.website, b.introLink].filter(Boolean) as string[]) {
-      const c = checkUrl(u);
-      if (!c.ok) return res.status(400).json({ error: `${u}: ${c.error}` });
-    }
+    const problem = opcoInputProblem(b);
+    if (problem) return res.status(400).json({ error: problem });
     const opco = engine.addOpco(b);
     repo.event("user.action", `${user(req).email} added OpCo ${opco.name}`, { opcoId: opco.id });
     res.status(201).json(opco);

@@ -1,7 +1,7 @@
 // The Outlook adapter against a fake Microsoft Graph. No tenant is contacted.
 
 import { describe, expect, it } from "vitest";
-import { GraphMail, IDEMPOTENCY_PROP } from "../server/mail/graph";
+import { GraphMail, IDEMPOTENCY_PROP, graphConfigFromEnv } from "../server/mail/graph";
 
 type Handler = (url: string, init: any) => { status: number; body?: any } | Promise<{ status: number; body?: any }>;
 
@@ -95,5 +95,20 @@ describe("Outlook via Microsoft Graph", () => {
     t = 3600 * 1000;
     await gm.poll("2026-01-01T00:00:00Z");
     expect(g.calls.filter((c) => c.url.includes("oauth2"))).toHaveLength(2);
+  });
+
+  it("can authenticate with the app's managed identity instead of a client secret", async () => {
+    const g = fakeGraph(() => ({ status: 200, body: { value: [] } }));
+    let asked = 0;
+    const gm = new GraphMail({ mailbox: "outreach@aigogo.ai", tokenProvider: async () => (asked++, "mi-token") }, g.fetchImpl);
+    await gm.poll("2026-01-01T00:00:00Z");
+    expect(asked).toBe(1);
+    expect(g.calls.some((c) => c.url.includes("oauth2"))).toBe(false);
+    expect(g.calls[0].headers.authorization).toBe("Bearer mi-token");
+  });
+
+  it("reads managed-identity configuration from the environment", () => {
+    expect(graphConfigFromEnv({ HIJOJO_SENDER_MAILBOX: "o@a.test", HIJOJO_GRAPH_MANAGED_IDENTITY: "1" })?.tokenProvider).toBeTypeOf("function");
+    expect(graphConfigFromEnv({ HIJOJO_SENDER_MAILBOX: "o@a.test" })).toBeNull();
   });
 });

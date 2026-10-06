@@ -8,23 +8,39 @@
 // one sender mailbox with an Exchange application access policy. See
 // docs/OUTLOOK.md.
 
+import { DefaultAzureCredential } from "@azure/identity";
 import type { Inbox, MailTransport, OutgoingMail, ReceivedMail, ReconcileResult, SendResult } from "./transport";
 
 export interface GraphConfig {
-  tenantId: string;
-  clientId: string;
-  clientSecret: string;
   mailbox: string;
+  /** Client-credentials app registration. */
+  tenantId?: string;
+  clientId?: string;
+  clientSecret?: string;
+  /** Alternatively, a token source such as the Container App's managed identity. */
+  tokenProvider?: () => Promise<string>;
 }
 
+/**
+ * Outlook configuration from the environment: either the app's managed identity
+ * (HIJOJO_GRAPH_MANAGED_IDENTITY=1, no secret to store) or a client secret.
+ */
 export function graphConfigFromEnv(env: NodeJS.ProcessEnv = process.env): GraphConfig | null {
-  const c = {
-    tenantId: env.HIJOJO_GRAPH_TENANT_ID ?? "",
-    clientId: env.HIJOJO_GRAPH_CLIENT_ID ?? "",
-    clientSecret: env.HIJOJO_GRAPH_CLIENT_SECRET ?? "",
-    mailbox: env.HIJOJO_SENDER_MAILBOX ?? "",
-  };
-  return Object.values(c).every(Boolean) ? c : null;
+  const mailbox = env.HIJOJO_SENDER_MAILBOX ?? "";
+  if (!mailbox) return null;
+  if (env.HIJOJO_GRAPH_MANAGED_IDENTITY === "1") {
+    const credential = new DefaultAzureCredential();
+    return {
+      mailbox,
+      tokenProvider: async () => {
+        const t = await credential.getToken("https://graph.microsoft.com/.default");
+        if (!t) throw new Error("Managed identity returned no Graph token");
+        return t.token;
+      },
+    };
+  }
+  const c = { tenantId: env.HIJOJO_GRAPH_TENANT_ID ?? "", clientId: env.HIJOJO_GRAPH_CLIENT_ID ?? "", clientSecret: env.HIJOJO_GRAPH_CLIENT_SECRET ?? "" };
+  return Object.values(c).every(Boolean) ? { mailbox, ...c } : null;
 }
 
 type FetchLike = (url: string, init?: { method?: string; headers?: Record<string, string>; body?: string }) => Promise<{
@@ -61,13 +77,14 @@ export class GraphMail implements MailTransport, Inbox {
   }
 
   private async accessToken(): Promise<string> {
+    if (this.cfg.tokenProvider) return this.cfg.tokenProvider();
     if (this.token && this.token.expires > this.now() + 60_000) return this.token.value;
-    const res = await this.fetchImpl(`https://login.microsoftonline.com/${encodeURIComponent(this.cfg.tenantId)}/oauth2/v2.0/token`, {
+    const res = await this.fetchImpl(`https://login.microsoftonline.com/${encodeURIComponent(this.cfg.tenantId ?? "")}/oauth2/v2.0/token`, {
       method: "POST",
       headers: { "content-type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: this.cfg.clientId,
-        client_secret: this.cfg.clientSecret,
+        client_id: this.cfg.clientId ?? "",
+        client_secret: this.cfg.clientSecret ?? "",
         scope: "https://graph.microsoft.com/.default",
         grant_type: "client_credentials",
       }).toString(),

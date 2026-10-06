@@ -1,0 +1,97 @@
+{
+  "schema_version": "v2.4",
+  "name_for_human": "Hijojo",
+  "namespace": "hijojo",
+  "description_for_human": "AIGoGo prospecting: OpCos, qualified prospects, evidence, outreach and outcomes.",
+  "description_for_model": "Use for anything about Hijojo, AIGoGo OpCos, prospecting profiles, prospects, why a company was chosen, scores, evidence, outreach emails and their QA, replies, handoffs to Mark, and outcome measures. Always fetch data with these functions; never invent prospects, scores or evidence. Hijojo cannot send email from here.",
+  "contact_email": "${{SUPPORT_EMAIL}}",
+  "functions": [
+    {
+      "name": "listOpcos",
+      "description": "List OpCos with status and prospect counts per stage."
+    },
+    {
+      "name": "getOpco",
+      "description": "Get an OpCo's prospecting profile; items are FACT, INFERENCE or UNKNOWN."
+    },
+    {
+      "name": "listProspects",
+      "description": "List an OpCo's prospects, optionally filtered by stage."
+    },
+    {
+      "name": "getProspect",
+      "description": "Explain one prospect: who, why them, why now, score, evidence with links, communications with QA verdicts, replies, handoffs, activity."
+    },
+    {
+      "name": "getOutcomes",
+      "description": "Get outcome measures and whether sending is live, simulated or halted."
+    },
+    {
+      "name": "addOpco",
+      "description": "Add an OpCo for Hijojo to research. Needs a website, or notes plus an intro link.",
+      "capabilities": {
+        "confirmation": {
+          "type": "AdaptiveCard",
+          "title": "Add OpCo to Hijojo",
+          "body": "Hijojo will research **{{ function.parameters.name }}** and build its prospecting profile. Nothing is sent until prospects qualify and pass independent QA."
+        }
+      }
+    },
+    {
+      "name": "recordProspectFeedback",
+      "description": "Record whether a prospect should have been contacted (false positive).",
+      "capabilities": {
+        "confirmation": {
+          "type": "AdaptiveCard",
+          "title": "Record prospect feedback",
+          "body": "Record this judgement? It is used to tighten qualification."
+        }
+      }
+    },
+    {
+      "name": "recordHandoffVerdict",
+      "description": "Record whether a handed-off opportunity is worth pursuing (ACCEPTED or DECLINED).",
+      "capabilities": {
+        "confirmation": {
+          "type": "AdaptiveCard",
+          "title": "Record handoff verdict",
+          "body": "Record **{{ function.parameters.verdict }}** for this handoff?"
+        }
+      }
+    },
+    {
+      "name": "haltSending",
+      "description": "Emergency stop: halt all outbound email. Only an administrator can resume, in the Hijojo app.",
+      "capabilities": {
+        "confirmation": {
+          "type": "AdaptiveCard",
+          "title": "Halt all Hijojo sending",
+          "body": "This stops every outbound email immediately. Only an administrator can resume it in the Hijojo app."
+        }
+      }
+    }
+  ],
+  "runtimes": [
+    {
+      "type": "OpenApi",
+      "auth": {
+        "type": "OAuthPluginVault",
+        "reference_id": "${{HIJOJO_SSO_AUTH_CONFIG_ID}}"
+      },
+      "spec": {
+        "url": "openapi.yaml"
+      },
+      "run_for_functions": [
+        "listOpcos",
+        "getOpco",
+        "listProspects",
+        "getProspect",
+        "getOutcomes",
+        "addOpco",
+        "recordProspectFeedback",
+        "recordHandoffVerdict",
+        "haltSending"
+      ]
+    }
+  ]
+}

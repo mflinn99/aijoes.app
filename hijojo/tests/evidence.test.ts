@@ -88,3 +88,15 @@ describe("content words", () => {
     expect(contentWords("The bonded warehouse in Felixstowe opens")).toEqual(["bonded", "warehouse", "felixstowe", "opens"]);
   });
 });
+
+describe("database on a network share", () => {
+  it("uses the journal mode the deployment asks for", async () => {
+    const { openDb } = await import("../server/db");
+    const { mkdtempSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { tmpdir } = await import("node:os");
+    const path = join(mkdtempSync(join(tmpdir(), "hj-")), "x.db");
+    expect(openDb(path, { journalMode: "DELETE" }).pragma("journal_mode", { simple: true })).toBe("delete");
+    expect(openDb(join(mkdtempSync(join(tmpdir(), "hj-")), "y.db")).pragma("journal_mode", { simple: true })).toBe("wal");
+  });
+});

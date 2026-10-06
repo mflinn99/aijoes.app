@@ -1,0 +1,18 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": { "value": "prod" },
+    "location": { "value": "uksouth" },
+    "foundryResourceName": { "value": "REPLACE-with-your-foundry-resource-name" },
+    "aiModel": { "value": "claude-opus-5-5" },
+    "sendMode": { "value": "simulate" },
+    "handoffTo": { "value": "mark@aigogo.ai" },
+    "senderName": { "value": "AIGoGo" },
+    "senderMailbox": { "value": "" },
+    "graphUseManagedIdentity": { "value": true },
+    "entraTenantId": { "value": "" },
+    "entraAudiences": { "value": "" },
+    "dailySendCap": { "value": 20 }
+  }
+}

@@ -1,0 +1,314 @@
+openapi: 3.0.3
+info:
+  title: Hijojo
+  description: >-
+    Hijojo agentic prospecting for AIGoGo OpCos. Read OpCos, their prospecting
+    profiles, qualified prospects with evidence and scores, outreach status and
+    outcomes; add an OpCo; record feedback; halt sending. It cannot send email.
+  version: 1.0.0
+servers:
+  - url: ${{HIJOJO_API_URL}}/api/copilot
+security:
+  - entra: []
+paths:
+  /opcos:
+    get:
+      operationId: listOpcos
+      summary: List OpCos
+      description: Lists every OpCo with its analysis status and how many prospects are at each stage (Qualified, Researching, Rejected, Contacted, Follow-up Due, Responded, Passed to Mark).
+      responses:
+        '200':
+          description: OpCos with stage counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  opcos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OpcoSummary'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      operationId: addOpco
+      summary: Add an OpCo
+      description: >-
+        Adds an OpCo for Hijojo to research and profile. Give a website, or for a
+        business for sale or an unlaunched OpCo leave the website out and give the
+        teaser or supporting information as notes plus an intro link (for example an
+        NDA request page). Requires the Operator role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string, description: The OpCo name, e.g. Project SLATE }
+                website: { type: string, description: The OpCo website (https://...). Optional. }
+                introLink: { type: string, description: The link every message carries. Required without a website. }
+                notes: { type: string, description: Supporting information or a pasted teaser. Required without a website. }
+      responses:
+        '201':
+          description: Added; research has started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: string }
+                  name: { type: string }
+                  status: { type: string }
+                  message: { type: string }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /opcos/{opcoId}:
+    get:
+      operationId: getOpco
+      summary: Get an OpCo's prospecting profile
+      description: Returns the prospecting profile (proposition, problem, ICP, buyers, USP, cost, buying signals, exclusions). Each item is marked FACT, INFERENCE or UNKNOWN.
+      parameters:
+        - $ref: '#/components/parameters/opcoId'
+      responses:
+        '200':
+          description: The profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /opcos/{opcoId}/prospects:
+    get:
+      operationId: listProspects
+      summary: List an OpCo's prospects
+      description: Lists prospects for one OpCo with stage, score and contact. Filter by stage to answer questions such as "who has replied" or "who is due a follow-up".
+      parameters:
+        - $ref: '#/components/parameters/opcoId'
+        - name: stage
+          in: query
+          required: false
+          description: One of Qualified, Researching, Rejected, Contacted, Follow-up Due, Responded, Passed to Mark.
+          schema: { type: string }
+      responses:
+        '200':
+          description: Prospects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  opco: { type: string }
+                  stage: { type: string }
+                  prospects:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProspectSummary' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /prospects/{prospectId}:
+    get:
+      operationId: getProspect
+      summary: Explain one prospect
+      description: Returns who the decision-maker is, why this company, why now, the score by dimension, the evidence with source links, every communication with its independent QA verdict, replies, handoffs and recent activity.
+      parameters:
+        - $ref: '#/components/parameters/prospectId'
+      responses:
+        '200':
+          description: The prospect
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProspectDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /prospects/{prospectId}/feedback:
+    post:
+      operationId: recordProspectFeedback
+      summary: Record whether a prospect should have been contacted
+      description: Records a human judgement used to tighten qualification. falsePositive true means this company should not have been contacted. Requires the Operator role.
+      parameters:
+        - $ref: '#/components/parameters/prospectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [falsePositive]
+              properties:
+                falsePositive: { type: boolean }
+                note: { type: string }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /handoffs/{handoffId}/verdict:
+    post:
+      operationId: recordHandoffVerdict
+      summary: Record whether a handed-off opportunity is worth pursuing
+      description: Records the human verdict on a handoff (ACCEPTED or DECLINED). Requires the Operator role.
+      parameters:
+        - name: handoffId
+          in: path
+          required: true
+          description: The handoff id, from getProspect.
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [verdict]
+              properties:
+                verdict: { type: string, enum: [ACCEPTED, DECLINED] }
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /outcomes:
+    get:
+      operationId: getOutcomes
+      summary: Get outcome measures
+      description: Returns emails sent, qualified prospect rate, positive response rate, human-accepted opportunity rate, false positive rate, contact accuracy, QA rejection rate, unsubscribe rate, response by trigger, and whether sending is live, simulated or halted.
+      parameters:
+        - name: opcoId
+          in: query
+          required: false
+          description: Limit to one OpCo.
+          schema: { type: string }
+      responses:
+        '200':
+          description: Outcomes
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+  /halt:
+    post:
+      operationId: haltSending
+      summary: Halt all sending
+      description: Emergency stop. Halts all outbound email immediately. Only an administrator can resume, in the Hijojo app. Requires the Operator role.
+      responses:
+        '200': { $ref: '#/components/responses/Ok' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+components:
+  securitySchemes:
+    entra:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Microsoft Entra ID token for the signed-in user, obtained through the Entra SSO auth config.
+  parameters:
+    opcoId:
+      name: opcoId
+      in: path
+      required: true
+      description: The OpCo id, from listOpcos.
+      schema: { type: string }
+    prospectId:
+      name: prospectId
+      in: path
+      required: true
+      description: The prospect id, from listProspects.
+      schema: { type: string }
+  responses:
+    Ok:
+      description: Done
+      content:
+        application/json:
+          schema: { type: object, additionalProperties: true }
+    BadRequest:
+      description: The request was invalid; the error says why
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Sign-in required or token rejected
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: Not a Hijojo user, or the Hijojo role does not allow this
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+    OpcoSummary:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        website: { type: string, nullable: true }
+        status: { type: string }
+        statusDetail: { type: string, nullable: true }
+        stages: { type: object, additionalProperties: { type: integer } }
+    Item:
+      type: object
+      properties:
+        text: { type: string }
+        status: { type: string, enum: [FACT, INFERENCE, UNKNOWN] }
+    Profile:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        status: { type: string }
+        profileComplete: { type: boolean }
+        gaps: { type: array, items: { type: string } }
+        proposition: { $ref: '#/components/schemas/Item' }
+        problem: { $ref: '#/components/schemas/Item' }
+        usp: { $ref: '#/components/schemas/Item' }
+        cost: { $ref: '#/components/schemas/Item' }
+        icp: { type: object, additionalProperties: true }
+        buyers: { type: object, additionalProperties: true }
+        buyingSignals:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              whyItMatters: { type: string }
+        exclusions: { type: array, items: { type: object, additionalProperties: true } }
+    ProspectSummary:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        domain: { type: string }
+        stage: { type: string }
+        score: { type: integer, nullable: true }
+        contact: { type: string, nullable: true }
+        reason: { type: string, nullable: true }
+    ProspectDetail:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        opco: { type: string }
+        stage: { type: string }
+        statusReason: { type: string, nullable: true }
+        who: { type: object, nullable: true, additionalProperties: true }
+        whyThem: { type: string, nullable: true }
+        whyNow: { type: string, nullable: true }
+        whyProposition: { type: string, nullable: true }
+        score: { type: object, nullable: true, additionalProperties: true }
+        evidence:
+          type: array
+          items:
+            type: object
+            properties:
+              statement: { type: string }
+              date: { type: string, nullable: true }
+              quote: { type: string, nullable: true }
+              url: { type: string, nullable: true }
+        communications: { type: array, items: { type: object, additionalProperties: true } }
+        replies: { type: array, items: { type: object, additionalProperties: true } }
+        handoffs: { type: array, items: { type: object, additionalProperties: true } }
+        activity: { type: array, items: { type: string } }

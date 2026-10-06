@@ -246,10 +246,19 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 `;
 
-export function openDb(path = process.env.HIJOJO_DB_PATH ?? ".data/hijojo.db"): Db {
+/**
+ * WAL is the default. On a network share (e.g. Azure Files over SMB) WAL's
+ * shared memory is unsafe, so the deployment sets HIJOJO_SQLITE_JOURNAL=DELETE
+ * and runs a single replica.
+ */
+export function openDb(
+  path = process.env.HIJOJO_DB_PATH ?? ".data/hijojo.db",
+  opts: { journalMode?: "WAL" | "DELETE" } = {},
+): Db {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path);
-  db.pragma("journal_mode = WAL");
+  const journal = opts.journalMode ?? (process.env.HIJOJO_SQLITE_JOURNAL?.toUpperCase() === "DELETE" ? "DELETE" : "WAL");
+  db.pragma(`journal_mode = ${journal}`);
   db.pragma("busy_timeout = 5000");
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA);

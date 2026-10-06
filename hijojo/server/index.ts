@@ -6,8 +6,9 @@ import { createApp } from "./app";
 import { OPCO } from "./sim/world";
 import { demoScenarios } from "./sim/scenarios";
 
-const { engine, status } = bootstrap();
-const app = createApp(engine, status, { secureCookies: process.env.NODE_ENV === "production" });
+const { engine, status, entra } = bootstrap();
+const app = createApp(engine, status, { secureCookies: process.env.NODE_ENV === "production", entra });
+if (process.env.TRUST_PROXY_HOPS) app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS));
 
 const dist = join(process.cwd(), "dist", "client");
 if (existsSync(dist)) {
