@@ -15,6 +15,8 @@ import {
   type Organisation,
 } from "@/lib/organisation";
 import { syncProfile, workspaceApi } from "@/lib/workspace";
+import { GettingStarted } from "@/components/GettingStarted";
+import { useAccount } from "@/components/AccountProvider";
 import { AGENT_PERSONAS, CHAIR_AGENT, LIMITS, isEmail, type BoardPerson } from "../../shared/board";
 
 // Onboarding: the lead enters the organisation, the real people who take part
@@ -119,6 +121,8 @@ export default function OrganisationPage() {
   const [org, setOrg] = useState<Organisation>(loadOrganisation);
   const [editing, setEditing] = useState<BoardPerson | null>(null);
   const [saved, setSaved] = useState(false);
+  const [leaving, setLeaving] = useState<{ id: string; date: string } | null>(null);
+  const { account } = useAccount();
 
   function update(next: Organisation) {
     setOrg(saveOrganisation(next));
@@ -133,20 +137,19 @@ export default function OrganisationPage() {
     setEditing(null);
   }
 
-  function removePerson(id: string) {
+  /** Moves a person to the former members, recording the date they left (today or earlier). */
+  function recordLeaving(id: string, leftAt: string) {
     const person = org.people.find((p) => p.id === id);
     if (!person) return;
-    if (window.confirm(`${person.name} leaves the board? Their CV is removed from this browser; the checkpoint records that they left today.`)) {
-      const leftAt = new Date().toISOString().slice(0, 10);
-      update({
-        ...org,
-        people: org.people.filter((p) => p.id !== id),
-        formerPeople: [
-          ...(org.formerPeople ?? []),
-          { id: person.id, name: person.name, role: person.role, permanent: person.permanent === true, joinedAt: person.joinedAt ?? "", leftAt },
-        ],
-      });
-    }
+    update({
+      ...org,
+      people: org.people.filter((p) => p.id !== id),
+      formerPeople: [
+        ...(org.formerPeople ?? []),
+        { id: person.id, name: person.name, role: person.role, permanent: person.permanent === true, joinedAt: person.joinedAt ?? "", leftAt },
+      ],
+    });
+    setLeaving(null);
   }
 
   // Keep the server's workspace (agent learning, horizon scanning) in step with the profile.
@@ -176,9 +179,11 @@ export default function OrganisationPage() {
     >
       <p className="mb-6 max-w-3xl text-sm text-muted-foreground">
         Assemble the board once: your organisation, the people who take part in its decisions, and the six AI agents that form its shadow
-        board. Everything here is saved in this browser.{" "}
+        board. {account ? "Everything here is saved to your account." : "Everything here is saved in this browser; create an account to keep it across devices."}{" "}
         {saved && <span aria-live="polite">Saved.</span>}
       </p>
+
+      <GettingStarted />
 
       <Section title="1. Your organisation">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -234,10 +239,52 @@ export default function OrganisationPage() {
                   <Button size="sm" variant="outline" onClick={() => setEditing(p)}>
                     Edit
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => removePerson(p.id)} aria-label={`${p.name} leaves the board`}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setLeaving({ id: p.id, date: new Date().toISOString().slice(0, 10) })}
+                    aria-label={`${p.name} leaves the board`}
+                    data-testid={`button-leaves-${p.id}`}
+                  >
                     Leaves
                   </Button>
                 </div>
+                {leaving?.id === p.id && (
+                  <form
+                    className="flex w-full flex-wrap items-end gap-3 rounded-md border border-border bg-background p-3"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (leaving.date) recordLeaving(p.id, leaving.date);
+                    }}
+                    data-testid="leaving-form"
+                  >
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`left-${p.id}`} className="text-xs font-semibold uppercase tracking-[0.12em]">
+                        Left the board on
+                      </Label>
+                      <Input
+                        id={`left-${p.id}`}
+                        type="date"
+                        required
+                        value={leaving.date}
+                        min={p.joinedAt || undefined}
+                        max={new Date().toISOString().slice(0, 10)}
+                        onChange={(e) => setLeaving({ id: p.id, date: e.target.value })}
+                      />
+                    </div>
+                    <p className="max-w-sm flex-1 text-xs text-muted-foreground">
+                      {p.name} moves to former members and stays in the checkpoint's history. Their CV is removed.
+                    </p>
+                    <div className="flex gap-2">
+                      <Button size="sm" type="submit" data-testid="button-record-leaving">
+                        Record as left
+                      </Button>
+                      <Button size="sm" variant="outline" type="button" onClick={() => setLeaving(null)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </li>
             ))}
           </ul>
@@ -356,7 +403,10 @@ export default function OrganisationPage() {
 
       <Section title="Your data">
         <p className="max-w-3xl text-sm text-muted-foreground">
-          People's details and CVs stay in this browser. When you put a question to the board, the names, roles and emails of the people you
+          {account
+            ? "People's details and CVs are kept in this browser and saved to your account, encrypted, so you can sign in on another device. "
+            : "People's details and CVs stay in this browser. "}
+          When you put a question to the board, the names, roles and emails of the people you
           involve are stored with that question so they can answer it, and their CVs are sent to the AI model for that question only. Your
           organisation's profile, what your agents have learned, your decisions and horizon scans are kept on the server for your workspace.
         </p>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { markShadowBoardSeen } from "@/components/GettingStarted";
 import { PageLoader } from "@/components/PageLoader";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -136,6 +137,7 @@ function OutcomeReview({ d, link, onDone }: { d: DecisionRecord; link: Workspace
 }
 
 export default function AgentsPage() {
+  useEffect(() => markShadowBoardSeen(), []);
   const org = loadOrganisation();
   const [link, setLink] = useState<WorkspaceLink | null>(org.workspace ?? null);
   const [agents, setAgents] = useState<AgentState[] | null>(null);

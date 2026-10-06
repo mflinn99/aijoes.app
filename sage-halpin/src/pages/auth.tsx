@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Mark } from "@/components/Mark";
 import { useAccount } from "@/components/AccountProvider";
 import { AccountError, signIn, signUp } from "@/lib/account";
+import { loadOrganisation } from "@/lib/organisation";
 
 // Create an account and sign in. Accounts keep the workspace saved on the
 // server so it follows the person to another device.
@@ -158,7 +159,8 @@ export function SignInPage() {
   const [, setLocation] = useLocation();
   const search = useSearch();
   const { busy, error, fields, setFields, run } = useAuthForm();
-  const next = safeNext(search, "/dashboard");
+  // Returning to an unfinished setup: back to Your board, where Getting started picks up.
+  const next = safeNext(search, account && loadOrganisation().people.length === 0 ? "/organisation" : "/dashboard");
 
   useEffect(() => {
     if (account) setLocation(next);
