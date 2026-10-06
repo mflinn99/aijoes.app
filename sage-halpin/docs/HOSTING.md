@@ -65,6 +65,8 @@ so a broken page never goes live.
 
 ## 2. Publish the boardroom app (about an hour, first time)
 
+For a quick preview before the Azure launch, the same app runs on Replit with its PostgreSQL database: see `REPLIT.md`.
+
 The app needs Azure and a Claude deployment on Microsoft Foundry.
 `docs/RUNBOOK.md` has the detail. In short:
 

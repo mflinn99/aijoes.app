@@ -23,6 +23,19 @@ defaults:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    # A real PostgreSQL for the PostgreSQL store's tests (the store used on Replit).
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: ci-only
+          POSTGRES_DB: sentinel8_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,6 +46,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test
+        env:
+          TEST_DATABASE_URL: postgres://postgres:ci-only@localhost:5432/sentinel8_test
       - run: npm run build
       - run: npm run check:brand
       - run: npm run check:site
