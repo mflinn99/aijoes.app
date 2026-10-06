@@ -5,6 +5,7 @@ import boardroom from "./routes/boardroom.js";
 import consultations from "./routes/consultations.js";
 import workspaces from "./routes/workspaces.js";
 import auth from "./routes/auth.js";
+import { authConfigured } from "./auth.js";
 import { aiProvider } from "./ai.js";
 import { limitFromEnv, rateLimit } from "./rate-limit.js";
 
@@ -54,7 +55,15 @@ export function createApp({ publicDir = path.resolve(process.cwd(), "dist/public
 
   app.use(express.json({ limit: "256kb" }));
 
-  app.get("/api/healthz", (_req, res) => res.json({ status: "ok" }));
+  // Public liveness. The website reads it (any origin may) to check the
+  // platform is really there, and accepting accounts, before it sends people
+  // to sign up; anything else at that address (a 404 page, a parked domain)
+  // fails the check.
+  app.get("/api/healthz", (_req, res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Cache-Control", "no-store");
+    res.json({ status: "ok", service: "sentinel8", accounts: authConfigured() });
+  });
   app.get("/api/readyz", (_req, res) => res.json({ status: "ready", ai: aiProvider() }));
 
   const windowMs = 10 * 60 * 1000;
