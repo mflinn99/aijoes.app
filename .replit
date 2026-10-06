@@ -1,0 +1,23 @@
+# Replit: runs the Sentinel8 platform from sage-halpin/ (the rest of this
+# repository is unrelated). Set-up and secrets: sage-halpin/docs/REPLIT.md.
+# Secrets to add in Replit (Tools -> Secrets): ANTHROPIC_API_KEY, SESSION_SECRET.
+# Database: add Replit's PostgreSQL (Tools -> Database); it provides DATABASE_URL.
+modules = ["nodejs-22", "postgresql-16"]
+run = "cd sage-halpin && npm ci --include=dev && npm run build && node dist/server.mjs"
+
+[env]
+NODE_ENV = "production"
+PORT = "5000"
+AI_PROVIDER = "anthropic"
+AI_MODEL = "claude-opus-5-5"
+WEB_SEARCH_TOOL = "web_search_20260209"
+TRUST_PROXY_HOPS = "1"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[deployment]
+deploymentTarget = "vm"
+build = ["sh", "-c", "cd sage-halpin && npm ci --include=dev && npm run build"]
+run = ["sh", "-c", "cd sage-halpin && node dist/server.mjs"]

@@ -5,35 +5,35 @@ up (see `HOSTING.md` and `RUNBOOK.md` for Azure). It runs the same app from this
 folder, with Replit's PostgreSQL database for storage and Claude through the
 Anthropic API.
 
-## Set it up from your own Replit workspace (10 minutes)
+## Set it up from your own Replit workspace (5 minutes)
 
 Do this signed in to the Replit account that should own the app, so it appears
 in that workspace and you can open it. (An app created on your behalf by another
 tool can land in a different account or workspace and show "Page not found".)
 
+The repository's `.replit` file already tells Replit how to install, build, run
+and publish the platform, with its non-secret settings. You only add the
+secrets and the database.
+
 1. In Replit, choose **Import** (left sidebar), then **GitHub**, and enter
    `https://github.com/mflinn99/aijoes.app`. It is public, so no GitHub sign-in
-   is needed. Name the app **Sentinel8**.
+   is needed. Name the app **Sentinel8**. If the Agent offers to set the app up
+   or change it, decline: it is ready to run.
 2. Open **Tools → Secrets** and add:
-   - `ANTHROPIC_API_KEY`: a key from console.anthropic.com → API Keys
-   - `SESSION_SECRET`: 48 or more random characters (for example the output of
-     `openssl rand -base64 48`). Set it once and never change it.
+   - `ANTHROPIC_API_KEY`: a key from console.anthropic.com → API Keys (set a
+     monthly spend limit on it)
+   - `SESSION_SECRET`: 48 or more random characters, for example from a
+     password generator. Set it once and never change it: changing it signs
+     everyone out and makes saved workspaces unreadable.
 3. Open **Tools → Database** and create the PostgreSQL database.
-4. In the Agent chat, paste:
-
-   > Run the existing Sentinel8 app in the sage-halpin folder exactly as it is;
-   > do not rewrite or restyle it. Follow sage-halpin/docs/REPLIT.md: from
-   > sage-halpin run npm ci, npm run build, then node dist/server.mjs, listening
-   > on PORT. Set NODE_ENV=production, AI_PROVIDER=anthropic,
-   > AI_MODEL=claude-opus-5-5, WEB_SEARCH_TOOL=web_search_20260209,
-   > TRUST_PROXY_HOPS=1, and PUBLIC_BASE_URL to the published address. Use the
-   > ANTHROPIC_API_KEY and SESSION_SECRET secrets and the PostgreSQL database
-   > already set up. Then publish it as a Reserved VM deployment.
-
-5. When it is published, open `/signup` on the published address, create an
-   account, and check you land on **Your board** with **Getting started**.
-6. Send the published address to whoever maintains the website, to set as
-   `APP_URL` (below).
+4. Press **Run** once to check it starts (the console ends with
+   `Sentinel8 listening … store: postgres … accounts: on`).
+5. Press **Publish** (Deploy) and accept the settings it shows (Reserved VM,
+   build and run commands from `.replit`).
+6. Open `/signup` on the published address, create an account, and check you
+   land on **Your board** with **Getting started**.
+7. Connect `app.sentinel8.ai` (below), or send the published address to whoever
+   maintains the website.
 
 ## Source
 
