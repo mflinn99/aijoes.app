@@ -1,5 +1,6 @@
 import { TableClient, odata } from "@azure/data-tables";
 import { DefaultAzureCredential } from "@azure/identity";
+import pg from "pg";
 
 // Durable storage for board consultations: the question, the people invited to
 // answer it, their questionnaire responses and the board's views. The rest of
@@ -8,7 +9,8 @@ import { DefaultAzureCredential } from "@azure/identity";
 //
 // Documents are JSON, addressed by a partition (one consultation, or the token
 // index) and a row. Production uses Azure Table Storage with the app's managed
-// identity, so replicas share it; development and tests use memory.
+// identity, so replicas share it; hosts with PostgreSQL (such as Replit) use
+// that; development and tests use memory.
 
 export interface Store {
   get<T>(partition: string, row: string): Promise<T | null>;
@@ -126,10 +128,87 @@ export class TableStore implements Store {
   }
 }
 
-export function storeKind(): "memory" | "table" {
-  const fallback = process.env.NODE_ENV === "production" ? "table" : "memory";
+/**
+ * PostgreSQL: one table of JSON documents keyed by partition and row. Used where
+ * the host provides a database (DATABASE_URL), such as Replit.
+ */
+export class PostgresStore implements Store {
+  private ready: Promise<unknown> | null = null;
+
+  constructor(
+    private readonly pool: pg.Pool,
+    private readonly table = "sentinel8_documents",
+  ) {
+    if (!/^[a-z_][a-z0-9_]{0,62}$/.test(table)) throw new StoreConfigError("PG_TABLE must be a plain lower-case table name");
+  }
+
+  private ensureTable() {
+    this.ready ??= this.pool
+      .query(
+        `CREATE TABLE IF NOT EXISTS ${this.table} (
+           partition_key TEXT NOT NULL,
+           row_key TEXT NOT NULL,
+           json TEXT NOT NULL,
+           updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+           PRIMARY KEY (partition_key, row_key)
+         );
+         CREATE INDEX IF NOT EXISTS ${this.table}_row_key ON ${this.table} (row_key);`,
+      )
+      .catch((err) => {
+        this.ready = null;
+        throw err;
+      });
+    return this.ready;
+  }
+
+  async get<T>(partition: string, row: string): Promise<T | null> {
+    await this.ensureTable();
+    const { rows } = await this.pool.query<{ json: string }>(`SELECT json FROM ${this.table} WHERE partition_key = $1 AND row_key = $2`, [
+      checkKey(partition),
+      checkKey(row),
+    ]);
+    return rows.length ? (JSON.parse(rows[0].json) as T) : null;
+  }
+
+  async put<T>(partition: string, row: string, value: T): Promise<void> {
+    await this.ensureTable();
+    await this.pool.query(
+      `INSERT INTO ${this.table} (partition_key, row_key, json) VALUES ($1, $2, $3)
+       ON CONFLICT (partition_key, row_key) DO UPDATE SET json = EXCLUDED.json, updated_at = now()`,
+      [checkKey(partition), checkKey(row), JSON.stringify(value)],
+    );
+  }
+
+  async list<T>(partition: string): Promise<{ row: string; value: T }[]> {
+    await this.ensureTable();
+    const { rows } = await this.pool.query<{ row_key: string; json: string }>(
+      `SELECT row_key, json FROM ${this.table} WHERE partition_key = $1 ORDER BY row_key`,
+      [checkKey(partition)],
+    );
+    return rows.map((r) => ({ row: r.row_key, value: JSON.parse(r.json) as T }));
+  }
+
+  async listByRow<T>(row: string): Promise<{ partition: string; value: T }[]> {
+    await this.ensureTable();
+    const { rows } = await this.pool.query<{ partition_key: string; json: string }>(
+      `SELECT partition_key, json FROM ${this.table} WHERE row_key = $1 ORDER BY partition_key`,
+      [checkKey(row)],
+    );
+    return rows.map((r) => ({ partition: r.partition_key, value: JSON.parse(r.json) as T }));
+  }
+
+  async remove(partition: string, row: string): Promise<void> {
+    await this.ensureTable();
+    await this.pool.query(`DELETE FROM ${this.table} WHERE partition_key = $1 AND row_key = $2`, [checkKey(partition), checkKey(row)]);
+  }
+}
+
+export type StoreKind = "memory" | "table" | "postgres";
+
+export function storeKind(): StoreKind {
+  const fallback = process.env.NODE_ENV === "production" ? (process.env.DATABASE_URL ? "postgres" : "table") : "memory";
   const raw = (process.env.STORE ?? fallback).toLowerCase();
-  if (raw !== "memory" && raw !== "table") throw new StoreConfigError(`STORE must be memory or table (got "${raw}")`);
+  if (raw !== "memory" && raw !== "table" && raw !== "postgres") throw new StoreConfigError(`STORE must be memory, table or postgres (got "${raw}")`);
   return raw;
 }
 
@@ -137,6 +216,9 @@ export function storeKind(): "memory" | "table" {
 export function assertStoreConfigured(): void {
   if (storeKind() === "table" && !process.env.TABLE_ENDPOINT) {
     throw new StoreConfigError("Set TABLE_ENDPOINT (https://<account>.table.core.windows.net) for STORE=table");
+  }
+  if (storeKind() === "postgres" && !process.env.DATABASE_URL) {
+    throw new StoreConfigError("Set DATABASE_URL (postgres://…) for STORE=postgres");
   }
 }
 
@@ -152,6 +234,9 @@ export function getStore(): Store {
       new DefaultAzureCredential(),
     );
     shared = new TableStore(client);
+  } else if (storeKind() === "postgres") {
+    assertStoreConfigured();
+    shared = new PostgresStore(new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 10 }), process.env.PG_TABLE || undefined);
   } else {
     shared = new MemoryStore();
   }
