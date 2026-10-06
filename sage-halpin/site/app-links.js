@@ -6,7 +6,7 @@
 // people there; anything else (not deployed yet, an outage, a 404 page or a
 // parked domain at that address) shows how to get access instead, so nobody
 // lands on an error page.
-var APP_URL = 'https://app.sentinel8.ai';
+var APP_URL = 'https://exciting-inferior-axis.replit.app';
 
 (function () {
   var links = Array.prototype.slice.call(document.querySelectorAll('[data-app-path]'));
