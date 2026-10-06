@@ -100,6 +100,9 @@ if (!jsEmail) fail(path.join(SITE, 'contact.js'), 'has no email setting');
 else if (!homeHtml.includes(`mailto:${jsEmail}`)) fail(home, `does not show ${jsEmail}, the address contact.js sends to`);
 if (!homeHtml.includes('tel:+442081291416')) fail(home, 'is missing the contact phone number');
 for (const path of ['/signin', '/signup']) if (!homeHtml.includes(`data-app-path="${path}"`)) fail(home, `has no ${path} link to the platform`);
+// Sign in and Create account sit on the header's one line, beside the navigation.
+const topLine = (homeHtml.match(/<div class="wrap top-inner">([\s\S]*?)<details class="menu">/) || [])[1] ?? '';
+for (const path of ['/signin', '/signup']) if (!topLine.includes(`data-app-path="${path}"`)) fail(home, `has no ${path} link on the header's top line`);
 if (!fs.existsSync(path.join(SITE, 'app-links.js'))) fail(home, 'app-links.js, which points Sign in and Create account at the platform, is missing');
 
 if (problems.length) {
