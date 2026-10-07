@@ -61,6 +61,11 @@ Status key:
 | 10.3.2 | Dependency integrity and updates | Met (review) | Lockfile, `npm ci`, Dependabot, pinned actions |
 | 11.1.4 | Anti-automation on expensive functions | Partial | Per-IP limits and the daily AI cap (`ai-budget.test.ts`); accounts not required (R-04) |
 | 12.6.1 | SSRF protection | Met (test) | `net.ts` tests in `api.test.ts` |
+| 12.1.1 | Upload size limits | Met (test) | 20 MB per file (413), 100 files and 250 MB per owner (`files.ts`; `files.test.ts` "lists, deletes and refuses bad uploads") |
+| 12.2.1 | File content checked against its declared type | Met (test) | Type sniffed from magic bytes (`extract.ts` `sniffType`; `files.test.ts` "knows file types from their content") |
+| 12.4.1 | Untrusted files stored outside the web root | Met (review) | Stored in the database in chunks, never on the web server's filesystem |
+| 12.5.2 | Uploaded files not served as executable content | Met (test) | Always downloaded as attachments; HTML is served as `application/octet-stream` with `CSP: sandbox` (`files.test.ts`) |
+| 12.4.2 | Antivirus scanning of uploads | Not met | Planned with Blob storage (Defender for Storage malware scanning) |
 | 13.1.x | API: same encodings; JSON content type enforced | Met (test) | `sameSite` guard (415) |
 | 13.2.1 | RESTful methods appropriate | Met (review) | — |
 | 14.1.x | Build pipeline secure; reproducible | Partial | `PIPELINE.md`; build once and promote by digest; base image not pinned by digest |
@@ -69,4 +74,4 @@ Status key:
 | 14.4.x | Security headers (CSP, nosniff, HSTS, frame-ancestors, Referrer-Policy) | Met (test) | `app.ts`; `api.test.ts` header checks |
 | 14.5.3 | CORS origin allow-list | Met (review) | Only `/api/healthz` sends `Access-Control-Allow-Origin: *`; it returns no data |
 
-**Totals (this subset):** 30 Met (test or review), 10 Partial, 5 Not met, 4 Unverified, 1 N/A. Level 2 is **not achieved**: the "Not met" rows (MFA, recovery, credential-change notification, security event log) are L2 requirements.
+**Totals (this subset):** 34 Met (test or review), 10 Partial, 6 Not met, 4 Unverified, 1 N/A. Level 2 is **not achieved**: the "Not met" rows (MFA, recovery, credential-change notification, security event log) are L2 requirements.

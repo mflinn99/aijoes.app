@@ -219,6 +219,7 @@ export const api = {
         agents: { persona: string; seat: string; position: Position | null; confidence: number | null }[];
         recommendation: string | null;
       } | null;
+      documents?: { id: string; name: string; type: string; size: number }[];
     }>(`/respond/${encodeURIComponent(token)}`),
 
   answer: (token: string, answers: Answer[]) =>

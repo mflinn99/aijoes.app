@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { MissingData } from "@/components/MissingData";
 import { PageLoader } from "@/components/PageLoader";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -68,7 +69,7 @@ export default function HorizonPage() {
     return (
       <WorkspaceShell title="The horizon">
         <p className="text-sm">
-          Start by naming your organisation in{" "}
+          Start by adding your contact details in{" "}
           <Link href="/organisation" className="font-semibold underline underline-offset-4">
             Your board
           </Link>
@@ -120,6 +121,7 @@ export default function HorizonPage() {
         )
       }
     >
+      <MissingData use="horizon" />
       <p className="mb-6 max-w-3xl text-sm text-muted-foreground">
         Sentinel<span className="sentinel-eight">8</span> keeps looking outward. On a schedule it reads the sources you choose and searches the web
         for your watch topics, keeps what bears on your organisation, and updates the external landscape that every agent reads before it advises.

@@ -13,6 +13,7 @@ import Respond from "@/pages/respond";
 import AgentsPage from "@/pages/agents";
 import HorizonPage from "@/pages/horizon";
 import CheckpointPage from "@/pages/checkpoint";
+import DocumentsPage from "@/pages/documents";
 import NotFound from "@/pages/not-found";
 import { SignInPage, SignUpPage } from "@/pages/auth";
 import { AccountProvider } from "@/components/AccountProvider";
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/agents" component={AgentsPage} />
       <Route path="/horizon" component={HorizonPage} />
       <Route path="/checkpoint" component={CheckpointPage} />
+      <Route path="/documents" component={DocumentsPage} />
       <Route path="/reset-password">
         <Redirect to="/" />
       </Route>

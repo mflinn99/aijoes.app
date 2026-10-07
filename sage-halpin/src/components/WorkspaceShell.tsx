@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Mark } from "@/components/Mark";
 import { CheckpointPill } from "@/components/CheckpointPill";
 import { AccountMenu } from "@/components/AccountProvider";
+import { AttachButton } from "@/components/Documents";
 
 // The frame for the board pages: brand, page title and the workspace
 // navigation, then the page itself.
@@ -15,6 +16,7 @@ const NAV = [
   { href: "/questions", label: "Board questions" },
   { href: "/boardroom", label: "Shadow board" },
   { href: "/log", label: "Decision log" },
+  { href: "/documents", label: "Documents" },
 ];
 
 export function WorkspaceShell({ title, children, actions }: { title: string; children: ReactNode; actions?: ReactNode }) {
@@ -47,7 +49,10 @@ export function WorkspaceShell({ title, children, actions }: { title: string; ch
               );
             })}
           </nav>
-          <AccountMenu className="sm:ml-auto" />
+          <div className="flex items-center gap-2 sm:ml-auto">
+            <AttachButton />
+            <AccountMenu />
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-8">

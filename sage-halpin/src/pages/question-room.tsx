@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
+import { MissingData } from "@/components/MissingData";
 import { PageLoader } from "@/components/PageLoader";
 import { invalidateCheckpointPill } from "@/components/CheckpointPill";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WorkspaceShell, Section } from "@/components/WorkspaceShell";
+import { DocumentList } from "@/components/Documents";
 import { loadOrganisation, boardContext } from "@/lib/organisation";
 import { store } from "@/lib/store";
 import {
@@ -496,6 +498,25 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
           </ul>
         </Section>
       )}
+
+      {c.mode !== "people" && <MissingData use="decision" personIds={c.invitees.map((i) => i.personId)} />}
+
+      <details open className="mb-8 rounded-md border border-border bg-card" data-testid="question-docs-section">
+        <summary className="cursor-pointer px-5 py-4 text-sm font-bold uppercase tracking-[0.18em]">Background and supporting documents</summary>
+        <div className="border-t border-border p-5">
+          <p className="mb-4 max-w-3xl text-sm text-muted-foreground">
+            Attach any file, at any stage of this decision, with instructions for Sentinel. The shadow board reads what matters from each one; shared files
+            appear on the people's questionnaires.
+          </p>
+          <DocumentList
+            owner={{ kind: "consultation", id: saved.id, token: saved.adminToken }}
+            stage="decision"
+            shareOption={c.mode !== "agents"}
+            defaultInstruction="Background for this board question: summarise what matters for the decision."
+            emptyText="No documents attached to this question yet."
+          />
+        </div>
+      </details>
 
       {c.mode === "people" && peoplePanel}
       {c.mode === "agents" && shadowPanel}

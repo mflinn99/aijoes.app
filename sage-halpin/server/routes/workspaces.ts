@@ -46,7 +46,9 @@ import {
   trackRecords,
   type Feed,
   type Workspace,
+  workspacePartition,
 } from "../workspace.js";
+import { fileFailure, getFile, handleAsk, handleDelete, handleUpdate, handleUpload, listFiles, publicFile, sendFile } from "../files.js";
 
 // The organisation's workspace: profile, how each agent is developed and
 // learns in the company, and how the platform watches the world outside. The
@@ -576,5 +578,51 @@ ${recent
     aiFailure(req, res, err, "The checkpoint could not be published.");
   }
 });
+
+// ─── Documents: the company admin's file library ───────────────────────────
+//
+// Any file, attached from any page, with an instruction Sentinel follows.
+// The digests of files marked for board use reach every agent's prompt.
+
+const about = (w: Workspace) =>
+  [`Organisation: ${w.name}`, w.sector ? `Sector: ${w.sector}` : "", w.profile ? `Profile: ${w.profile}` : ""].filter(Boolean).join("\n");
+
+async function files(res: Response, next: NextFunction, work: () => Promise<void>) {
+  try {
+    await work();
+  } catch (err) {
+    if (!fileFailure(res, err)) next(err);
+  }
+}
+
+router.post("/workspaces/:id/files", requireWorkspace, (req, res, next) =>
+  files(res, next, () => handleUpload(req, res, getStore(), workspacePartition(ws(res).id), about(ws(res)), { shared: false })),
+);
+
+router.get("/workspaces/:id/files", requireWorkspace, (_req, res, next) =>
+  files(res, next, async () => {
+    res.json({ files: (await listFiles(getStore(), workspacePartition(ws(res).id))).map(publicFile) });
+  }),
+);
+
+router.get("/workspaces/:id/files/:fileId", requireWorkspace, (req, res, next) =>
+  files(res, next, async () => {
+    const file = await getFile(getStore(), workspacePartition(ws(res).id), String(req.params.fileId));
+    if (!file) return void res.status(404).json({ error: "File not found" });
+    await sendFile(res, getStore(), file);
+  }),
+);
+
+router.post("/workspaces/:id/files/:fileId/ask", requireWorkspace, (req, res, next) =>
+  files(res, next, () => handleAsk(req, res, getStore(), workspacePartition(ws(res).id), about(ws(res)))),
+);
+
+router.patch("/workspaces/:id/files/:fileId", requireWorkspace, (req, res, next) =>
+  files(res, next, () => handleUpdate(req, res, getStore(), workspacePartition(ws(res).id))),
+);
+
+router.delete("/workspaces/:id/files/:fileId", requireWorkspace, (req, res, next) =>
+  files(res, next, () => handleDelete(req, res, getStore(), workspacePartition(ws(res).id))),
+);
 
 export default router;

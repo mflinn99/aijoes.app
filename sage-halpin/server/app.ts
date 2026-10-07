@@ -87,6 +87,8 @@ export function createApp({ publicDir = path.resolve(process.cwd(), "dist/public
   app.use("/api/consultations/questionnaire", consult);
   app.use(/^\/api\/consultations\/[^/]+\/(shadow-board|synthesis|challenge)$/, consult);
   app.use(/^\/api\/workspaces\/[^/]+\/(agents\/[^/]+\/study|decisions\/[^/]+\/outcome|horizon\/scan|checkpoints)$/, consult);
+  // Uploads and instructions to Sentinel each make a model call.
+  app.post(/^\/api\/(workspaces|consultations)\/[^/]+\/files(\/[^/]+\/ask)?$/, consult);
   app.use("/api/workspaces", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_CONSULT_PER_10_MIN", 120) }));
   app.use("/api/consultations", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_CONSULT_PER_10_MIN", 120) }));
   app.use("/api/respond", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_RESPOND_PER_10_MIN", 60) }));
@@ -106,6 +108,10 @@ export function createApp({ publicDir = path.resolve(process.cwd(), "dist/public
   app.use("/api", workspaces);
   app.use("/api", (_req, res) => res.status(404).json({ error: "Not found" }));
   app.use("/api", (err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    if ((err as { type?: string })?.type === "entity.too.large") {
+      if (!res.headersSent) res.status(413).json({ error: "That is too large to send. Files can be up to 20 MB." });
+      return;
+    }
     req.log.error({ err }, "request failed");
     if (!res.headersSent) res.status(500).json({ error: "Something went wrong. Please try again." });
   });

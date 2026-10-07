@@ -60,3 +60,4 @@ Region: **UK South**, with zone redundancy in prod. The paired region (UK West) 
 - The app needs `STORE=postgres` (already supported). Table Storage is retired for production.
 - App Service does not apply access restrictions to Private Link traffic, so the app checks `X-Azure-FDID` itself (`FRONT_DOOR_ID`; tested in `api.test.ts`).
 - Implementation deviations from this ADR are listed in `infra/azure/README.md` ("Deviations").
+- **Uploads (added 7 October 2026) are stored in PostgreSQL in chunks**, not in Blob Storage as this ADR intends, so they work the same on every host, including Replit. The file store sits behind one module (`server/files.ts`), so moving the bytes to Blob is contained. Do it before uploads grow large, and turn on Defender for Storage malware scanning when it happens. Front Door WAF request-body inspection limits for 20 MB uploads must be checked during the nonprod deployment.
