@@ -12,10 +12,9 @@ on:
     paths: ["sage-halpin/site/**", ".github/workflows/sage-halpin-site.yml"]
   workflow_dispatch:
 
+# Least privilege by default; the Pages job gets its own grants below.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: sage-halpin-pages
@@ -24,21 +23,29 @@ concurrency:
 jobs:
   deploy:
     # Pages only accepts deployments from the default branch.
-    if: github.ref_name == github.event.repository.default_branch
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+          package-manager-cache: false
       - name: Check the site (links, files, anchors, contact details)
         run: node sage-halpin/scripts/check-site.mjs
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: sage-halpin/site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

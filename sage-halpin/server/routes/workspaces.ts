@@ -18,7 +18,7 @@ import {
   type LoggedKind,
   compareEntries,
 } from "../../shared/board.js";
-import { AIRefusalError, complete } from "../ai.js";
+import { AIBudgetError, AIRefusalError, complete } from "../ai.js";
 import { getStore } from "../store.js";
 import { checkFeedUrl, UnsafeUrlError } from "../net.js";
 import { scanWorkspace } from "../horizon.js";
@@ -66,6 +66,11 @@ function text(value: unknown, max: number, { required = false } = {}): string | 
 }
 
 function aiFailure(req: Request, res: Response, err: unknown, message: string) {
+  if (err instanceof AIBudgetError) {
+    req.log.warn("daily AI call limit reached");
+    res.status(503).json({ error: "The board has reached today's limit. Please try again tomorrow." });
+    return;
+  }
   if (err instanceof AIRefusalError) {
     req.log.warn({ category: err.category }, "model declined request");
     res.status(422).json({ error: "The model could not process this. Please rephrase it." });

@@ -1,0 +1,170 @@
+name: Sage Halpin security
+
+# Supply-chain and code security checks. See sage-halpin/docs/security/PIPELINE.md.
+# Third-party actions are pinned to full commit SHAs (tag in the comment).
+
+on:
+  pull_request:
+    paths: ["sage-halpin/**", ".github/**", ".gitleaks.toml"]
+  push:
+    # The repository's default branch today, and main if it is renamed.
+    branches: [main, claude/aiogo-metamsp-build-directive-2lsui2]
+    paths: ["sage-halpin/**", ".github/**", ".gitleaks.toml"]
+  schedule:
+    # Weekly, Monday 04:23 UTC: full-history secret scan and fresh advisories
+    # against unchanged dependencies.
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sage-halpin-security-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  secrets:
+    name: secret-scan (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      GITLEAKS_VERSION: 8.24.3
+      # sha256 of gitleaks_8.24.3_linux_x64.tar.gz, from the release's
+      # gitleaks_8.24.3_checksums.txt (verified against a local download).
+      GITLEAKS_SHA256: 9991e0b2903da4c8f6122b5c3186448b927a5da4deef1fe45271c3793f4ee29c
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # full history: a secret deleted later is still leaked
+          persist-credentials: false
+      - name: Install gitleaks (pinned version, checksum verified)
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" version
+      - name: Scan full git history
+        # --redact keeps any real secret out of the job log.
+        run: |
+          "$RUNNER_TEMP/gitleaks" git . \
+            --config .gitleaks.toml \
+            --redact --no-banner --verbose --exit-code 1
+
+  npm-audit:
+    name: npm-audit (production deps)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: sage-halpin
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+      # Reads package-lock.json; fails on any high or critical advisory in a
+      # dependency that ships in the production image.
+      - run: npm audit --omit=dev --audit-level=high
+
+  sbom:
+    name: sbom (CycloneDX)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: sage-halpin
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+      # Install without running package scripts: the SBOM only needs the tree.
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm sbom --sbom-format cyclonedx --omit dev > "$RUNNER_TEMP/sage-halpin.cdx.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sage-halpin-sbom-${{ github.sha }}
+          path: ${{ runner.temp }}/sage-halpin.cdx.json
+          if-no-files-found: error
+          retention-days: 90
+
+  codeql:
+    name: codeql (javascript-typescript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          languages: javascript-typescript
+          build-mode: none
+          queries: security-extended
+          config: |
+            paths:
+              - sage-halpin
+            paths-ignore:
+              - sage-halpin/node_modules
+              - sage-halpin/dist
+      - uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          category: /language:javascript-typescript/sage-halpin
+
+  # Needs the repository's Dependency graph (Settings → Code security). Until
+  # the owner turns it on and sets the repository variable
+  # DEPENDENCY_REVIEW=on, this job is skipped; npm-audit above still gates
+  # production dependencies.
+  dependency-review:
+    name: dependency-review
+    if: github.event_name == 'pull_request' && vars.DEPENDENCY_REVIEW == 'on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+
+  bicep:
+    name: bicep (build + lint)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build and lint Bicep
+        run: |
+          found=0
+          for f in sage-halpin/infra/azure/main.bicep sage-halpin/infra/main.bicep; do
+            [ -f "$f" ] || { echo "skip: $f (not present)"; continue; }
+            if [ "$found" = 0 ]; then az bicep install; az bicep version; fi
+            found=1
+            echo "::group::$f"
+            az bicep build --file "$f" --stdout > /dev/null
+            az bicep lint --file "$f"
+            echo "::endgroup::"
+          done
+          [ "$found" = 1 ] || echo "No Bicep entry point found; nothing to check."

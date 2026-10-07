@@ -227,9 +227,10 @@ export async function signIn(email: string, password: string): Promise<Account> 
 }
 
 /** Saves, signs out, and removes the account's copy from this browser. */
-export async function signOut(): Promise<void> {
+export async function signOut({ everywhere = false } = {}): Promise<void> {
   const userId = getStorageUser();
   await saveNow();
+  if (everywhere) await call("/auth/signout-everywhere", { method: "POST", body: "{}" });
   stopSync();
   await call("/auth/signout", { method: "POST", body: "{}" }).catch(() => undefined);
   if (userId) {
@@ -238,4 +239,9 @@ export async function signOut(): Promise<void> {
   }
   lastSaved = "";
   setStorageUser(null);
+}
+
+/** Changes the password. Other devices are signed out; this one stays signed in. */
+export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  await call("/auth/password", { method: "POST", body: JSON.stringify({ currentPassword, newPassword }) });
 }

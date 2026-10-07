@@ -85,28 +85,111 @@ export async function burnPasswordCheck(password: string): Promise<void> {
 }
 
 // ─── Sessions ───────────────────────────────────────────────────────────────
+//
+// The cookie carries the account's row key, a random session id and an expiry,
+// signed so it can't be forged. Each session also has a record on the server
+// (partition "sessions-<account id>", row = a hash of the session id), so a
+// session ends for real when it is signed out, when the person signs out
+// everywhere, changes their password or deletes the account, and when the
+// record is removed by an operator. A cookie whose record is gone is refused.
 
 const sign = (payload: string) => createHmac("sha256", key("session")).update(payload).digest("base64url");
 
-export function createSession(accountRowKey: string, now = Date.now()): { value: string; maxAgeMs: number } {
-  const maxAgeMs = SESSION_DAYS * 24 * 60 * 60 * 1000;
-  const payload = Buffer.from(JSON.stringify({ k: accountRowKey, exp: now + maxAgeMs })).toString("base64url");
-  return { value: `${payload}.${sign(payload)}`, maxAgeMs };
+export interface SessionClaim {
+  k: string; // account row key
+  s: string; // session id
 }
 
-/** The account row a valid, unexpired session points at, or null. */
-export function readSession(value: string | undefined, now = Date.now()): string | null {
+export interface SessionRecord {
+  createdAt: string;
+  expiresAt: number;
+}
+
+export const sessionPartition = (accountId: string) => `sessions-${accountId}`;
+const sessionRow = (sid: string) => createHash("sha256").update(sid).digest("hex");
+
+export function createSession(accountRowKey: string, now = Date.now()): { value: string; sid: string; maxAgeMs: number; expiresAt: number } {
+  const maxAgeMs = SESSION_DAYS * 24 * 60 * 60 * 1000;
+  const sid = randomBytes(32).toString("base64url");
+  const expiresAt = now + maxAgeMs;
+  const payload = Buffer.from(JSON.stringify({ k: accountRowKey, s: sid, exp: expiresAt })).toString("base64url");
+  return { value: `${payload}.${sign(payload)}`, sid, maxAgeMs, expiresAt };
+}
+
+/** The claim in a validly signed, unexpired session cookie, or null. Callers must still check the server record. */
+export function readSession(value: string | undefined, now = Date.now()): SessionClaim | null {
   if (!value) return null;
   const [payload, sig] = value.split(".");
   if (!payload || !sig) return null;
   const expected = sign(payload);
   if (sig.length !== expected.length || !timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
   try {
-    const { k, exp } = JSON.parse(Buffer.from(payload, "base64url").toString()) as { k?: unknown; exp?: unknown };
-    return typeof k === "string" && typeof exp === "number" && exp > now ? k : null;
+    const { k, s, exp } = JSON.parse(Buffer.from(payload, "base64url").toString()) as { k?: unknown; s?: unknown; exp?: unknown };
+    return typeof k === "string" && typeof s === "string" && typeof exp === "number" && exp > now ? { k, s } : null;
   } catch {
     return null;
   }
+}
+
+export async function recordSession(store: Store, account: Account, sid: string, expiresAt: number): Promise<void> {
+  await store.put<SessionRecord>(sessionPartition(account.id), sessionRow(sid), { createdAt: new Date().toISOString(), expiresAt });
+}
+
+export async function sessionIsLive(store: Store, account: Account, sid: string, now = Date.now()): Promise<boolean> {
+  const record = await store.get<SessionRecord>(sessionPartition(account.id), sessionRow(sid));
+  return record !== null && record.expiresAt > now;
+}
+
+export async function endSession(store: Store, account: Account, sid: string): Promise<void> {
+  await store.remove(sessionPartition(account.id), sessionRow(sid));
+}
+
+/** Ends every session for the account, except `keepSid` when given. Also clears expired records. */
+export async function endAllSessions(store: Store, account: Account, keepSid?: string): Promise<number> {
+  const keep = keepSid ? sessionRow(keepSid) : null;
+  let ended = 0;
+  for (const { row } of await store.list<SessionRecord>(sessionPartition(account.id))) {
+    if (row === keep) continue;
+    await store.remove(sessionPartition(account.id), row);
+    ended += 1;
+  }
+  return ended;
+}
+
+// ─── Sign-in throttling per account ─────────────────────────────────────────
+//
+// On top of the per-IP limit: after LOCK_AFTER failed sign-ins for one email
+// address within LOCK_WINDOW_MS, sign-in for that address is refused for
+// LOCK_FOR_MS, whatever the password, from any address. Tracked for unknown
+// addresses too, so the answer never reveals whether an account exists.
+
+export const THROTTLE = "throttle";
+export const LOCK_AFTER = 10;
+export const LOCK_WINDOW_MS = 15 * 60 * 1000;
+export const LOCK_FOR_MS = 15 * 60 * 1000;
+
+interface Throttle {
+  fails: number;
+  windowStart: number;
+  lockedUntil: number;
+}
+
+export async function signInLockedUntil(store: Store, email: string, now = Date.now()): Promise<number | null> {
+  const t = await store.get<Throttle>(THROTTLE, accountRow(email));
+  return t && t.lockedUntil > now ? t.lockedUntil : null;
+}
+
+export async function recordFailedSignIn(store: Store, email: string, now = Date.now()): Promise<void> {
+  const row = accountRow(email);
+  const t = (await store.get<Throttle>(THROTTLE, row)) ?? { fails: 0, windowStart: now, lockedUntil: 0 };
+  if (now - t.windowStart > LOCK_WINDOW_MS) Object.assign(t, { fails: 0, windowStart: now });
+  t.fails += 1;
+  if (t.fails >= LOCK_AFTER) Object.assign(t, { lockedUntil: now + LOCK_FOR_MS, fails: 0, windowStart: now });
+  await store.put(THROTTLE, row, t);
+}
+
+export async function clearFailedSignIns(store: Store, email: string): Promise<void> {
+  await store.remove(THROTTLE, accountRow(email));
 }
 
 // ─── Saved workspace data, encrypted at rest ────────────────────────────────
@@ -149,6 +232,7 @@ export async function readAccountData(store: Store, account: Account): Promise<R
 }
 
 export async function deleteAccount(store: Store, account: Account): Promise<void> {
+  await endAllSessions(store, account);
   await store.remove(ACCOUNTS, dataRow(account.id));
   await store.remove(ACCOUNTS, accountRow(account.email));
 }

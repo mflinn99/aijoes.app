@@ -1,5 +1,11 @@
 # Hosting
 
+> **Production target:** Azure App Service + PostgreSQL behind Front Door Premium
+> (`docs/security/ADR-001-azure-hosting.md`, Bicep in `infra/azure/`). The
+> Container Apps design described below (`infra/main.bicep`) is superseded and
+> kept only until the pipeline is switched over. Release status:
+> `docs/security/GO-NO-GO.md`.
+
 Sage Halpin has two parts. Each has one source in this repository and one home.
 
 | Part | Source | Host | Address | Cost |

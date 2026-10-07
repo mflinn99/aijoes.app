@@ -1,34 +1,25 @@
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response } from "express";
+import expressRateLimit from "express-rate-limit";
 
-// Fixed-window limit per client IP for the public AI endpoints. Each board
-// session fans out to several model calls, so this caps cost and abuse. It is
-// per replica; put Azure Front Door WAF rate limiting in front for a global cap.
+// Fixed-window limit per client IP for the public AI endpoints and for
+// accounts. Each board session fans out to several model calls, so this caps
+// cost and abuse. It is per replica (in memory); Azure Front Door WAF rate
+// limiting in front gives the global cap, and sign-in also has a per-account
+// lock stored in the database (server/auth.ts).
 
 export function rateLimit({ windowMs, max, message = "Too many board sessions. Please wait before convening again." }: { windowMs: number; max: number; message?: string }) {
-  const hits = new Map<string, { count: number; resetAt: number }>();
-
-  return (req: Request, res: Response, next: NextFunction) => {
-    const now = Date.now();
-    const key = req.ip ?? "unknown";
-    let entry = hits.get(key);
-    if (!entry || entry.resetAt <= now) {
-      entry = { count: 0, resetAt: now + windowMs };
-      hits.set(key, entry);
-    }
-    entry.count += 1;
-
-    // Drop expired windows occasionally so the map cannot grow without bound.
-    if (hits.size > 10_000) {
-      for (const [k, v] of hits) if (v.resetAt <= now) hits.delete(k);
-    }
-
-    if (entry.count > max) {
-      res.setHeader("Retry-After", String(Math.ceil((entry.resetAt - now) / 1000)));
+  return expressRateLimit({
+    windowMs,
+    limit: max,
+    standardHeaders: false,
+    legacyHeaders: false,
+    handler: (req: Request, res: Response) => {
+      const resetTime = (req as Request & { rateLimit?: { resetTime?: Date } }).rateLimit?.resetTime;
+      const seconds = resetTime ? Math.max(1, Math.ceil((resetTime.getTime() - Date.now()) / 1000)) : Math.ceil(windowMs / 1000);
+      res.setHeader("Retry-After", String(seconds));
       res.status(429).json({ error: message });
-      return;
-    }
-    next();
-  };
+    },
+  });
 }
 
 export function limitFromEnv(name: string, fallback: number): number {

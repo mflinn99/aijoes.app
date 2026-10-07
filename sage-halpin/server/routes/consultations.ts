@@ -18,7 +18,7 @@ import {
   type QuestionnaireItem,
 } from "../../shared/board.js";
 import { PERSONAS } from "../personas/boardroom-personas.js";
-import { AIRefusalError, complete } from "../ai.js";
+import { AIBudgetError, AIRefusalError, complete } from "../ai.js";
 import { getStore, type Store } from "../store.js";
 import { emailProvider, escapeHtml, publicBaseUrl, sendEmail } from "../email.js";
 import { EMAIL_FOOTER_HTML, EMAIL_FOOTER_TEXT } from "../../shared/contact.js";
@@ -146,6 +146,11 @@ function bad(res: Response, error: string) {
 }
 
 function aiFailure(req: Request, res: Response, err: unknown, message: string) {
+  if (err instanceof AIBudgetError) {
+    req.log.warn("daily AI call limit reached");
+    res.status(503).json({ error: "The board has reached today's limit. Please try again tomorrow." });
+    return;
+  }
   if (err instanceof AIRefusalError) {
     req.log.warn({ category: err.category }, "model declined request");
     res.status(422).json({ error: "The board could not respond to this question. Please rephrase it." });

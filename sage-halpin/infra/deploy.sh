@@ -13,6 +13,18 @@
 # Accounts need a session secret in Key Vault. The first deploy creates one and
 # later deploys keep it. To rotate it (this signs everyone out), set
 # ROTATE_SESSION_SECRET=1.
+#
+# Image source (build once, promote by digest). By default the image is built
+# in Azure Container Registry from this checkout. CI instead sets one of:
+#   IMAGE_ARCHIVE  a `docker save` tarball built and tested earlier in the run;
+#                  it is pushed to this environment's registry as-is (nonprod).
+#   IMAGE_SOURCE   a digest-pinned reference (registry/sage-halpin@sha256:...)
+#                  already deployed to an earlier environment; it is imported
+#                  into this environment's registry and must keep that digest
+#                  (production).
+# IMAGE_TAG overrides the tag (CI passes the full git SHA). Either way the app
+# is rolled out by digest, and image_ref/digest/app_url are written to
+# $GITHUB_OUTPUT when it is set.
 set -euo pipefail
 
 : "${RESOURCE_GROUP:?Set RESOURCE_GROUP}"
@@ -21,7 +33,7 @@ ENVIRONMENT_NAME="${ENVIRONMENT_NAME:-prod}"
 LOCATION="${LOCATION:-uksouth}"
 AI_MODEL="${AI_MODEL:-claude-opus-5-5}"
 APP_NAME="ca-sagehalpin-${ENVIRONMENT_NAME}"
-TAG="$(git rev-parse --short HEAD 2>/dev/null || date +%Y%m%d%H%M%S)"
+TAG="${IMAGE_TAG:-$(git rev-parse HEAD 2>/dev/null || date +%Y%m%d%H%M%S)}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
 az group create --name "$RESOURCE_GROUP" --location "$LOCATION" --output none
@@ -57,12 +69,42 @@ REGISTRY="$(echo "$OUTPUTS" | python3 -c 'import json,sys; print(json.load(sys.s
 LOGIN_SERVER="$(echo "$OUTPUTS" | python3 -c 'import json,sys; print(json.load(sys.stdin)["registryLoginServer"]["value"])')"
 APP_URL="$(echo "$OUTPUTS" | python3 -c 'import json,sys; print(json.load(sys.stdin)["appUrl"]["value"])')"
 
-echo "Building image in Azure Container Registry ($REGISTRY)…"
-az acr build --registry "$REGISTRY" --image "sage-halpin:$TAG" \
-  --build-arg VITE_ENQUIRY_EMAIL="${VITE_ENQUIRY_EMAIL:-}" "$HERE/.."
+if [[ -n "${IMAGE_ARCHIVE:-}" ]]; then
+  echo "Pushing the prebuilt image to $REGISTRY…"
+  LOADED="$(docker load --input "$IMAGE_ARCHIVE" | sed -n 's/^Loaded image: //p' | head -n 1)"
+  [[ -n "$LOADED" ]] || { echo "No image found in $IMAGE_ARCHIVE" >&2; exit 1; }
+  docker tag "$LOADED" "$LOGIN_SERVER/sage-halpin:$TAG"
+  az acr login --name "$REGISTRY"
+  docker push "$LOGIN_SERVER/sage-halpin:$TAG"
+elif [[ -n "${IMAGE_SOURCE:-}" ]]; then
+  [[ "$IMAGE_SOURCE" == *@sha256:* ]] || { echo "IMAGE_SOURCE must be pinned by digest (…@sha256:…)" >&2; exit 1; }
+  echo "Promoting $IMAGE_SOURCE into $REGISTRY…"
+  if [[ "${IMAGE_SOURCE%%/*}" != "$LOGIN_SERVER" ]]; then
+    az acr import --name "$REGISTRY" --source "$IMAGE_SOURCE" --image "sage-halpin:$TAG" --force --output none
+  fi
+else
+  echo "Building image in Azure Container Registry ($REGISTRY)…"
+  az acr build --registry "$REGISTRY" --image "sage-halpin:$TAG" \
+    --build-arg VITE_ENQUIRY_EMAIL="${VITE_ENQUIRY_EMAIL:-}" "$HERE/.."
+fi
 
-echo "Rolling out sage-halpin:$TAG…"
-az containerapp update -g "$RESOURCE_GROUP" -n "$APP_NAME" --image "$LOGIN_SERVER/sage-halpin:$TAG" --output none
+if [[ -n "${IMAGE_SOURCE:-}" && "${IMAGE_SOURCE%%/*}" == "$LOGIN_SERVER" ]]; then
+  DIGEST="${IMAGE_SOURCE##*@}"
+else
+  DIGEST="$(az acr repository show --name "$REGISTRY" --image "sage-halpin:$TAG" --query digest -o tsv)"
+fi
+[[ "$DIGEST" == sha256:* ]] || { echo "Could not read the image digest from $REGISTRY" >&2; exit 1; }
+if [[ -n "${IMAGE_SOURCE:-}" && "$DIGEST" != "${IMAGE_SOURCE##*@}" ]]; then
+  echo "Digest changed during promotion ($DIGEST, expected ${IMAGE_SOURCE##*@}); refusing to deploy." >&2
+  exit 1
+fi
+IMAGE_REF="$LOGIN_SERVER/sage-halpin@$DIGEST"
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+  { echo "image_ref=$IMAGE_REF"; echo "digest=$DIGEST"; echo "app_url=$APP_URL"; } >> "$GITHUB_OUTPUT"
+fi
+
+echo "Rolling out $IMAGE_REF (sage-halpin:$TAG)…"
+az containerapp update -g "$RESOURCE_GROUP" -n "$APP_NAME" --image "$IMAGE_REF" --output none
 
 echo "Waiting for readiness…"
 for _ in $(seq 1 30); do

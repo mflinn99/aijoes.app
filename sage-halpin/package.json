@@ -24,6 +24,7 @@
     "@azure/identity": "^4.13.3",
     "dotenv": "^16.6.1",
     "express": "^5.0.0",
+    "express-rate-limit": "^8.7.1",
     "pg": "^8.23.1",
     "pino-http": "^10.0.0"
   },

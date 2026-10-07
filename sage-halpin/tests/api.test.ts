@@ -216,3 +216,20 @@ describe("AI configuration", () => {
     expect(() => assertAIConfigured()).toThrow(AIConfigError);
   });
 });
+
+describe("behind Azure Front Door", () => {
+  it("serves only requests carrying this profile's X-Azure-FDID, except the health check", async () => {
+    process.env.FRONT_DOOR_ID = "11111111-2222-3333-4444-555555555555";
+    try {
+      const app = createApp();
+      await request(app).get("/api/readyz").expect(403);
+      await request(app).get("/api/readyz").set("X-Azure-FDID", "99999999-0000-0000-0000-000000000000").expect(403);
+      await request(app).get("/api/readyz").set("X-Azure-FDID", "11111111-2222-3333-4444-555555555555").expect(200);
+      await request(app).post("/api/auth/signin").send({}).expect(403);
+      await request(app).get("/api/healthz").expect(200);
+    } finally {
+      delete process.env.FRONT_DOOR_ID;
+    }
+    await request(createApp()).get("/api/readyz").expect(200); // off when not set
+  });
+});

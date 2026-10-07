@@ -110,8 +110,9 @@ do not exist there.
 
 ## Moving to Azure later
 
-Accounts and boards in the Replit database do not move to Azure Table storage
-automatically. Before switching `APP_URL` to the Azure deployment, export the
-`sentinel8_documents` table (partition key, row key, JSON) and load it into the
-Azure table with the same keys, using the same `SESSION_SECRET`, so people keep
-their accounts and saved workspaces.
+The production design is Azure App Service with PostgreSQL Flexible Server
+(`docs/security/ADR-001-azure-hosting.md`, Bicep in `infra/azure/`). The data
+moves with `pg_dump`/`pg_restore` of the `sentinel8_documents` table, keeping
+the same `SESSION_SECRET`, following `docs/security/MIGRATION-RUNBOOK.md`. That
+runbook is blocked until the app and its database are in a Replit workspace
+the owner controls.
