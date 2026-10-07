@@ -126,6 +126,17 @@ describe("reading files", () => {
     expect(extractText("r.rtf", "", "text", Buffer.from("{\\rtf1\\ansi Hello\\par World}"))).toContain("Hello\nWorld");
   });
 
+  it("strips markup in linear time and leaves no tags behind", () => {
+    const hostile = "<style".repeat(50_000);
+    const started = Date.now();
+    extractText("x.html", "text/html", "text", Buffer.from(hostile));
+    expect(Date.now() - started).toBeLessThan(1000);
+    const nested = extractText("x.html", "text/html", "text", Buffer.from("<scr<script>ipt>alert(1)</script> safe <<b>>text"));
+    expect(nested).not.toMatch(/<\s*script/i);
+    expect(nested).toContain("safe");
+    expect(nested).toContain("text");
+  });
+
   it("survives a damaged Office file", () => {
     expect(extractText("bad.docx", "", "office", Buffer.from("PK\u0003\u0004 not really a zip"))).toBe("");
   });

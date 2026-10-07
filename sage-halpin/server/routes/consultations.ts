@@ -34,7 +34,6 @@ import {
   handleUpload,
   listFiles,
   publicFile,
-  rawUpload,
   sendFile,
 } from "../files.js";
 
@@ -970,7 +969,7 @@ async function fileRoute(res: Response, next: NextFunction, work: () => Promise<
 
 const lead = (res: Response) => res.locals.consultation as Consultation;
 
-router.post("/consultations/:id/files", requireLead, rawUpload, (req, res, next) =>
+router.post("/consultations/:id/files", requireLead, (req, res, next) =>
   fileRoute(res, next, () => handleUpload(req, res, getStore(), partition(lead(res).id), aboutQuestion(lead(res)), { shared: true })),
 );
 

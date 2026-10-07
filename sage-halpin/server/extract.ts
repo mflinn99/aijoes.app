@@ -90,13 +90,37 @@ function decodeEntities(s: string): string {
   });
 }
 
+/** Removes <script>, <style> and <noscript> elements with their content, in linear time. */
+function dropBlocks(html: string): string {
+  const lower = html.toLowerCase();
+  let out = "";
+  let at = 0;
+  for (;;) {
+    const open = /<(script|style|noscript)\b/g;
+    open.lastIndex = at;
+    const m = open.exec(lower);
+    if (!m) break;
+    const close = lower.indexOf(`</${m[1]}`, m.index + m[0].length);
+    out += `${html.slice(at, m.index)} `;
+    if (close < 0) return out;
+    const end = lower.indexOf(">", close);
+    at = end < 0 ? html.length : end + 1;
+  }
+  return out + html.slice(at);
+}
+
+/** Removes markup, repeating until none is left, then any stray angle brackets. */
+function stripTags(text: string, replacement = " "): string {
+  let prev: string;
+  do {
+    prev = text;
+    text = text.replace(/<[^<>]*>/g, replacement);
+  } while (text !== prev);
+  return text.replace(/[<>]/g, " ");
+}
+
 function htmlToText(html: string): string {
-  return decodeEntities(
-    html
-      .replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, " ")
-      .replace(/<(br|\/p|\/div|\/li|\/h[1-6]|\/tr)\s*\/?>/gi, "\n")
-      .replace(/<[^>]+>/g, " "),
-  );
+  return decodeEntities(stripTags(dropBlocks(html).replace(/<(br|\/p|\/div|\/li|\/h[1-6]|\/tr)\s*\/?>/gi, "\n")));
 }
 
 function rtfToText(rtf: string): string {
@@ -169,7 +193,7 @@ function readEntry(bytes: Buffer, e: ZipEntry): string {
 }
 
 const xmlText = (xml: string, paragraph: RegExp) =>
-  decodeEntities(xml.replace(paragraph, "\n").replace(/<w:tab\/>|<a:tab\/>/g, "\t").replace(/<[^>]+>/g, ""));
+  decodeEntities(stripTags(xml.replace(paragraph, "\n").replace(/<w:tab\/>|<a:tab\/>/g, "\t"), ""));
 
 const naturalOrder = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
 

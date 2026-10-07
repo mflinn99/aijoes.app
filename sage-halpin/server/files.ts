@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import express, { type Request, type Response } from "express";
+import type { Request, Response } from "express";
 import { AIBudgetError, AIRefusalError, complete, type ContentBlock } from "./ai.js";
 import type { Store } from "./store.js";
 import { IMAGE_MAX_BYTES, PDF_MAX_BYTES, extractText, kindOf, sniffType, type FileKind } from "./extract.js";
@@ -193,8 +193,26 @@ async function review(store: Store, owner: string, file: StoredFile, instruction
 
 // ─── HTTP handlers shared by the workspace and board-question routes ────────
 
-/** Raw upload bodies: the file itself, sent as application/octet-stream. */
-export const rawUpload = express.raw({ type: "application/octet-stream", limit: MAX_FILE_BYTES });
+/**
+ * The uploaded file: the request body itself, sent as application/octet-stream
+ * and read straight from the stream, up to MAX_FILE_BYTES.
+ */
+export async function readUpload(req: Request, res: Response): Promise<Buffer> {
+  if (!req.is("application/octet-stream")) throw new FileError(415, "Send the file as application/octet-stream.");
+  const tooLarge = () => {
+    res.setHeader("Connection", "close");
+    return new FileError(413, `Files can be up to ${MAX_FILE_BYTES / 1024 / 1024} MB.`);
+  };
+  if (Number(req.get("content-length")) > MAX_FILE_BYTES) throw tooLarge();
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req as AsyncIterable<Buffer>) {
+    size += chunk.length;
+    if (size > MAX_FILE_BYTES) throw tooLarge();
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks, size);
+}
 
 function header(req: Request, name: string, max: number): string {
   const raw = req.get(name) ?? "";
@@ -232,8 +250,7 @@ export const publicFile = (f: StoredFile) => ({
 });
 
 export async function handleUpload(req: Request, res: Response, store: Store, owner: string, about: string, defaults: { shared: boolean }): Promise<void> {
-  const bytes = Buffer.isBuffer(req.body) ? (req.body as Buffer) : null;
-  if (!bytes || !req.is("application/octet-stream")) throw new FileError(415, "Send the file as application/octet-stream.");
+  const bytes = await readUpload(req, res);
   if (bytes.length === 0) throw new FileError(422, "The file is empty.");
   const name = cleanName(header(req, "x-file-name", 400));
   const instruction = header(req, "x-instruction", INSTRUCTION_MAX * 3).slice(0, INSTRUCTION_MAX) || DEFAULT_INSTRUCTION;

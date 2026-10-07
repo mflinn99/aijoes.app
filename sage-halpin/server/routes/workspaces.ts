@@ -48,7 +48,7 @@ import {
   type Workspace,
   workspacePartition,
 } from "../workspace.js";
-import { fileFailure, getFile, handleAsk, handleDelete, handleUpdate, handleUpload, listFiles, publicFile, rawUpload, sendFile } from "../files.js";
+import { fileFailure, getFile, handleAsk, handleDelete, handleUpdate, handleUpload, listFiles, publicFile, sendFile } from "../files.js";
 
 // The organisation's workspace: profile, how each agent is developed and
 // learns in the company, and how the platform watches the world outside. The
@@ -595,7 +595,7 @@ async function files(res: Response, next: NextFunction, work: () => Promise<void
   }
 }
 
-router.post("/workspaces/:id/files", requireWorkspace, rawUpload, (req, res, next) =>
+router.post("/workspaces/:id/files", requireWorkspace, (req, res, next) =>
   files(res, next, () => handleUpload(req, res, getStore(), workspacePartition(ws(res).id), about(ws(res)), { shared: false })),
 );
 
