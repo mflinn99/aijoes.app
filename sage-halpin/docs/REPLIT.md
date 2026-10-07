@@ -89,13 +89,19 @@ Autoscale also works; scans then run only while the app is awake.
 
 ## Connect the website
 
-The website's buttons point at **https://app.sentinel8.ai** (`APP_URL` in
-`site/app-links.js`). Give the published app that address: in the Replit
-deployment's settings, add the custom domain `app.sentinel8.ai` and create the
-DNS records Replit shows at the domain registrar. Set
-`PUBLIC_BASE_URL=https://app.sentinel8.ai` in the app.
+**Live now:** the platform runs at **https://exciting-inferior-axis.replit.app**
+(Claude through Replit's built-in Anthropic integration, PostgreSQL), and the
+website's buttons point there (`APP_URL` in `site/app-links.js`). That app is
+in the Replit account Claude's Replit connection uses, not the owner's own
+workspace.
 
-Nothing else changes. The website asks `https://app.sentinel8.ai/api/healthz`
+To move to the branded address, publish from your own workspace (steps above),
+add the custom domain `app.sentinel8.ai` in the deployment's settings, create
+the DNS records Replit shows at the domain registrar, set
+`PUBLIC_BASE_URL=https://app.sentinel8.ai`, then change `APP_URL` and the
+buttons' addresses to it (`check:site` checks they match) and merge.
+
+The website asks `APP_URL/api/healthz`
 before sending anyone there, and opens the platform only when it answers as
 Sentinel8 with accounts on. Until then the buttons show "Accounts open when the
 platform launches". Do not use `sentinel8.ai` or `www.sentinel8.ai` for the

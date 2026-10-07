@@ -54,7 +54,7 @@ shared from their own Share menu, but the website above is the public copy.
 | `/media/` | `site/media/index.html` | The hero animation as videos (16:9, 1:1, 9:16, GIF, transparent WebM, still) with downloads and the embed code. Not indexed by search engines. |
 | `/hero.html` | `site/hero.html` | The hero animation on its own, for embedding (`<iframe>`) and recording. Options: `background`, `years`, `yearsAt`, `speed`, `still`. Not indexed. |
 | | `site/contact.js` | The booking calendar and message form (settings below) |
-| | `site/app-links.js` | Where **Sign in** and **Create account** go: `APP_URL` (`https://app.sentinel8.ai`) plus `/signin` or `/signup` |
+| | `site/app-links.js` | Where **Sign in** and **Create account** go: `APP_URL` (now `https://exciting-inferior-axis.replit.app`, the platform on Replit; see `REPLIT.md`) plus `/signin` or `/signup` |
 
 To change the website, edit the files above and merge. Links inside the site are
 relative, so it works at both addresses. **Every pull request and every publish runs
@@ -103,8 +103,9 @@ The app needs Azure and a Claude deployment on Microsoft Foundry.
    ```
 
 5. The website's **Sign in** and **Create account** buttons open
-   `https://app.sentinel8.ai/signin` and `/signup` (set by `APP_URL` in
-   `site/app-links.js`). Before sending anyone, the website asks the platform's
+   the platform's `/signin` and `/signup`, now on Replit at
+   `https://exciting-inferior-axis.replit.app` (set by `APP_URL` in
+   `site/app-links.js`; the Azure app on `app.sentinel8.ai` takes over later). Before sending anyone, the website asks the platform's
    `/api/healthz`; only an answer from Sentinel8 with accounts on opens it. Until that
    address answers, a click shows "Accounts open when the platform launches" with
    the contact email instead of a broken page, so the buttons can stay up before
