@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MissingData } from "@/components/MissingData";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +10,7 @@ import { WorkspaceShell, Section } from "@/components/WorkspaceShell";
 import { loadOrganisation } from "@/lib/organisation";
 import { hasContactDetails } from "@/lib/missing";
 import { api, rememberConsultation, savedConsultations } from "@/lib/consultations";
-import { ensureWorkspace } from "@/lib/workspace";
+import { ensureWorkspace, workspaceApi, type DecisionRecord } from "@/lib/workspace";
 import { Switch } from "@/components/ui/switch";
 import { filesApi, formatSize, MAX_FILE_MB } from "@/lib/files";
 import {
@@ -19,6 +19,8 @@ import {
   DECISION_MODE_DESCRIPTIONS,
   DECISION_MODE_LABELS,
   LIMITS,
+  OUTCOME_LABELS,
+  POSITION_LABELS,
   STANDARD_QUESTIONS,
   type AgentId,
   type DecisionMode,
@@ -64,6 +66,18 @@ export function QuestionList() {
   );
 }
 
+/** The context for revisiting an earlier decision: what was decided, why, and how it turned out. */
+function revisitContext(d: DecisionRecord): string {
+  const parts = [
+    `Revisiting the board's decision of ${d.decidedAt.slice(0, 10)}: "${d.decision}" (${POSITION_LABELS[d.position]}).`,
+    d.rationale ? `Why: ${d.rationale}` : "",
+    d.plan ? `Plan: ${d.plan}` : "",
+    d.outcome ? `Outcome so far: ${OUTCOME_LABELS[d.outcome.result]}${d.outcome.note ? `: ${d.outcome.note}` : ""}.` : "Outcome not yet recorded.",
+    d.context ? `Original context: ${d.context}` : "",
+  ];
+  return parts.filter(Boolean).join("\n").slice(0, LIMITS.context);
+}
+
 export function NewQuestion() {
   const [, setLocation] = useLocation();
   const org = loadOrganisation();
@@ -94,6 +108,24 @@ export function NewQuestion() {
   const askPeople = mode !== "agents";
   const askAgents = mode !== "people";
   const ready = hasContactDetails(org);
+
+  // "Revisit as a new question" from the decision log: start from that decision.
+  const revisitId = new URLSearchParams(useSearch()).get("revisit");
+  const [revisiting, setRevisiting] = useState<DecisionRecord | null>(null);
+  useEffect(() => {
+    const link = org.workspace;
+    if (!revisitId || !link) return;
+    workspaceApi
+      .decisions(link)
+      .then(({ decisions }) => {
+        const d = decisions.find((x) => x.consultationId === revisitId);
+        if (!d) return;
+        setRevisiting(d);
+        setQuestion((q) => q || d.question);
+        setContext((c) => c || revisitContext(d));
+      })
+      .catch(() => undefined);
+  }, [revisitId]);
 
   if (!ready) {
     return (
@@ -167,6 +199,12 @@ export function NewQuestion() {
 
   return (
     <WorkspaceShell title="Ask the board">
+      {revisiting && (
+        <p className="mb-6 rounded-md border border-border bg-card p-4 text-sm" data-testid="revisit-banner">
+          <span className="font-semibold">Revisiting the decision of {new Date(revisiting.decidedAt).toLocaleDateString()}:</span> {revisiting.decision} (
+          {POSITION_LABELS[revisiting.position]}). The question and context below start from it, and the agents also see it in the board's decision log.
+        </p>
+      )}
       <MissingData use="question" personIds={people.map((p) => p.id)} />
       <Section title="1. Who decides" intro="Choose whose input this decision rests on.">
         <div role="radiogroup" aria-label="Who decides" className="grid gap-3 md:grid-cols-3">

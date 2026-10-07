@@ -40,6 +40,24 @@ export interface DecisionRecord {
   agentPositions: Partial<Record<AgentId, Position | null>>;
   peoplePositions: (Position | null)[];
   outcome: { result: Outcome; note: string; recordedAt: string } | null;
+  plan?: string;
+  /** Where it was decided (absent on older board-question records). */
+  source?: "question" | "analysis" | "manual";
+  context?: string;
+  recommendation?: string;
+  documents?: string[];
+  calibration?: { risk: number; ambition: number; time: number; cost: number };
+  updatedAt?: string;
+}
+
+export interface DecisionInput {
+  question?: string;
+  decision?: string;
+  position?: Position;
+  rationale?: string;
+  plan?: string;
+  context?: string;
+  decidedAt?: string;
 }
 
 export type WorkspaceLink = { id: string; adminToken: string };
@@ -108,6 +126,11 @@ export const workspaceApi = {
     call<Lesson>(l, `/workspaces/${l.id}/lessons/${lessonId}`, { method: "PATCH", body: JSON.stringify({ status, ...(text ? { text } : {}) }) }),
 
   decisions: (l: WorkspaceLink) => call<{ decisions: DecisionRecord[] }>(l, `/workspaces/${l.id}/decisions`),
+  logDecision: (l: WorkspaceLink, body: DecisionInput & { source?: "manual" | "analysis"; calibration?: DecisionRecord["calibration"] }) =>
+    call<{ decision: DecisionRecord }>(l, `/workspaces/${l.id}/decisions`, { method: "POST", body: JSON.stringify(body) }),
+  updateDecision: (l: WorkspaceLink, id: string, body: DecisionInput) =>
+    call<{ decision: DecisionRecord }>(l, `/workspaces/${l.id}/decisions/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  removeDecision: (l: WorkspaceLink, id: string) => call<void>(l, `/workspaces/${l.id}/decisions/${id}`, { method: "DELETE" }),
   outcome: (l: WorkspaceLink, consultationId: string, result: Outcome, note: string) =>
     call<{ decision: DecisionRecord; proposed: Lesson[] }>(l, `/workspaces/${l.id}/decisions/${consultationId}/outcome`, {
       method: "POST",

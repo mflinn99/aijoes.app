@@ -11,6 +11,7 @@ import {
   OUTCOMES,
   OUTCOME_LABELS,
   POSITION_LABELS,
+  POSITIONS,
   SCAN_INTERVALS_HOURS,
   type AgentId,
   type CheckpointEntry,
@@ -46,6 +47,8 @@ import {
   trackRecords,
   type Feed,
   type Workspace,
+  type DecisionRecord,
+  deleteDecision,
   workspacePartition,
 } from "../workspace.js";
 import { fileFailure, getFile, handleAsk, handleDelete, handleUpdate, handleUpload, listFiles, publicFile, sendFile } from "../files.js";
@@ -324,6 +327,109 @@ router.get("/workspaces/:id/decisions", requireWorkspace, async (_req, res, next
   }
 });
 
+// ─── The decision log: every decision the board takes ──────────────────────
+//
+// Board questions add theirs when the chair records the decision. Decisions
+// from the scenario analysis, and decisions taken elsewhere (at a board
+// meeting, by email), are logged here, so the log is complete and the agents
+// can treat it as the board's precedents.
+
+const DECISION_TEXT = { question: LIMITS.question, decision: 500, rationale: 2000, plan: 3000, context: LIMITS.context };
+
+function decisionFields(body: Record<string, unknown>, { partial }: { partial: boolean }): Partial<DecisionRecord> | string {
+  const out: Partial<DecisionRecord> = {};
+  for (const [key, max] of Object.entries(DECISION_TEXT) as [keyof typeof DECISION_TEXT, number][]) {
+    if (body[key] === undefined) {
+      if (!partial && (key === "question" || key === "decision")) return `${key} required`;
+      continue;
+    }
+    const value = text(body[key], max, { required: key === "question" || key === "decision" });
+    if (value === null) return key === "question" || key === "decision" ? `${key} required` : `${key} too long`;
+    out[key] = value;
+  }
+  if (body.position !== undefined || !partial) {
+    if (!(POSITIONS as readonly string[]).includes(body.position as string)) return "position must be support, support_with_conditions, oppose or need_more_information";
+    out.position = body.position as DecisionRecord["position"];
+  }
+  if (body.decidedAt !== undefined) {
+    const day = body.decidedAt;
+    if (typeof day !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(Date.parse(day)) || day > new Date().toISOString().slice(0, 10)) {
+      return "decidedAt must be a date (YYYY-MM-DD), today or earlier";
+    }
+    out.decidedAt = `${day}T12:00:00.000Z`;
+  }
+  if (body.calibration !== undefined) {
+    const c = body.calibration as Record<string, unknown>;
+    const keys = ["risk", "ambition", "time", "cost"] as const;
+    if (!c || typeof c !== "object" || !keys.every((k) => typeof c[k] === "number" && (c[k] as number) >= 0 && (c[k] as number) <= 1)) return "invalid calibration";
+    out.calibration = Object.fromEntries(keys.map((k) => [k, c[k] as number])) as DecisionRecord["calibration"];
+  }
+  return out;
+}
+
+router.post("/workspaces/:id/decisions", requireWorkspace, async (req, res, next) => {
+  try {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const source = body.source ?? "manual";
+    if (source !== "manual" && source !== "analysis") return bad(res, "source must be manual or analysis");
+    const fields = decisionFields(body, { partial: false });
+    if (typeof fields === "string") return bad(res, fields);
+    if (source !== "analysis") delete fields.calibration;
+    const record: DecisionRecord = {
+      consultationId: `d-${newId(12)}`,
+      mode: source === "analysis" ? "agents" : "people",
+      rationale: "",
+      decidedAt: new Date().toISOString(),
+      agentPositions: {},
+      peoplePositions: [],
+      outcome: null,
+      ...fields,
+      question: fields.question!,
+      decision: fields.decision!,
+      position: fields.position!,
+      source,
+    };
+    await saveDecision(getStore(), ws(res).id, record);
+    res.status(201).json({ decision: record });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch("/workspaces/:id/decisions/:decisionId", requireWorkspace, async (req, res, next) => {
+  try {
+    const store = getStore();
+    const record = await getDecision(store, ws(res).id, String(req.params.decisionId));
+    if (!record) return void res.status(404).json({ error: "Decision not found" });
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    // A board question's decision is the record of what the board decided: the
+    // question, decision and its direction stay as taken; notes can be added.
+    if ((record.source ?? "question") === "question" && ["question", "decision", "position", "decidedAt", "calibration"].some((k) => body[k] !== undefined)) {
+      return bad(res, "A board question's decision stays as recorded. You can update its rationale, plan and context.");
+    }
+    const fields = decisionFields(body, { partial: true });
+    if (typeof fields === "string") return bad(res, fields);
+    const updated: DecisionRecord = { ...record, ...fields, updatedAt: new Date().toISOString() };
+    await saveDecision(store, ws(res).id, updated);
+    res.json({ decision: updated });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.delete("/workspaces/:id/decisions/:decisionId", requireWorkspace, async (req, res, next) => {
+  try {
+    const store = getStore();
+    const record = await getDecision(store, ws(res).id, String(req.params.decisionId));
+    if (!record) return void res.status(404).json({ error: "Decision not found" });
+    if ((record.source ?? "question") === "question") return void res.status(409).json({ error: "A board question's decision stays in the record." });
+    await deleteDecision(store, ws(res).id, record.consultationId);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
+});
+
 /** Records how a decision turned out; each agent reflects and proposes what it should learn. */
 router.post("/workspaces/:id/decisions/:consultationId/outcome", requireWorkspace, async (req, res) => {
   const store = getStore();
@@ -342,6 +448,8 @@ router.post("/workspaces/:id/decisions/:consultationId/outcome", requireWorkspac
     await saveDecision(store, ws(res).id, record);
 
     const agents = Object.entries(record.agentPositions) as [AgentId, string | null][];
+    // Logged by hand: no agent advised, so there is nothing for them to learn from it here.
+    if (!agents.length) return void res.json({ decision: record, proposed: [] });
     const raw = await complete({
       purpose: "agent-reflection",
       system: `You facilitate a board's review of how one of its decisions turned out. For each AI agent that advised on it, compare what it advised with what was decided and what happened, and say what that agent should learn for future advice to this board: a specific, durable lesson, or nothing if its advice held up and there is nothing new to learn. Be fair: a good decision can have a bad outcome through bad luck.
