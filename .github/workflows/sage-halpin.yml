@@ -1,5 +1,11 @@
 name: Sage Halpin
 
+# Test, build the container image once, then promote that exact image (by
+# digest) nonprod → production. See sage-halpin/docs/security/PIPELINE.md.
+#
+# Third-party actions are pinned to full commit SHAs (tag in the comment);
+# Dependabot (.github/dependabot.yml) proposes updates.
+
 on:
   pull_request:
     paths: ["sage-halpin/**", ".github/workflows/sage-halpin.yml"]
@@ -9,6 +15,7 @@ on:
     paths: ["sage-halpin/**", ".github/workflows/sage-halpin.yml"]
   workflow_dispatch:
 
+# Least privilege by default; each job asks for what it needs.
 permissions:
   contents: read
 
@@ -23,6 +30,9 @@ defaults:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
     # A real PostgreSQL for the PostgreSQL store's tests (the store used on Replit).
     services:
       postgres:
@@ -36,9 +46,13 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+    outputs:
+      image-artifact: ${{ steps.save.outputs.artifact }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: npm
@@ -53,19 +67,111 @@ jobs:
       - run: npm run check:site
       - name: Compile infrastructure
         run: az bicep build --file infra/main.bicep --stdout > /dev/null
+      # The one and only image build. It is tagged with the full commit SHA
+      # (never only "latest") and, on the default branch, saved for the
+      # deploy jobs, which push and promote this same image by digest.
       - name: Build container image
-        run: docker build -t sage-halpin:ci .
+        env:
+          VITE_ENQUIRY_EMAIL: ${{ vars.VITE_ENQUIRY_EMAIL }}
+        run: docker build --build-arg VITE_ENQUIRY_EMAIL="$VITE_ENQUIRY_EMAIL" -t "sage-halpin:$GITHUB_SHA" .
+      - name: Save image for deployment
+        id: save
+        if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && vars.AZURE_CLIENT_ID != ''
+        run: |
+          docker save "sage-halpin:$GITHUB_SHA" | gzip > "$RUNNER_TEMP/sage-halpin-image.tar.gz"
+          sha256sum "$RUNNER_TEMP/sage-halpin-image.tar.gz"
+          echo "artifact=sage-halpin-image-$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+      - name: Upload image
+        if: steps.save.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.save.outputs.artifact }}
+          path: ${{ runner.temp }}/sage-halpin-image.tar.gz
+          retention-days: 7
+          if-no-files-found: error
+          compression-level: 0
 
-  # Deploys on merge to the default branch once the repository variables below are set:
-  #   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID  (OIDC federated credential)
+  # Deploys run only for pushes to the default branch (never pull_request,
+  # never workflow_dispatch), so code from a PR or fork can never reach the
+  # Azure credentials. They stay skipped until the repository variable
+  # AZURE_CLIENT_ID is set. Configure per GitHub environment (Settings →
+  # Environments → nonprod / production), as environment variables:
+  #   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID  (OIDC federated
+  #     credential; no client secret is stored anywhere)
   #   AZURE_RESOURCE_GROUP, FOUNDRY_RESOURCE_NAME
-  #   optional: SAGE_HALPIN_ENV (default prod), AI_MODEL, VITE_ENQUIRY_EMAIL,
-  #             PUBLIC_BASE_URL, EMAIL_ENDPOINT, EMAIL_SENDER
-  deploy:
+  #   optional: SAGE_HALPIN_ENV, AI_MODEL, PUBLIC_BASE_URL, EMAIL_ENDPOINT, EMAIL_SENDER
+  # AZURE_CLIENT_ID must ALSO exist as a repository variable: it is the switch
+  # that enables these jobs (job-level `if` cannot see environment variables).
+  # VITE_ENQUIRY_EMAIL is a repository variable: it is baked in at build time.
+  deploy-nonprod:
     needs: ci
-    if: github.event_name != 'pull_request' && github.ref_name == github.event.repository.default_branch && vars.AZURE_CLIENT_ID != ''
+    if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && vars.AZURE_CLIENT_ID != ''
     runs-on: ubuntu-latest
-    environment: production
+    timeout-minutes: 45
+    environment:
+      name: nonprod
+      url: ${{ steps.deploy.outputs.app_url }}
+    concurrency:
+      group: sage-halpin-deploy-nonprod
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image-ref: ${{ steps.deploy.outputs.image_ref }}
+      digest: ${{ steps.deploy.outputs.digest }}
+    env:
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      FOUNDRY_RESOURCE_NAME: ${{ vars.FOUNDRY_RESOURCE_NAME }}
+      ENVIRONMENT_NAME: ${{ vars.SAGE_HALPIN_ENV || 'nonprod' }}
+      AI_MODEL: ${{ vars.AI_MODEL || 'claude-opus-5-5' }}
+      PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
+      EMAIL_ENDPOINT: ${{ vars.EMAIL_ENDPOINT }}
+      EMAIL_SENDER: ${{ vars.EMAIL_SENDER }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.ci.outputs.image-artifact }}
+          path: ${{ runner.temp }}/image
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Provision, push the tested image and roll out by digest
+        id: deploy
+        env:
+          IMAGE_ARCHIVE: ${{ runner.temp }}/image/sage-halpin-image.tar.gz
+          IMAGE_TAG: ${{ github.sha }}
+        run: ./infra/deploy.sh
+      - name: Record the deployed image
+        env:
+          IMAGE_REF: ${{ steps.deploy.outputs.image_ref }}
+        run: echo "Deployed \`$IMAGE_REF\` (commit $GITHUB_SHA) to nonprod" >> "$GITHUB_STEP_SUMMARY"
+
+  # Promotion: the image nonprod is running, identified by digest, is imported
+  # into production's registry unchanged (deploy.sh refuses if the digest
+  # differs) and rolled out. Nothing is rebuilt.
+  #
+  # The `production` environment MUST have "Required reviewers" (and,
+  # ideally, "Prevent self-review" and a deployment-branch rule limited to
+  # the default branch) set in Settings → Environments → production. That
+  # cannot be configured from this file; until it is, this job runs without
+  # a human approval.
+  deploy-production:
+    needs: deploy-nonprod
+    if: github.event_name == 'push' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && vars.AZURE_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.app_url }}
+    concurrency:
+      group: sage-halpin-deploy-production
+      cancel-in-progress: false
     permissions:
       contents: read
       id-token: write
@@ -74,16 +180,25 @@ jobs:
       FOUNDRY_RESOURCE_NAME: ${{ vars.FOUNDRY_RESOURCE_NAME }}
       ENVIRONMENT_NAME: ${{ vars.SAGE_HALPIN_ENV || 'prod' }}
       AI_MODEL: ${{ vars.AI_MODEL || 'claude-opus-5-5' }}
-      VITE_ENQUIRY_EMAIL: ${{ vars.VITE_ENQUIRY_EMAIL }}
       PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
       EMAIL_ENDPOINT: ${{ vars.EMAIL_ENDPOINT }}
       EMAIL_SENDER: ${{ vars.EMAIL_SENDER }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/login@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906 # v3.1.0
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
           subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-      - name: Provision, build and roll out
+      - name: Promote the nonprod image by digest and roll out
+        id: deploy
+        env:
+          IMAGE_SOURCE: ${{ needs.deploy-nonprod.outputs.image-ref }}
+          IMAGE_TAG: ${{ github.sha }}
         run: ./infra/deploy.sh
+      - name: Record the deployed image
+        env:
+          IMAGE_REF: ${{ steps.deploy.outputs.image_ref }}
+        run: echo "Promoted \`$IMAGE_REF\` (commit $GITHUB_SHA) to production" >> "$GITHUB_STEP_SUMMARY"

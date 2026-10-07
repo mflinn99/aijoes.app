@@ -1,0 +1,63 @@
+# gitleaks configuration (used by .github/workflows/sage-halpin-security.yml).
+#
+# Starts from gitleaks' default rules and allowlists only the specific false
+# positives found in this repository's history. Each entry is pinned to one
+# path AND one exact pattern, so a real secret added to the same file (or the
+# same pattern in another file) is still reported. Do not widen these; add a
+# new, equally narrow entry (or a fingerprint in .gitleaksignore) instead.
+
+title = "aijoes.app gitleaks config"
+
+[extend]
+useDefault = true
+
+# All known false positives come from the default "generic-api-key" rule, so
+# the allowlists are attached to that rule only (rule-level allowlists; the
+# top-level [[allowlists]] table needs gitleaks >= 8.25, CI pins 8.24.3).
+# Every other default rule still applies to these files.
+[[rules]]
+id = "generic-api-key"
+
+# Public, well-known client ID of Microsoft's Enterprise token store app
+# (used by Copilot for Entra SSO). It identifies an app; it is not a credential.
+[[rules.allowlists]]
+description = "Public Microsoft token-store client ID (hijojo)"
+condition = "AND"
+paths = ['''^hijojo/server/entra\.ts$''']
+regexTarget = "line"
+regexes = ['''TOKEN_STORE_CLIENT_ID = "ab3be6b7-f5df-413d-ac2d-abf1e3fd9c0b"''']
+
+# Azure built-in role definition ID for "Key Vault Secrets User" — the same
+# GUID in every tenant, published by Microsoft. Not a secret.
+[[rules.allowlists]]
+description = "Azure built-in role GUID: Key Vault Secrets User"
+condition = "AND"
+paths = ['''^(hijojo|sage-halpin)/infra/([a-z0-9-]+/)*[A-Za-z0-9._-]+\.bicep$''']
+regexTarget = "line"
+regexes = ['''keyVaultSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'$''']
+
+# Fixed test fixture: the session secret a unit test sets to prove rotation
+# signs users out. Never used outside the test process.
+[[rules.allowlists]]
+description = "SESSION_SECRET test fixture in sage-halpin auth tests"
+condition = "AND"
+paths = ['''^sage-halpin/tests/auth\.test\.ts$''']
+regexTarget = "line"
+regexes = ['''process\.env\.SESSION_SECRET = "second-secret-0123456789abcdef-012345678";''']
+
+# The example env file leaves the Duffel token empty; the rule matches the
+# next variable's name across the blank value.
+[[rules.allowlists]]
+description = "Empty DUFFEL_ACCESS_TOKEN in travel-search/.env.example"
+condition = "AND"
+paths = ['''^travel-search/\.env\.example$''']
+regexTarget = "match"
+regexes = ['''^DUFFEL_ACCESS_TOKEN=\nDUFFEL_STAYS=off$''']
+
+# A comment listing environment variable names, not values.
+[[rules.allowlists]]
+description = "Env var names in a comment in travel-search duffel provider"
+condition = "AND"
+paths = ['''^travel-search/server/providers/duffel\.ts$''']
+regexTarget = "match"
+regexes = ['''^DUFFEL_ACCESS_TOKEN, DUFFEL_STAYS=on$''']

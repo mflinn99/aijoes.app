@@ -1,0 +1,10 @@
+# Code owners: review from these owners is required on matching paths once
+# branch protection enables "Require review from Code Owners".
+# Later rules take precedence over earlier ones.
+
+/sage-halpin/            @mflinn99
+/.github/                @mflinn99
+/.gitleaks.toml          @mflinn99
+
+# Infrastructure as code, wherever it lives.
+**/infra/                @mflinn99
