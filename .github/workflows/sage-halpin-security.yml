@@ -129,9 +129,13 @@ jobs:
         with:
           category: /language:javascript-typescript/sage-halpin
 
+  # Needs the repository's Dependency graph (Settings → Code security). Until
+  # the owner turns it on and sets the repository variable
+  # DEPENDENCY_REVIEW=on, this job is skipped; npm-audit above still gates
+  # production dependencies.
   dependency-review:
     name: dependency-review
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && vars.DEPENDENCY_REVIEW == 'on'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

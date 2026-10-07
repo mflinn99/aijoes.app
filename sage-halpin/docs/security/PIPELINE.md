@@ -133,3 +133,11 @@ Container Apps design (`infra/main.bicep`). Before the first Azure deployment,
 switch them to `infra/azure` (App Service), keeping build once and promote by
 digest (`REMEDIATION-PLAN.md` #12). With `acrPrivate=true`, a hosted runner
 can't push to the registry. Use one of the options in `infra/azure/README.md`.
+
+## Owner setting: dependency review
+
+`dependency-review` needs **Settings → Code security → Dependency graph**
+turned on. It failed on PR #29 with "Dependency review is not supported on
+this repository". Until the setting is on and the repository variable
+`DEPENDENCY_REVIEW=on` is set, the job is skipped. `npm-audit (production
+deps)` still fails the build on high or critical vulnerabilities.
