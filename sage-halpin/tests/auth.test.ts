@@ -28,10 +28,10 @@ describe("passwords and sessions", () => {
   });
 
   it("accepts a signed session and rejects tampered or expired ones", () => {
-    const { value } = createSession("a-row");
-    expect(readSession(value)).toBe("a-row");
+    const { value, sid } = createSession("a-row");
+    expect(readSession(value)).toEqual({ k: "a-row", s: sid });
     const [payload, sig] = value.split(".");
-    const forged = Buffer.from(JSON.stringify({ k: "a-other", exp: Date.now() + 1e9 })).toString("base64url");
+    const forged = Buffer.from(JSON.stringify({ k: "a-other", s: sid, exp: Date.now() + 1e9 })).toString("base64url");
     expect(readSession(`${forged}.${sig}`)).toBeNull();
     expect(readSession(`${payload}.${sig.slice(0, -2)}xx`)).toBeNull();
     expect(readSession(createSession("a-row", Date.now() - 30 * 864e5).value)).toBeNull();
@@ -100,6 +100,26 @@ describe("sign in and out", () => {
     await agent.get("/api/auth/me").expect(401);
   });
 
+  it("ends the session on the server, so a copied cookie stops working", async () => {
+    const app = createApp();
+    const { agent, res } = await signUp(app);
+    const cookie = String(res.headers["set-cookie"]).split(";")[0];
+    await request(app).get("/api/auth/me").set("Cookie", cookie).expect(200);
+    await agent.post("/api/auth/signout").send({}).expect(200);
+    await request(app).get("/api/auth/me").set("Cookie", cookie).expect(401);
+  });
+
+  it("signs out everywhere", async () => {
+    const app = createApp();
+    const { agent: phone, address } = await signUp(app);
+    const laptop = request.agent(app);
+    await laptop.post("/api/auth/signin").send({ email: address, password: PASSWORD }).expect(200);
+    const out = await laptop.post("/api/auth/signout-everywhere").send({}).expect(200);
+    expect(out.body.ended).toBe(2);
+    await phone.get("/api/auth/me").expect(401);
+    await laptop.get("/api/auth/me").expect(401);
+  });
+
   it("refuses requests without a session", async () => {
     const app = createApp();
     await request(app).get("/api/auth/me").expect(401);
@@ -113,6 +133,53 @@ describe("sign in and out", () => {
     for (let i = 0; i < 12; i++) statuses.push((await request(app).post("/api/auth/signin").send({ email: "x@acme.example", password: "nope nope nope" })).status);
     expect(statuses.slice(0, 10).every((s) => s === 401)).toBe(true);
     expect(statuses.at(-1)).toBe(429);
+  });
+});
+
+describe("passwords", () => {
+  it("refuses common passwords and the person's own details", async () => {
+    const app = createApp();
+    const common = await request(app).post("/api/auth/signup").send({ name: "Pat Chair", email: email(), password: "Password1234" });
+    expect(common.status).toBe(422);
+    expect(common.body.fields.password).toMatch(/too common/);
+    const own = await request(app).post("/api/auth/signup").send({ name: "Pat Chair", email: "patricia.chairperson@acme.example", password: "patricia.chairperson" });
+    expect(own.status).toBe(422);
+    expect(own.body.fields.password).toMatch(/name or email/);
+    const samey = await request(app).post("/api/auth/signup").send({ name: "Pat Chair", email: email(), password: "aaaaaaaaaaaaaa" });
+    expect(samey.body.fields.password).toMatch(/variety/);
+  });
+
+  it("changes the password only with the current one, and ends every other session", async () => {
+    const app = createApp();
+    const { agent: phone, address } = await signUp(app);
+    const laptop = request.agent(app);
+    await laptop.post("/api/auth/signin").send({ email: address, password: PASSWORD }).expect(200);
+
+    await laptop.post("/api/auth/password").send({ currentPassword: "not my password", newPassword: "a much better passphrase" }).expect(401);
+    const weak = await laptop.post("/api/auth/password").send({ currentPassword: PASSWORD, newPassword: "password1234" });
+    expect(weak.status).toBe(422);
+    await laptop.post("/api/auth/password").send({ currentPassword: PASSWORD, newPassword: "a much better passphrase" }).expect(200);
+
+    await laptop.get("/api/auth/me").expect(200); // this device stays signed in
+    await phone.get("/api/auth/me").expect(401); // others are signed out
+    await request(app).post("/api/auth/signin").send({ email: address, password: PASSWORD }).expect(401);
+    await request(app).post("/api/auth/signin").send({ email: address, password: "a much better passphrase" }).expect(200);
+  });
+
+  it("locks sign-in for an account after repeated failures, from any address", async () => {
+    const app = createApp();
+    const { address } = await signUp(app);
+    // Different client addresses, so only the per-account lock applies.
+    for (let i = 0; i < 10; i++) {
+      await request(app).post("/api/auth/signin").set("X-Forwarded-For", `198.51.100.${i}`).send({ email: address, password: "wrong password " + i }).expect(401);
+    }
+    const locked = await request(app).post("/api/auth/signin").set("X-Forwarded-For", "203.0.113.9").send({ email: address, password: PASSWORD });
+    expect(locked.status).toBe(429);
+    expect(locked.headers["set-cookie"]).toBeUndefined();
+    // An unknown address locks the same way, so the lock reveals nothing.
+    const nobody = email();
+    for (let i = 0; i < 10; i++) await request(app).post("/api/auth/signin").set("X-Forwarded-For", `192.0.2.${i}`).send({ email: nobody, password: "x".repeat(12) + i });
+    expect((await request(app).post("/api/auth/signin").set("X-Forwarded-For", "192.0.2.200").send({ email: nobody, password: "whatever" })).body).toEqual(locked.body);
   });
 });
 

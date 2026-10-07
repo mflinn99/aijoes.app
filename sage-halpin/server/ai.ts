@@ -49,6 +49,35 @@ export class AIRefusalError extends Error {
 
 export class AIConfigError extends Error {}
 
+/** The day's model-call budget for this server is spent (AI_DAILY_CALL_LIMIT). */
+export class AIBudgetError extends Error {
+  constructor() {
+    super("daily AI call limit reached");
+  }
+}
+
+// A ceiling on model calls per server per UTC day, so a bug, a loop or abuse
+// can't run up an unbounded bill. Per replica: the provider-side spend limit
+// on the API key or Foundry deployment is the hard global cap.
+let budget = { day: "", calls: 0 };
+
+export function aiDailyLimit(): number {
+  const value = Number(process.env.AI_DAILY_CALL_LIMIT);
+  return Number.isInteger(value) && value > 0 ? value : 2000;
+}
+
+export function spendAICall(now = new Date()): void {
+  const day = now.toISOString().slice(0, 10);
+  if (budget.day !== day) budget = { day, calls: 0 };
+  if (budget.calls >= aiDailyLimit()) throw new AIBudgetError();
+  budget.calls += 1;
+}
+
+/** Tests only. */
+export function resetAIBudget(): void {
+  budget = { day: "", calls: 0 };
+}
+
 const DEFAULT_MODEL = "claude-opus-5-5";
 const FOUNDRY_SCOPE = "https://ai.azure.com/.default";
 
@@ -166,6 +195,7 @@ export async function complete(req: CompletionRequest): Promise<string> {
 
   // A server-side tool loop can pause; resume by sending the paused turn back.
   for (let turn = 0; turn <= MAX_CONTINUATIONS; turn++) {
+    spendAICall();
     const response = await getClient().messages.create({
       model: aiModel(),
       max_tokens: req.maxTokens,

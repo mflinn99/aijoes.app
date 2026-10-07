@@ -9,7 +9,7 @@ import { resumeSession, signOut as endSession, type Account } from "@/lib/accoun
 interface AccountState {
   account: Account | null;
   setAccount: (account: Account | null) => void;
-  signOut: () => Promise<void>;
+  signOut: (options?: { everywhere?: boolean }) => Promise<void>;
   sessionEnded: boolean;
 }
 
@@ -38,8 +38,8 @@ export function AccountProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signOut = useCallback(async () => {
-    await endSession();
+  const signOut = useCallback(async (options?: { everywhere?: boolean }) => {
+    await endSession(options);
     setAccount(null);
     setSessionEnded(false);
   }, []);

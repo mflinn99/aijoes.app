@@ -86,7 +86,7 @@ export function createApp({ publicDir = path.resolve(process.cwd(), "dist/public
 
   // Accounts: slow down password guessing per IP.
   const authMessage = "Too many sign-in attempts. Please wait a few minutes and try again.";
-  app.use(["/api/auth/signin", "/api/auth/signup"], rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_AUTH_PER_10_MIN", 10), message: authMessage }));
+  app.use(["/api/auth/signin", "/api/auth/signup", "/api/auth/password"], rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_AUTH_PER_10_MIN", 10), message: authMessage }));
   app.use("/api/account", rateLimit({ windowMs, max: limitFromEnv("RATE_LIMIT_ACCOUNT_PER_10_MIN", 240), message: authMessage }));
   app.use("/api", auth);
   app.use("/api", boardroom);

@@ -16,6 +16,7 @@ import {
 } from "@/lib/organisation";
 import { syncProfile, workspaceApi } from "@/lib/workspace";
 import { GettingStarted } from "@/components/GettingStarted";
+import { AccountSecurity } from "@/components/AccountSecurity";
 import { useAccount } from "@/components/AccountProvider";
 import { AGENT_PERSONAS, CHAIR_AGENT, LIMITS, isEmail, type BoardPerson } from "../../shared/board";
 
@@ -400,6 +401,8 @@ export default function OrganisationPage() {
           your people to adopt or reject.
         </p>
       </Section>
+
+      <AccountSecurity />
 
       <Section title="Your data">
         <p className="max-w-3xl text-sm text-muted-foreground">
