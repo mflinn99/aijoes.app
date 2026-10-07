@@ -16,6 +16,7 @@ Azure: nothing has been deployed there.
 | E4 | Website link and brand checks | `npm run check:site`, `npm run check:brand` | Pass |
 | E5 | Production dependency vulnerabilities | `npm audit --omit=dev` | **0** |
 | E6 | Secret scan, full git history | `gitleaks git . --config .gitleaks.toml` (8.24.3) | **No leaks** (6 reviewed false positives allow-listed precisely) |
+| E7a | CI on the merged default branch (`01ae562`) | GitHub Actions | ci, CodeQL, gitleaks, npm-audit, SBOM, Bicep: all success; Pages deploy success; dependency review skipped (dependency graph off); Azure deploy jobs skipped (not configured) |
 | E7 | Bicep build, lint, parameter files | `STRICT=1 infra/azure/validate.sh` (Bicep 0.47.16) | **0 errors, 0 warnings** |
 | E8 | Workflow lint | actionlint 1.7.12; YAML parse | Pass |
 | E9 | SBOM | `npm sbom --sbom-format cyclonedx --omit dev` | CycloneDX 1.5, 129 components |
@@ -25,7 +26,7 @@ Azure: nothing has been deployed there.
 | E13 | SSRF regression F-01 | `tests/net.test.ts` on the old code, then the fixed code | Failed 2 of 4 before the fix (reproduced); 4 of 4 after |
 | E14 | Tenant isolation | `tests/tenancy.test.ts` | Another tenant's token gets 404 on 9 workspace routes and 3 consultation routes; cross-tenant linking refused |
 | E15 | Front Door ID enforcement | `tests/api.test.ts` "behind Azure Front Door" | Pass |
-| E16 | Live Replit deployment status | Replit connector `get_publish_status` | `success`, `https://exciting-inferior-axis.replit.app`. **Runs an older commit without E10, E13 or E15** |
+| E16 | Live Replit deployment after merging #29 (commit `01ae562`), republished | Replit connector `get_publish_status`; checks by Replit's agent against the live URL | `success` at `https://exciting-inferior-axis.replit.app`. Health check ok with accounts on; `password1234` refused (422); successful sign-up sets `__Host-s8_session`; `/signup` and `/signin` load; test account deleted. These checks were run by Replit's agent, not from this build environment (the proxy blocks replit.app) |
 
 ## Unverified (with blockers)
 
@@ -35,7 +36,7 @@ Azure: nothing has been deployed there.
 | `TRUST_PROXY_HOPS=2` is correct behind Front Door + App Service | Needs a deployment |
 | Restore drill, zone failover, region restore | Needs a deployment |
 | Alerts fire and reach the right people | Needs a deployment and named owners |
-| GitHub workflows run green on GitHub | Not yet pushed and run. Branch protection and environment reviewers can't be read (API 403) |
+| Branch protection and environment reviewers enabled | Can't be read from this session (API 403); owner to enable (`PIPELINE.md`) |
 | Exposed Anthropic key revoked | Needs the key owner |
 | Replit data: contents, backups, encryption, location | Account not controlled by the customer; no data access |
 | DNS records for `sentinel8.ai` (NS, MX, SPF, DMARC, CAA) | DNS tools blocked in the build environment |
