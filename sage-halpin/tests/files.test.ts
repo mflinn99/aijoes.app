@@ -137,6 +137,17 @@ describe("reading files", () => {
     expect(nested).toContain("text");
   });
 
+  it("reads a hostile spreadsheet in linear time", () => {
+    const hostile = zip({
+      "xl/workbook.xml": "<workbook/>",
+      "xl/sharedStrings.xml": "<sst><si>" + "<si>a".repeat(50_000) + "</sst>",
+      "xl/worksheets/sheet1.xml": "<worksheet><sheetData>" + "<row><c>".repeat(30_000) + "</sheetData></worksheet>",
+    });
+    const started = Date.now();
+    extractText("bad.xlsx", "", "office", hostile);
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
   it("survives a damaged Office file", () => {
     expect(extractText("bad.docx", "", "office", Buffer.from("PK\u0003\u0004 not really a zip"))).toBe("");
   });

@@ -195,6 +195,34 @@ function readEntry(bytes: Buffer, e: ZipEntry): string {
 const xmlText = (xml: string, paragraph: RegExp) =>
   decodeEntities(stripTags(xml.replace(paragraph, "\n").replace(/<w:tab\/>|<a:tab\/>/g, "\t"), ""));
 
+/** Each <tag …>…</tag> element's attributes and content, found in linear time (no regex backtracking). */
+function elements(xml: string, tag: string): { attrs: string; inner: string }[] {
+  const out: { attrs: string; inner: string }[] = [];
+  const close = `</${tag}>`;
+  let at = 0;
+  for (;;) {
+    const open = xml.indexOf(`<${tag}`, at);
+    if (open < 0) return out;
+    const next = xml[open + tag.length + 1];
+    if (next !== ">" && next !== " " && next !== "/") {
+      at = open + 1; // a longer tag name, such as <sheet> for <s
+      continue;
+    }
+    const gt = xml.indexOf(">", open);
+    if (gt < 0) return out;
+    const attrs = xml.slice(open + tag.length + 1, gt);
+    if (attrs.endsWith("/")) {
+      out.push({ attrs, inner: "" });
+      at = gt + 1;
+      continue;
+    }
+    const end = xml.indexOf(close, gt);
+    if (end < 0) return out;
+    out.push({ attrs, inner: xml.slice(gt + 1, end) });
+    at = end + close.length;
+  }
+}
+
 const naturalOrder = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
 
 function officeText(bytes: Buffer): string {
@@ -209,14 +237,14 @@ function officeText(bytes: Buffer): string {
   }
   // Excel: shared strings plus inline values, sheet by sheet
   if (byName.has("xl/workbook.xml")) {
-    const shared = [...read("xl/sharedStrings.xml").matchAll(/<si>([\s\S]*?)<\/si>/g)].map((m) => xmlText(m[1], /<\/t>/g).replace(/\n/g, ""));
+    const shared = elements(read("xl/sharedStrings.xml"), "si").map((si) => xmlText(si.inner, /<\/t>/g).replace(/\n/g, ""));
     const sheets = entries.map((e) => e.name).filter((n) => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort(naturalOrder);
     return sheets
       .map((name, i) => {
-        const rows = [...read(name).matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)].map((row) =>
-          [...row[1].matchAll(/<c([^>]*)>([\s\S]*?)<\/c>/g)]
-            .map(([, attrs, body]) => {
-              const v = /<v>([\s\S]*?)<\/v>/.exec(body)?.[1] ?? /<t[^>]*>([\s\S]*?)<\/t>/.exec(body)?.[1] ?? "";
+        const rows = elements(read(name), "row").map((row) =>
+          elements(row.inner, "c")
+            .map(({ attrs, inner: body }) => {
+              const v = elements(body, "v")[0]?.inner ?? elements(body, "t")[0]?.inner ?? "";
               return /t="s"/.test(attrs) ? (shared[Number(v)] ?? "") : decodeEntities(v);
             })
             .join("\t"),
