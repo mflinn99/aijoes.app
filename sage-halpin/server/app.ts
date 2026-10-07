@@ -55,6 +55,18 @@ export function createApp({ publicDir = path.resolve(process.cwd(), "dist/public
 
   app.use(express.json({ limit: "256kb" }));
 
+  // Behind Azure Front Door: only requests carrying this profile's
+  // X-Azure-FDID header are served, so the origin can't be used directly or
+  // through another Front Door profile. The health check is exempt: the host
+  // platform's own health probe doesn't come through Front Door.
+  const frontDoorId = process.env.FRONT_DOOR_ID?.trim();
+  if (frontDoorId) {
+    app.use((req, res, next) => {
+      if (req.path === "/api/healthz" || req.get("x-azure-fdid") === frontDoorId) return next();
+      res.status(403).json({ error: "Forbidden" });
+    });
+  }
+
   // Public liveness. The website reads it (any origin may) to check the
   // platform is really there, and accepting accounts, before it sends people
   // to sign up; anything else at that address (a 404 page, a parked domain)
