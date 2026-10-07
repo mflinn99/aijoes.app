@@ -1,11 +1,12 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { hasContactDetails } from "@/lib/missing";
 import { Link, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mark } from "@/components/Mark";
 import { useAccount } from "@/components/AccountProvider";
 import { AccountError, signIn, signUp } from "@/lib/account";
-import { loadOrganisation } from "@/lib/organisation";
+import { loadOrganisation, saveOrganisation } from "@/lib/organisation";
 
 // Create an account and sign in. Accounts keep the workspace saved on the
 // server so it follows the person to another device.
@@ -108,7 +109,15 @@ export function SignUpPage() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) local.email = "Enter a valid email address.";
     if (password.length < PASSWORD_MIN) local.password = `Use at least ${PASSWORD_MIN} characters.`;
     if (Object.keys(local).length) return setFields(local);
-    void run(async () => setAccount(await signUp(name, email, password)));
+    void run(async () => {
+      const created = await signUp(name, email, password);
+      // Start the contact details from the account; the lead can change them.
+      const org = loadOrganisation();
+      if (!org.leadName.trim() || !org.leadEmail.trim()) {
+        saveOrganisation({ ...org, leadName: org.leadName.trim() || created.name, leadEmail: org.leadEmail.trim() || created.email });
+      }
+      setAccount(created);
+    });
   }
 
   return (
@@ -160,7 +169,7 @@ export function SignInPage() {
   const search = useSearch();
   const { busy, error, fields, setFields, run } = useAuthForm();
   // Returning to an unfinished setup: back to Your board, where Getting started picks up.
-  const next = safeNext(search, account && loadOrganisation().people.length === 0 ? "/organisation" : "/dashboard");
+  const next = safeNext(search, account && !hasContactDetails(loadOrganisation()) ? "/organisation" : "/dashboard");
 
   useEffect(() => {
     if (account) setLocation(next);

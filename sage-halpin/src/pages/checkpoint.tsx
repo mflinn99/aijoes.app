@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { MissingData } from "@/components/MissingData";
 import { PageLoader } from "@/components/PageLoader";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -77,7 +78,7 @@ export default function CheckpointPage() {
     return (
       <WorkspaceShell title="Checkpoint">
         <p className="text-sm">
-          Start by naming your organisation in{" "}
+          Start by adding your contact details in{" "}
           <Link href="/organisation" className="font-semibold underline underline-offset-4">
             Your board
           </Link>
@@ -165,6 +166,7 @@ export default function CheckpointPage() {
         </div>
       }
     >
+      <MissingData use="checkpoint" className="mb-6 print:hidden" />
       <p className="mb-6 max-w-3xl text-sm text-muted-foreground">
         {latest ? (
           <>

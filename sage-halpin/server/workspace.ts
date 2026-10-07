@@ -1,4 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { deleteAllFiles, documentsBlock } from "./files.js";
 import {
   AGENT_IDS,
   LESSON_LIMITS,
@@ -263,10 +264,13 @@ export async function agentKnowledge(store: Store, wsId: string, agentId: AgentI
         .join("\n")}\n</external_signals>`,
     );
   }
+  const documents = await documentsBlock(store, workspacePartition(wsId), { tag: "organisation_documents", budget: 10_000 });
+  if (documents) parts.push(`Documents the company admin has given the board (digests by Sentinel):\n${documents}`);
   return parts.join("\n\n");
 }
 
 export async function deleteWorkspace(store: Store, wsId: string): Promise<void> {
+  await deleteAllFiles(store, workspacePartition(wsId));
   for (const { row } of await store.list(workspacePartition(wsId))) await store.remove(workspacePartition(wsId), row);
 }
 

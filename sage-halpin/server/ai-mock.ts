@@ -1,4 +1,4 @@
-import type { CompletionRequest } from "./ai.js";
+import { textOf, type CompletionRequest } from "./ai.js";
 
 // Deterministic replies for tests and offline demos. Every reply says it is a
 // mock, so it can never be mistaken for board advice.
@@ -38,6 +38,12 @@ const FUNCTIONS = Object.fromEntries(
 
 export function mockCompletion(req: CompletionRequest): string {
   switch (req.purpose) {
+    case "file-review": {
+      // Says what it was given, so tests can see which content reached the model.
+      const content = req.messages.at(-1)?.content ?? "";
+      const attached = typeof content === "string" ? [] : content.filter((b) => b.type !== "text").map((b) => b.type);
+      return `## Response\nMock: Sentinel has read the file${attached.length ? ` (${attached.join(", ")} attached)` : ""} and followed the instruction. This is a mock reply for testing.\n\n## Board digest\nMock digest: the key points of this file for the board.`;
+    }
     case "analysis-persona":
       return JSON.stringify(ANALYSIS_PERSONA);
     case "analysis-aggregate":
@@ -66,7 +72,7 @@ export function mockCompletion(req: CompletionRequest): string {
       return JSON.stringify([{ agentId: "grimm", text: "Mock lesson from the outcome of a decision." }]);
     case "horizon-triage": {
       // Keep every item the scanner offered, so tests can count them.
-      const count = (req.messages.at(-1)?.content.match(/<item index=/g) ?? []).length;
+      const count = (textOf(req.messages.at(-1)?.content ?? "").match(/<item index=/g) ?? []).length;
       return JSON.stringify(
         Array.from({ length: count }, (_, index) => ({
           index,

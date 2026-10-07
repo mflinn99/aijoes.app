@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { formatSize } from "@/lib/files";
 import { PageLoader } from "@/components/PageLoader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -124,6 +125,26 @@ export default function Respond({ params }: { params: { token: string } }) {
             <p className="mt-3 text-sm">
               {data.leadName} has asked for your input{data.dueDate ? ` by ${data.dueDate}` : ""}.
             </p>
+
+            {data.documents && data.documents.length > 0 && (
+              <section className="mt-6 rounded-md border border-border p-4" data-testid="respond-documents">
+                <h2 className="text-xs font-bold uppercase tracking-[0.14em]">Background documents</h2>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {data.documents.map((d) => (
+                    <li key={d.id}>
+                      <a
+                        href={`${import.meta.env.BASE_URL.replace(/\/$/, "")}/api/respond/${encodeURIComponent(params.token)}/files/${d.id}`}
+                        download={d.name}
+                        className="font-semibold underline underline-offset-4"
+                      >
+                        {d.name}
+                      </a>{" "}
+                      <span className="text-xs text-muted-foreground">· {formatSize(d.size)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             {savedAt && (
               <p role="status" className="mt-6 rounded-md border border-[#7FB692] bg-[#7FB692]/10 p-3 text-sm" data-testid="saved-note">

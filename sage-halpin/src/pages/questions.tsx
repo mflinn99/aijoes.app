@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { MissingData } from "@/components/MissingData";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,8 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { WorkspaceShell, Section } from "@/components/WorkspaceShell";
 import { loadOrganisation } from "@/lib/organisation";
+import { hasContactDetails } from "@/lib/missing";
 import { api, rememberConsultation, savedConsultations } from "@/lib/consultations";
 import { ensureWorkspace } from "@/lib/workspace";
+import { Switch } from "@/components/ui/switch";
+import { filesApi, formatSize, MAX_FILE_MB } from "@/lib/files";
 import {
   AGENT_PERSONAS,
   DECISION_MODES,
@@ -79,17 +83,23 @@ export function NewQuestion() {
   const [mode, setMode] = useState<DecisionMode>(org.people.length ? "collaborative" : "agents");
   const [peopleWeight, setPeopleWeight] = useState(60);
   const [shareWithPeople, setShareWithPeople] = useState(true);
+  // Background and supporting documents: attached once the question exists.
+  const [docs, setDocs] = useState<File[]>([]);
+  const [docsInstruction, setDocsInstruction] = useState("Background for this board question: summarise what matters for the decision.");
+  const [shareDocs, setShareDocs] = useState(true);
+  const [docsNote, setDocsNote] = useState("");
+  const [sendingNote, setSendingNote] = useState("");
 
   const people = mode === "agents" ? [] : org.people.filter((p) => p.permanent || peopleIds.includes(p.id));
   const askPeople = mode !== "agents";
   const askAgents = mode !== "people";
-  const ready = org.name.trim() && org.leadName.trim();
+  const ready = hasContactDetails(org);
 
   if (!ready) {
     return (
       <WorkspaceShell title="Ask the board">
         <p className="text-sm">
-          Before asking a question, add your organisation and your name in{" "}
+          Before asking a question, add your contact details (organisation name, your name and email) in{" "}
           <Link href="/organisation" className="font-semibold underline underline-offset-4">
             Your board
           </Link>
@@ -138,7 +148,16 @@ export function NewQuestion() {
       });
       const saved = { id: created.id, adminToken: created.adminToken, question: question.trim(), createdAt: new Date().toISOString() };
       rememberConsultation(saved);
+      const failed: string[] = [];
+      for (const [i, file] of docs.entries()) {
+        setSendingNote(`Sentinel is reading ${file.name} (${i + 1} of ${docs.length})…`);
+        await filesApi
+          .upload({ kind: "consultation", id: saved.id, token: saved.adminToken }, file, { instruction: docsInstruction, stage: "question", share: askPeople && shareDocs })
+          .catch((e) => failed.push(`${file.name}: ${e instanceof Error ? e.message : "not attached"}`));
+      }
+      setSendingNote("");
       if (askPeople) await api.invite(saved);
+      if (failed.length) window.alert(`The question was sent, but some documents could not be attached. Attach them again from the question.\n\n${failed.join("\n")}`);
       setLocation(`/questions/${created.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "The question could not be sent.");
@@ -148,6 +167,7 @@ export function NewQuestion() {
 
   return (
     <WorkspaceShell title="Ask the board">
+      <MissingData use="question" personIds={people.map((p) => p.id)} />
       <Section title="1. Who decides" intro="Choose whose input this decision rests on.">
         <div role="radiogroup" aria-label="Who decides" className="grid gap-3 md:grid-cols-3">
           {DECISION_MODES.map((m) => (
@@ -222,6 +242,60 @@ export function NewQuestion() {
             </Label>
             <Input id="q-due" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </div>
+          <fieldset className="space-y-3 rounded-md border border-border p-4" data-testid="question-documents">
+            <legend className="px-1 text-xs font-semibold uppercase tracking-[0.12em]">Background and supporting documents (optional)</legend>
+            <p className="text-xs text-muted-foreground">
+              Board papers, accounts, proposals, surveys, slides: any file up to {MAX_FILE_MB} MB. Sentinel reads each one and the board's agents use what
+              matters. You can add more later from the question.
+            </p>
+            <label className="inline-flex cursor-pointer items-center rounded-md border border-border px-3 py-1.5 text-sm font-semibold hover:bg-muted">
+              Add documents
+              <input
+                type="file"
+                multiple
+                className="sr-only"
+                data-testid="input-question-docs"
+                onChange={(e) => {
+                  const picked = [...(e.target.files ?? [])];
+                  e.target.value = "";
+                  const tooBig = picked.filter((f) => f.size > MAX_FILE_MB * 1024 * 1024);
+                  setDocsNote(tooBig.length ? `${tooBig.map((f) => f.name).join(", ")}: larger than ${MAX_FILE_MB} MB.` : "");
+                  setDocs((prev) => [...prev, ...picked.filter((f) => f.size <= MAX_FILE_MB * 1024 * 1024)]);
+                }}
+              />
+            </label>
+            {docsNote && <p className="text-xs text-destructive">{docsNote}</p>}
+            {docs.length > 0 && (
+              <>
+                <ul className="space-y-1 text-sm" data-testid="pending-docs">
+                  {docs.map((f, i) => (
+                    <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 rounded border border-border px-3 py-1.5">
+                      <span className="min-w-0 truncate">
+                        {f.name} <span className="text-xs text-muted-foreground">· {formatSize(f.size)}</span>
+                      </span>
+                      <button type="button" className="text-xs underline" onClick={() => setDocs(docs.filter((_, j) => j !== i))} aria-label={`Remove ${f.name}`}>
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <div className="space-y-1.5">
+                  <Label htmlFor="q-docs-instruction" className="text-xs font-semibold uppercase tracking-[0.12em]">
+                    Instructions for Sentinel
+                  </Label>
+                  <Textarea id="q-docs-instruction" rows={2} maxLength={2000} value={docsInstruction} onChange={(e) => setDocsInstruction(e.target.value)} />
+                </div>
+                {askPeople && (
+                  <div className="flex items-center gap-2">
+                    <Switch id="q-docs-share" checked={shareDocs} onCheckedChange={setShareDocs} />
+                    <Label htmlFor="q-docs-share" className="text-sm font-normal">
+                      Share them with the people asked
+                    </Label>
+                  </div>
+                )}
+              </>
+            )}
+          </fieldset>
         </div>
       </Section>
 
@@ -353,9 +427,14 @@ export function NewQuestion() {
       )}
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={send} disabled={sending} data-testid="button-send">
-          {sending ? "Sending…" : askPeople ? `Send to ${people.length} ${people.length === 1 ? "person" : "people"}` : "Put it to the shadow board"}
+          {sending ? (sendingNote ? "Attaching documents…" : "Sending…") : askPeople ? `Send to ${people.length} ${people.length === 1 ? "person" : "people"}` : "Put it to the shadow board"}
         </Button>
-        {askPeople && (
+        {sendingNote && (
+          <p className="text-xs text-muted-foreground" aria-live="polite">
+            {sendingNote}
+          </p>
+        )}
+        {askPeople && !sendingNote && (
           <p className="text-xs text-muted-foreground">
             The names, roles and emails of the people asked are stored with this question so they can answer it.
           </p>

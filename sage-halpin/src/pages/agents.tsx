@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { MissingData } from "@/components/MissingData";
 import { markShadowBoardSeen } from "@/components/GettingStarted";
 import { PageLoader } from "@/components/PageLoader";
 import { Link } from "wouter";
@@ -170,7 +171,7 @@ export default function AgentsPage() {
     return (
       <WorkspaceShell title="Agent development">
         <p className="text-sm">
-          Start by naming your organisation in{" "}
+          Start by adding your contact details in{" "}
           <Link href="/organisation" className="font-semibold underline underline-offset-4">
             Your board
           </Link>
@@ -215,6 +216,7 @@ export default function AgentsPage() {
 
   return (
     <WorkspaceShell title="Agent development">
+      <MissingData use="agents" />
       <p className="mb-6 max-w-3xl text-sm text-muted-foreground">
         Develop each agent for your organisation. They learn in four ways: what you teach them, material you give them to study, your feedback
         on their opinions, and how the board's decisions turn out. They also read what horizon scanning finds outside. Anything the platform

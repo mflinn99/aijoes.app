@@ -29,12 +29,26 @@ export type Purpose =
   | "horizon-triage"
   | "horizon-search"
   | "horizon-landscape"
-  | "checkpoint-insights";
+  | "checkpoint-insights"
+  | "file-review";
+
+/** Part of a message: text, or a file the model reads natively (PDF or image). */
+export type ContentBlock =
+  | { type: "text"; text: string }
+  | { type: "document"; mediaType: "application/pdf"; data: string; title?: string }
+  | { type: "image"; mediaType: "image/png" | "image/jpeg" | "image/gif" | "image/webp"; data: string };
+
+export type MessageContent = string | ContentBlock[];
+
+/** The text of a message, ignoring any attached files. */
+export function textOf(content: MessageContent): string {
+  return typeof content === "string" ? content : content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n");
+}
 
 export interface CompletionRequest {
   purpose: Purpose;
   system: string;
-  messages: { role: "user" | "assistant"; content: string }[];
+  messages: { role: "user" | "assistant"; content: MessageContent }[];
   maxTokens: number;
   effort: Effort;
   /** Let the model search the web (Anthropic's server-side web search tool). */
@@ -155,10 +169,20 @@ export function anthropicCredentials(env: NodeJS.ProcessEnv = process.env): { ap
  * Anthropic requires the conversation to open with a user turn and every turn
  * to carry text, so trim anything that would be rejected.
  */
-function normaliseMessages(messages: CompletionRequest["messages"]): CompletionRequest["messages"] {
-  const nonEmpty = messages.filter((m) => m.content.trim().length > 0);
+function normaliseMessages(messages: CompletionRequest["messages"]): Anthropic.MessageParam[] {
+  const nonEmpty = messages.filter((m) => (typeof m.content === "string" ? m.content.trim().length > 0 : m.content.length > 0));
   const firstUser = nonEmpty.findIndex((m) => m.role === "user");
-  return firstUser === -1 ? [] : nonEmpty.slice(firstUser);
+  return (firstUser === -1 ? [] : nonEmpty.slice(firstUser)).map((m) => ({
+    role: m.role,
+    content:
+      typeof m.content === "string"
+        ? m.content
+        : m.content.map((b): Anthropic.ContentBlockParam => {
+            if (b.type === "document") return { type: "document", source: { type: "base64", media_type: b.mediaType, data: b.data }, ...(b.title ? { title: b.title } : {}) };
+            if (b.type === "image") return { type: "image", source: { type: "base64", media_type: b.mediaType, data: b.data } };
+            return { type: "text", text: b.text };
+          }),
+  }));
 }
 
 /** Test seam: observe every completion request (pass null to stop). */
@@ -189,7 +213,7 @@ export async function complete(req: CompletionRequest): Promise<string> {
   observer?.(req);
   if (aiProvider() === "mock") return mockCompletion(req);
 
-  const messages: Anthropic.MessageParam[] = normaliseMessages(req.messages);
+  const messages = normaliseMessages(req.messages);
   const tools = req.webSearch && webSearchEnabled() ? [webSearchTool()] : undefined;
   let text = "";
 

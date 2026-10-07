@@ -17,6 +17,9 @@ import {
 import { syncProfile, workspaceApi } from "@/lib/workspace";
 import { GettingStarted } from "@/components/GettingStarted";
 import { AccountSecurity } from "@/components/AccountSecurity";
+import { libraryOwner } from "@/components/Documents";
+import { hasContactDetails } from "@/lib/missing";
+import { filesApi } from "@/lib/files";
 import { useAccount } from "@/components/AccountProvider";
 import { AGENT_PERSONAS, CHAIR_AGENT, LIMITS, isEmail, type BoardPerson } from "../../shared/board";
 
@@ -25,13 +28,23 @@ import { AGENT_PERSONAS, CHAIR_AGENT, LIMITS, isEmail, type BoardPerson } from "
 
 const BLANK_PERSON: Omit<BoardPerson, "id"> = { name: "", role: "", email: "", phone: "", expertise: "", cv: "", permanent: false };
 
-function Field({ id, label, hint, children }: { id: string; label: string; hint?: string; children: React.ReactNode }) {
+function Field({ id, label, hint, error, missing, children }: { id: string; label: string; hint?: string; error?: string; missing?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id} className="text-xs font-semibold uppercase tracking-[0.12em]">
         {label}
+        {missing && (
+          <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900" data-testid={`missing-badge-${id}`}>
+            Missing
+          </span>
+        )}
       </Label>
       {children}
+      {error && (
+        <p className="text-xs font-semibold text-destructive" data-testid={`error-${id}`}>
+          {error}
+        </p>
+      )}
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
@@ -48,7 +61,24 @@ function PersonForm({ initial, onSave, onCancel }: { initial: BoardPerson; onSav
     e.target.value = "";
     if (!file) return;
     if (!/\.(txt|md|text)$/i.test(file.name) && !file.type.startsWith("text/")) {
-      setFileNote("Only plain-text files can be read here. For a PDF or Word CV, copy its text and paste it below.");
+      // PDF, Word or anything else: Sentinel reads it and writes the career summary.
+      setFileNote(`Sentinel is reading ${file.name}…`);
+      try {
+        const owner = await libraryOwner();
+        if (!owner) return setFileNote("Add your contact details above first, then load the CV.");
+        const read = await filesApi.upload(owner, file, {
+          stage: "organisation",
+          instruction: `This is the CV of ${p.name.trim() || "a board member"}${p.role.trim() ? `, ${p.role.trim()}` : ""}. Write their career summary for the board in plain text, under ${LIMITS.cv} characters: roles, sectors, expertise and achievements.`,
+        });
+        const summary = read.answers.at(-1)?.response?.trim();
+        // The CV is used through the person's record, not as a separate board document.
+        await filesApi.update(owner, read.id, { useInBoard: false }).catch(() => undefined);
+        if (read.status !== "done" || !summary) return setFileNote(read.note ?? "Sentinel couldn't read that CV. Paste its text below instead.");
+        setP((prev) => ({ ...prev, cv: summary.slice(0, LIMITS.cv) }));
+        setFileNote(`Sentinel read ${file.name} and wrote the summary below. Check and edit it. The file is kept in Documents.`);
+      } catch (err) {
+        setFileNote(err instanceof Error ? err.message : "The CV could not be read. Paste its text below instead.");
+      }
       return;
     }
     const content = (await file.text()).trim();
@@ -91,12 +121,12 @@ function PersonForm({ initial, onSave, onCancel }: { initial: BoardPerson; onSav
       <Field id="p-expertise" label="Expertise" hint="What they bring to the board's decisions.">
         <Input id="p-expertise" value={p.expertise ?? ""} maxLength={LIMITS.expertise} onChange={set("expertise")} />
       </Field>
-      <Field id="p-cv" label="CV" hint={`Paste their CV or career summary (up to ${LIMITS.cv.toLocaleString()} characters), or load a text file.`}>
+      <Field id="p-cv" label="CV" hint={`Paste their CV or career summary (up to ${LIMITS.cv.toLocaleString()} characters), or load the CV file (PDF, Word or any other format): Sentinel reads it and writes the summary.`}>
         <Textarea id="p-cv" rows={6} value={p.cv ?? ""} maxLength={LIMITS.cv} onChange={set("cv")} />
         <div className="flex flex-wrap items-center gap-3 pt-1">
           <label className="cursor-pointer text-xs font-semibold text-primary underline underline-offset-4">
             Load a CV file
-            <input type="file" accept=".txt,.md,text/plain,text/markdown" className="sr-only" onChange={loadCv} />
+            <input type="file" className="sr-only" onChange={loadCv} data-testid="input-cv-file" />
           </label>
           {fileNote && <span className="text-xs text-muted-foreground">{fileNote}</span>}
         </div>
@@ -165,7 +195,16 @@ export default function OrganisationPage() {
   }, [org.name, org.sector, org.profile]);
 
   const seatedCount = org.agents.filter((a) => a.seated).length;
-  const ready = org.name.trim() && org.leadName.trim() && org.people.length > 0;
+  const ready = hasContactDetails(org);
+
+  // Links from "missing information" notes land on the field to fill in.
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    const el = document.getElementById(id);
+    el?.scrollIntoView({ block: "center" });
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.focus();
+  }, []);
 
   return (
     <WorkspaceShell
@@ -186,30 +225,53 @@ export default function OrganisationPage() {
 
       <GettingStarted />
 
-      <Section title="1. Your organisation">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field id="org-name" label="Organisation name">
-            <Input id="org-name" value={org.name} maxLength={LIMITS.organisation} onChange={setField("name")} data-testid="input-org-name" />
+      <Section
+        title="1. Contact details (required)"
+        id="contact"
+        intro="The only part of setting up you can't skip: who the organisation is and how to reach you. Questionnaires are sent in your name."
+      >
+        <div className="grid gap-4 sm:grid-cols-3" data-testid="contact-details">
+          <Field id="org-name" label="Organisation name" error={!org.name.trim() ? "Required" : ""}>
+            <Input id="org-name" value={org.name} maxLength={LIMITS.organisation} onChange={setField("name")} required aria-invalid={!org.name.trim()} data-testid="input-org-name" />
           </Field>
-          <Field id="org-sector" label="Sector">
-            <Input id="org-sector" value={org.sector} maxLength={120} onChange={setField("sector")} />
+          <Field id="lead-name" label="Your name" error={!org.leadName.trim() ? "Required" : ""}>
+            <Input id="lead-name" value={org.leadName} maxLength={LIMITS.name} onChange={setField("leadName")} required aria-invalid={!org.leadName.trim()} data-testid="input-lead-name" />
           </Field>
-          <Field id="lead-name" label="Your name (the lead)" hint="Questionnaires are sent in your name.">
-            <Input id="lead-name" value={org.leadName} maxLength={LIMITS.name} onChange={setField("leadName")} data-testid="input-lead-name" />
-          </Field>
-          <Field id="lead-email" label="Your email">
-            <Input id="lead-email" type="email" value={org.leadEmail} maxLength={LIMITS.email} onChange={setField("leadEmail")} />
-          </Field>
-        </div>
-        <div className="mt-4">
-          <Field id="org-profile" label="About the organisation" hint="Size, markets, stage, priorities. The agents read this before every question.">
-            <Textarea id="org-profile" rows={3} value={org.profile} maxLength={LIMITS.profile} onChange={setField("profile")} />
+          <Field id="lead-email" label="Your email" error={!org.leadEmail.trim() ? "Required" : !isEmail(org.leadEmail.trim()) ? "Enter a valid email address" : ""}>
+            <Input
+              id="lead-email"
+              type="email"
+              value={org.leadEmail}
+              maxLength={LIMITS.email}
+              onChange={setField("leadEmail")}
+              required
+              aria-invalid={!isEmail(org.leadEmail.trim())}
+              data-testid="input-lead-email"
+            />
           </Field>
         </div>
       </Section>
 
       <Section
-        title={`2. The people (${org.people.filter((p) => p.permanent).length} permanent, ${org.people.filter((p) => !p.permanent).length} as needed)`}
+        title="2. About the organisation (optional)"
+        id="about"
+        intro="Can be skipped. The agents read this before every question, so they advise without it if it's missing, and say so."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field id="org-sector" label="Sector" missing={!org.sector.trim()}>
+            <Input id="org-sector" value={org.sector} maxLength={120} onChange={setField("sector")} className={!org.sector.trim() ? "border-amber-400" : ""} />
+          </Field>
+        </div>
+        <div className="mt-4">
+          <Field id="org-profile" label="About the organisation" hint="Size, markets, stage, priorities." missing={!org.profile.trim()}>
+            <Textarea id="org-profile" rows={3} value={org.profile} maxLength={LIMITS.profile} onChange={setField("profile")} className={!org.profile.trim() ? "border-amber-400" : ""} />
+          </Field>
+        </div>
+      </Section>
+
+      <Section
+        id="people"
+        title={`3. The people, optional (${org.people.filter((p) => p.permanent).length} permanent, ${org.people.filter((p) => !p.permanent).length} as needed)`}
         intro="The real people included in decision making. Permanent members take part in every decision that involves people; others, such as fractional advisers, are invited when a question needs them. Each is asked for their input by email and questionnaire."
       >
         {org.people.length > 0 && (
@@ -233,7 +295,12 @@ export default function OrganisationPage() {
                       {p.phone ? ` · ${p.phone}` : ""}
                     </p>
                     {p.expertise && <p className="mt-1 text-sm">{p.expertise}</p>}
-                    <p className="mt-1 text-xs text-muted-foreground">{p.cv ? `CV: ${p.cv.length.toLocaleString()} characters` : "No CV yet"}</p>
+                    {p.cv && <p className="mt-1 text-xs text-muted-foreground">CV: {p.cv.length.toLocaleString()} characters</p>}
+                    {(!p.cv || !p.expertise || !p.joinedAt) && (
+                      <p className="mt-1 inline-block rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-900" data-testid={`missing-person-${p.id}`}>
+                        Missing: {[!p.cv && "CV", !p.expertise && "expertise", !p.joinedAt && "date joined"].filter(Boolean).join(", ")}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -317,7 +384,7 @@ export default function OrganisationPage() {
       </Section>
 
       <Section
-        title={`3. The shadow board (${seatedCount} of 6 agents)`}
+        title={`4. The shadow board (${seatedCount} of 6 agents)`}
         intro="Each AI agent sits in a seat with a persona, and gives its own opinion on every question independently of the people. Its view can be seen on its own, as the shadow board, or alongside the people's. Agents advise; your people decide."
       >
         <div className="grid gap-4 md:grid-cols-2">
