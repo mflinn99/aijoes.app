@@ -16,8 +16,8 @@ authority over an account; no code change can resolve them.
 | 6 | Server-side sessions with revocation; sign out everywhere; password change with re-authentication; per-account lockout; common-password denylist; `__Host-` cookie | T1/T2 | Engineering | **Done**: `auth.test.ts`, browser 13/13 |
 | 7 | SSRF bypass through IPv6 forms (F-01) | R-16 | Engineering | **Done**: `net.test.ts` |
 | 8 | Daily AI call cap | R-04 | Engineering | **Done**: `ai-budget.test.ts` |
-| 9 | CI: pinned actions, gitleaks, CodeQL, npm audit, dependency review, SBOM, build once and promote | R-18 | Engineering | **Done** (not yet run on GitHub) |
-| 10 | Republish the Replit app from this commit, so the live app gets fixes 6–8 | R-16 | Engineering | Open; must come from the customer-controlled app after item 2 |
+| 9 | CI: pinned actions, gitleaks, CodeQL, npm audit, dependency review, SBOM, build once and promote | R-18 | Engineering | **Done**: green on the default branch (`01ae562`); dependency review waits for the dependency graph setting |
+| 10 | Republish the Replit app from this commit, so the live app gets fixes 6–8 | R-16 | Engineering | **Done** (7 Oct 2026, commit `01ae562`). It is still in the account the customer can't access (item 2) |
 
 ## P1: before general availability
 
