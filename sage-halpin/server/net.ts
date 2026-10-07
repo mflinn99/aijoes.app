@@ -46,15 +46,44 @@ export function isPublicAddress(address: string): boolean {
     });
   }
   if (net.isIPv6(address)) {
-    const a = address.toLowerCase();
-    const mapped = a.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (mapped) return isPublicAddress(mapped[1]);
-    if (a === "::" || a === "::1") return false;
-    // Unique local fc00::/7, link-local fe80::/10, multicast ff00::/8, documentation 2001:db8::/32.
-    if (/^f[cd]/.test(a) || /^fe[89ab]/.test(a) || a.startsWith("ff") || a.startsWith("2001:db8")) return false;
+    const g = ipv6Groups(address);
+    if (!g) return false;
+    const v4 = (hi: number, lo: number) => `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
+    const zero = (n: number) => g.slice(0, n).every((x) => x === 0);
+    // Forms that carry an IPv4 address: judge the IPv4 address.
+    if (zero(5) && g[5] === 0xffff) return isPublicAddress(v4(g[6], g[7])); // ::ffff:a.b.c.d (mapped)
+    if (zero(6)) return g[6] === 0 && g[7] <= 1 ? false : isPublicAddress(v4(g[6], g[7])); // ::, ::1, ::a.b.c.d
+    if (g[0] === 0x64 && g[1] === 0xff9b) return isPublicAddress(v4(g[6], g[7])); // NAT64 64:ff9b::/96 and /48
+    if (g[0] === 0x2002) return isPublicAddress(v4(g[1], g[2])); // 6to4
+    const first = g[0];
+    if ((first & 0xfe00) === 0xfc00) return false; // unique local fc00::/7
+    if ((first & 0xffc0) === 0xfe80) return false; // link-local fe80::/10
+    if ((first & 0xffc0) === 0xfec0) return false; // site-local fec0::/10 (deprecated)
+    if ((first & 0xff00) === 0xff00) return false; // multicast
+    if (first === 0x2001 && g[1] === 0x0db8) return false; // documentation
+    if (first === 0x2001 && g[1] === 0) return false; // Teredo 2001::/32
+    if (first === 0x0100 && zero(4)) return false; // discard 100::/64
     return true;
   }
   return false;
+}
+
+/** The eight 16-bit groups of an IPv6 address (any textual form), or null. */
+function ipv6Groups(address: string): number[] | null {
+  let a = address.toLowerCase().split("%")[0];
+  const dotted = a.match(/(\d+\.\d+\.\d+\.\d+)$/);
+  if (dotted) {
+    if (!net.isIPv4(dotted[1])) return null;
+    const n = ipv4ToInt(dotted[1]);
+    a = a.slice(0, -dotted[1].length) + `${(n >>> 16).toString(16)}:${(n & 0xffff).toString(16)}`;
+  }
+  const [head, tail, extra] = a.split("::");
+  if (extra !== undefined) return null;
+  const h = head ? head.split(":") : [];
+  const t = tail !== undefined ? (tail ? tail.split(":") : []) : null;
+  const groups = t === null ? h : [...h, ...Array(8 - h.length - t.length).fill("0"), ...t];
+  if (groups.length !== 8 || groups.some((x) => !/^[0-9a-f]{1,4}$/.test(x))) return null;
+  return groups.map((x) => parseInt(x, 16));
 }
 
 /** Checks a feed address before any request is made. */
