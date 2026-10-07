@@ -899,7 +899,13 @@ router.post("/consultations/:id/decision", requireLead, async (req, res, next) =
         peoplePositions: c.invitees.map((i) => (responses[i.personId]?.answers.find((a) => a.questionId === "position")?.value ?? null) as Position | null),
         outcome: null,
         ...(plan ? { plan } : {}),
+        source: "question",
+        ...(c.context ? { context: c.context } : {}),
       };
+      const chair = agentsNow.find((o) => o.agentId === CHAIR_AGENT);
+      if (chair?.content) record.recommendation = chair.content.slice(0, 3000);
+      const docs = (await listFiles(store, partition(c.id))).map((f) => f.name);
+      if (docs.length) record.documents = docs.slice(0, 50);
       await saveDecision(store, c.workspaceId, record);
     }
     res.json(taken);

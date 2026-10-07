@@ -4,7 +4,7 @@ import { AccountMenu } from "@/components/AccountProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import TraditionalView, { type TraditionalViewData } from "../components/TraditionalView";
-import { appendToLog, type DecisionLogEntry } from "@/lib/decisionLog";
+import { appendToLog, saveAnalysisDecision, type DecisionLogEntry } from "@/lib/decisionLog";
 import { scopedKey } from "@/lib/userScope";
 
 // The bespoke-challenge waitlist link appears only when an enquiry address is
@@ -219,7 +219,7 @@ export default function Analysis() {
     persist({ step: "locked" });
     if (result) {
       const label = CHALLENGES.find((c) => c.id === challenge)?.label ?? challenge ?? "";
-      appendToLog({
+      const entry: DecisionLogEntry = {
         id: new Date().toISOString(),
         lockedAt: new Date().toISOString(),
         challenge: challenge ?? "",
@@ -229,7 +229,10 @@ export default function Analysis() {
         rationale: result.aggregatedOutput.rationale,
         feedbackRound: result.feedbackRound,
         outcome: null,
-      });
+      };
+      appendToLog(entry);
+      // Saved to the workspace's decision log too; kept in this browser until then.
+      void saveAnalysisDecision(entry).catch(() => undefined);
     }
   }
 

@@ -632,11 +632,15 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
             )}
             {c.linkedToWorkspace && (
               <p className="mt-3 text-sm">
-                The decision{c.decision.plan ? " and its plan are" : " is"} in your organisation's record and will be in the next{" "}
+                The decision{c.decision.plan ? " and its plan are" : " is"} saved in the{" "}
+                <Link href="/log" className="font-semibold underline underline-offset-4" data-testid="link-decision-log">
+                  decision log
+                </Link>
+                , where you record how it turns out and can revisit it, and will be in the next{" "}
                 <Link href="/checkpoint" className="font-semibold underline underline-offset-4">
                   checkpoint
                 </Link>
-                .
+                . The agents read it as precedent on future questions.
               </p>
             )}
             {c.decision.withoutPermanent?.length ? (

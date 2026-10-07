@@ -68,7 +68,21 @@ export interface DecisionRecord {
   outcome: { result: Outcome; note: string; recordedAt: string } | null;
   /** The plan agreed with the decision: actions, owners, dates. */
   plan?: string;
+  /** Where it was decided: a board question, the scenario analysis, or logged by hand (default "question"). */
+  source?: DecisionSource;
+  /** Kept with the record so it stays useful after the board question itself expires. */
+  context?: string;
+  /** The shadow board chair's recommendation, if it was convened. */
+  recommendation?: string;
+  /** Names of the background documents the decision was taken with. */
+  documents?: string[];
+  /** Scenario analysis only: the calibration it was run with (0 to 1). */
+  calibration?: { risk: number; ambition: number; time: number; cost: number };
+  updatedAt?: string;
 }
+
+export const DECISION_SOURCES = ["question", "analysis", "manual"] as const;
+export type DecisionSource = (typeof DECISION_SOURCES)[number];
 
 export interface TrackRecord {
   consultations: number;
@@ -188,6 +202,30 @@ export async function saveDecision(store: Store, wsId: string, record: DecisionR
   await store.put(workspacePartition(wsId), decisionRow(record.consultationId), record);
 }
 
+export async function deleteDecision(store: Store, wsId: string, id: string): Promise<void> {
+  if (ID.test(id)) await store.remove(workspacePartition(wsId), decisionRow(id));
+}
+
+/**
+ * The board's recent decisions and how they turned out, as tagged data for
+ * the agents' prompts, so they advise with the board's own precedents in mind.
+ */
+export async function decisionsBlock(store: Store, wsId: string, { limit = 8, budget = 6000 } = {}): Promise<string> {
+  const decisions = (await listDecisions(store, wsId)).slice(0, limit);
+  if (!decisions.length) return "";
+  const lines: string[] = [];
+  let left = budget;
+  for (const d of decisions) {
+    const line = `- ${d.decidedAt.slice(0, 10)}: ${d.question.replace(/\s+/g, " ").slice(0, 300)} → Decided: ${d.decision.replace(/\s+/g, " ").slice(0, 300)} (${POSITION_LABELS[d.position]})${
+      d.rationale ? `. Why: ${d.rationale.replace(/\s+/g, " ").slice(0, 300)}` : ""
+    }${d.outcome ? `. Outcome: ${OUTCOME_LABELS[d.outcome.result]}${d.outcome.note ? ` (${d.outcome.note.replace(/\s+/g, " ").slice(0, 200)})` : ""}` : ". Outcome not yet recorded"}`;
+    if (line.length > left) break;
+    lines.push(line);
+    left -= line.length;
+  }
+  return `<board_decisions most_recent_first="true">\n${lines.join("\n")}\n</board_decisions>`;
+}
+
 /**
  * How each agent's views have compared with what the board decided, and
  * with how those decisions turned out. An agent "called it right" when it
@@ -264,6 +302,8 @@ export async function agentKnowledge(store: Store, wsId: string, agentId: AgentI
         .join("\n")}\n</external_signals>`,
     );
   }
+  const decided = await decisionsBlock(store, wsId);
+  if (decided) parts.push(`The board's own recent decisions (precedents to be consistent with, or to say why you depart from):\n${decided}`);
   const documents = await documentsBlock(store, workspacePartition(wsId), { tag: "organisation_documents", budget: 10_000 });
   if (documents) parts.push(`Documents the company admin has given the board (digests by Sentinel):\n${documents}`);
   return parts.join("\n\n");
