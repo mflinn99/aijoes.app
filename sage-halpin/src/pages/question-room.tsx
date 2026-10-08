@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { usePageDownloads } from "@/components/PageDownload";
+import { downloadQuestion } from "@/lib/exports";
 import { MissingData } from "@/components/MissingData";
 import { PageLoader } from "@/components/PageLoader";
 import { invalidateCheckpointPill } from "@/components/CheckpointPill";
@@ -297,6 +299,16 @@ export default function QuestionRoom({ params }: { params: { id: string } }) {
   const [rationale, setRationale] = useState("");
   const [withoutPermanent, setWithoutPermanent] = useState(false);
   const [plan, setPlan] = useState("");
+
+  usePageDownloads(
+    c
+      ? [
+          { label: "This board question: the full record", hint: "Word", run: () => downloadQuestion(c, "doc") },
+          ...(c.invitees.length ? [{ label: "The people's answers", hint: "CSV", run: () => downloadQuestion(c, "answers") }] : []),
+          { label: "The full record as data", hint: "JSON", run: () => downloadQuestion(c, "json") },
+        ]
+      : [],
+  );
 
   const refresh = useCallback(async () => {
     if (!saved) return;

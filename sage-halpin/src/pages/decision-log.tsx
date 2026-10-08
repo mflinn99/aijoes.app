@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { usePageDownloads } from "@/components/PageDownload";
+import { escapeHtml, htmlDocument, saveFile, today } from "@/lib/downloads";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +58,28 @@ export function decisionsCsv(decisions: DecisionRecord[]): string {
   ]);
   // Excel reads a leading = + - @ as a formula: neutralise them.
   return [head, ...rows].map((r) => r.map((v) => csvCell(/^[=+\-@]/.test(v) ? `'${v}` : v)).join(",")).join("\r\n");
+}
+
+function decisionsDocument(decisions: DecisionRecord[]): string {
+  const body = decisions
+    .map(
+      (d) =>
+        `<h2>${escapeHtml(day(d.decidedAt))} · ${escapeHtml(SOURCE_LABELS[sourceOf(d)])}</h2><h3>${escapeHtml(d.question)}</h3>` +
+        [
+          `Decided: ${d.decision} (${POSITION_LABELS[d.position]})`,
+          d.rationale && `Why: ${d.rationale}`,
+          d.plan && `Plan: ${d.plan}`,
+          d.context && `Context: ${d.context}`,
+          d.recommendation && `Shadow board chair: ${d.recommendation}`,
+          d.documents?.length ? `Documents: ${d.documents.join(", ")}` : "",
+          d.outcome ? `Outcome: ${OUTCOME_LABELS[d.outcome.result]}${d.outcome.note ? `: ${d.outcome.note}` : ""} (recorded ${day(d.outcome.recordedAt)})` : "Outcome not yet recorded",
+        ]
+          .filter(Boolean)
+          .map((t) => `<p class="pre">${escapeHtml(String(t))}</p>`)
+          .join(""),
+    )
+    .join("");
+  return htmlDocument("Decision log", body);
 }
 
 interface DraftDecision {
@@ -299,6 +323,16 @@ export default function DecisionLogPage() {
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<"all" | NonNullable<DecisionRecord["source"]>>("all");
   const [outcome, setOutcome] = useState<"all" | "awaiting" | "recorded">("all");
+
+  usePageDownloads(
+    decisions?.length
+      ? [
+          { label: "The decision log", hint: "CSV", run: () => download(`sentinel8-decision-log-${new Date().toISOString().slice(0, 10)}.csv`, "text/csv;charset=utf-8", `\uFEFF${decisionsCsv(decisions)}`) },
+          { label: "The decision log as a document", hint: "Word", run: () => saveFile(`sentinel8-decision-log-${today()}.doc`, "application/msword", decisionsDocument(decisions)) },
+          { label: "The decision log as data", hint: "JSON", run: () => download(`sentinel8-decision-log-${today()}.json`, "application/json", JSON.stringify(decisions, null, 2)) },
+        ]
+      : [],
+  );
 
   const load = useCallback(async () => {
     try {

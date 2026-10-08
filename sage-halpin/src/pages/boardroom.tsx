@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { usePageDownloads } from "@/components/PageDownload";
+import { htmlDocument, saveFile, section, today } from "@/lib/downloads";
 import { CheckpointPill } from "@/components/CheckpointPill";
 import { AccountMenu } from "@/components/AccountProvider";
 import { motion, AnimatePresence } from "framer-motion";
@@ -41,6 +43,35 @@ export default function Boardroom() {
   const [loading, setLoading] = useState(false);
   const [activePersona, setActivePersona] = useState<string | null>(null);
   const [expandedMsg, setExpandedMsg] = useState<string | null>(null);
+
+  usePageDownloads(
+    messages.length
+      ? [
+          {
+            label: "This shadow board session",
+            hint: "Word",
+            run: () =>
+              saveFile(
+                `sentinel8-shadow-board-${today()}.doc`,
+                "application/msword",
+                htmlDocument(
+                  "Shadow board session",
+                  messages
+                    .map((m) =>
+                      m.type === "user"
+                        ? section(`Question · ${new Date(m.timestamp).toLocaleString("en-GB")}`, m.topic)
+                        : m.type === "board"
+                          ? (m.responses ?? []).map((r) => section(`${r.name}, ${r.role}`, r.content)).join("")
+                          : section("Error", m.errorText),
+                    )
+                    .join(""),
+                ),
+              ),
+          },
+          { label: "This session as data", hint: "JSON", run: () => saveFile(`sentinel8-shadow-board-${today()}.json`, "application/json", JSON.stringify(messages, null, 2)) },
+        ]
+      : [],
+  );
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);

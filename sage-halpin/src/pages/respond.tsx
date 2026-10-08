@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { usePageDownloads } from "@/components/PageDownload";
+import { htmlDocument, saveFile, section, table, today } from "@/lib/downloads";
 import { formatSize } from "@/lib/files";
 import { PageLoader } from "@/components/PageLoader";
 import { Button } from "@/components/ui/button";
@@ -63,6 +65,32 @@ export default function Respond({ params }: { params: { token: string } }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+
+  usePageDownloads(
+    data
+      ? [
+          {
+            label: "This questionnaire and my answers",
+            hint: "Word",
+            run: () =>
+              saveFile(
+                `sentinel8-questionnaire-${today()}.doc`,
+                "application/msword",
+                htmlDocument(
+                  `${data.organisation}: questionnaire`,
+                  [
+                    section("The question", data.question),
+                    section("Context", data.context),
+                    section("For", `${data.respondent.name}, ${data.respondent.role}. Asked by ${data.leadName}${data.dueDate ? `, reply by ${data.dueDate}` : ""}.`),
+                    `<h2>Answers</h2>${table(["Question", "Answer"], data.questionnaire.map((q) => [q.prompt, values[q.id] ?? ""]))}`,
+                    data.documents?.length ? section("Background documents", data.documents.map((d) => d.name).join(", ")) : "",
+                  ].join(""),
+                ),
+              ),
+          },
+        ]
+      : [],
+  );
 
   useEffect(() => {
     api

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { usePageDownloads } from "@/components/PageDownload";
+import { htmlDocument, saveFile, section, table, toCsv, today } from "@/lib/downloads";
 import { MissingData } from "@/components/MissingData";
 import { PageLoader } from "@/components/PageLoader";
 import { Link } from "wouter";
@@ -48,6 +50,47 @@ export default function HorizonPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  usePageDownloads([
+    ...(signals.length
+      ? [
+          {
+            label: "Horizon signals",
+            hint: "CSV",
+            run: () =>
+              saveFile(
+                `sentinel8-horizon-signals-${today()}.csv`,
+                "text/csv;charset=utf-8",
+                toCsv(
+                  ["Published", "Found", "Title", "Source", "Category", "Impact", "Horizon", "Summary", "Implication", "Agents", "Link"],
+                  signals.map((x) => [x.publishedAt?.slice(0, 10) ?? "", x.foundAt.slice(0, 10), x.title, x.source, x.category, x.impact, x.horizon, x.summary, x.implication, x.agents.join(" "), x.url]),
+                ),
+              ),
+          },
+        ]
+      : []),
+    ...(landscape || signals.length
+      ? [
+          {
+            label: "The horizon briefing",
+            hint: "Word",
+            run: () =>
+              saveFile(
+                `sentinel8-horizon-${today()}.doc`,
+                "application/msword",
+                htmlDocument(
+                  "The horizon",
+                  [
+                    section("The external landscape", landscape?.briefing),
+                    landscape?.trends.length ? `<h2>Trends</h2>${table(["Trend", "Direction", "Detail"], landscape.trends.map((t) => [t.title, t.direction, t.detail]))}` : "",
+                    signals.length ? `<h2>Signals</h2>${table(["Date", "Signal", "Impact", "What it means for us"], signals.map((x) => [(x.publishedAt ?? x.foundAt).slice(0, 10), `${x.title} (${x.source})`, x.impact, x.implication]))}` : "",
+                  ].join(""),
+                ),
+              ),
+          },
+        ]
+      : []),
+  ]);
 
   const refresh = useCallback(async (l: WorkspaceLink) => {
     const h = await workspaceApi.horizon(l);

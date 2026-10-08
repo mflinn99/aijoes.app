@@ -17,6 +17,7 @@ import DocumentsPage from "@/pages/documents";
 import NotFound from "@/pages/not-found";
 import { SignInPage, SignUpPage } from "@/pages/auth";
 import { AccountProvider } from "@/components/AccountProvider";
+import { PageDownloadButton, PageDownloadProvider } from "@/components/PageDownload";
 
 const queryClient = new QueryClient();
 
@@ -53,7 +54,12 @@ function App() {
       <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
         <PageMetadata />
         <AccountProvider>
-          <Router />
+          <PageDownloadProvider>
+            <Router />
+            {/* Room for the Download button at the foot of every page. */}
+            <div aria-hidden className="h-20 print:hidden" />
+            <PageDownloadButton />
+          </PageDownloadProvider>
         </AccountProvider>
       </WouterRouter>
     </QueryClientProvider>

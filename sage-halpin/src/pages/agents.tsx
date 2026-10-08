@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { usePageDownloads } from "@/components/PageDownload";
+import { saveFile, toCsv, today } from "@/lib/downloads";
 import { MissingData } from "@/components/MissingData";
 import { markShadowBoardSeen } from "@/components/GettingStarted";
 import { PageLoader } from "@/components/PageLoader";
@@ -146,6 +148,39 @@ export default function AgentsPage() {
   const [selected, setSelected] = useState<AgentId>("orion");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  usePageDownloads(
+    agents
+      ? [
+          {
+            label: "What the agents have learned",
+            hint: "CSV",
+            run: () =>
+              saveFile(
+                `sentinel8-agent-lessons-${today()}.csv`,
+                "text/csv;charset=utf-8",
+                toCsv(
+                  ["Agent", "Seat", "Kind", "Lesson", "Status", "Source", "From", "Created", "Decided"],
+                  agents.flatMap((a) => a.lessons.map((l) => [AGENT_PERSONAS[a.id].persona, AGENT_PERSONAS[a.id].seat, l.kind, l.text, l.status, l.source, l.ref ?? "", l.createdAt.slice(0, 10), l.decidedAt?.slice(0, 10) ?? ""])),
+                ),
+              ),
+          },
+          {
+            label: "The agents' track record",
+            hint: "CSV",
+            run: () =>
+              saveFile(
+                `sentinel8-agent-track-record-${today()}.csv`,
+                "text/csv;charset=utf-8",
+                toCsv(
+                  ["Agent", "Seat", "Questions advised", "Decisions", "Aligned with the decision", "Outcomes reviewed", "Called it right"],
+                  agents.map((a) => [AGENT_PERSONAS[a.id].persona, AGENT_PERSONAS[a.id].seat, a.record.consultations, a.record.decisions, a.record.aligned, a.record.outcomesReviewed, a.record.calledRight]),
+                ),
+              ),
+          },
+        ]
+      : [],
+  );
   const [busy, setBusy] = useState<string | null>(null);
   const [kind, setKind] = useState<LessonKind>("principle");
   const [lessonText, setLessonText] = useState("");

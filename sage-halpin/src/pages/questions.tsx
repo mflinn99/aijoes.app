@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { usePageDownloads } from "@/components/PageDownload";
+import { saveFile, toCsv, today } from "@/lib/downloads";
 import { MissingData } from "@/components/MissingData";
 import { Link, useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,17 @@ import {
 export function QuestionList() {
   const list = savedConsultations();
   const org = loadOrganisation();
+  usePageDownloads(
+    list.length
+      ? [
+          {
+            label: "Board questions asked",
+            hint: "CSV",
+            run: () => saveFile(`sentinel8-board-questions-${today()}.csv`, "text/csv;charset=utf-8", toCsv(["Asked", "Question"], list.map((q) => [q.createdAt.slice(0, 10), q.question]))),
+          },
+        ]
+      : [],
+  );
   return (
     <WorkspaceShell
       title="Board questions"
