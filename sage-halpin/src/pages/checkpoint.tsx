@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { usePageDownloads } from "@/components/PageDownload";
+import { saveFile, toCsv, today as todayStamp } from "@/lib/downloads";
 import { MissingData } from "@/components/MissingData";
 import { PageLoader } from "@/components/PageLoader";
 import { Link } from "wouter";
@@ -56,6 +58,25 @@ export default function CheckpointPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  usePageDownloads(
+    data
+      ? [
+          { label: "The checkpoint on a page", hint: "HTML", run: () => download() },
+          {
+            label: "The checkpoint history",
+            hint: "CSV",
+            run: () =>
+              saveFile(`sentinel8-checkpoint-${todayStamp()}.csv`, "text/csv;charset=utf-8", toCsv(["Date", "Kind", "What happened", "Detail", "Source"], data.entries.map((e) => [e.date, e.kind, e.title, e.detail, e.source]))),
+          },
+          {
+            label: "The latest published checkpoint",
+            hint: "JSON",
+            run: () => saveFile(`sentinel8-checkpoint-${todayStamp()}.json`, "application/json", JSON.stringify({ latest: data.latest, entries: data.entries, published: data.checkpoints }, null, 2)),
+          },
+        ]
+      : [],
+  );
   const [ev, setEv] = useState<{ date: string; kind: LoggedKind; title: string; detail: string }>({ date: today(), kind: "achievement", title: "", detail: "" });
 
   const refresh = useCallback(async (l: WorkspaceLink) => setData(await workspaceApi.checkpoint(l)), []);
@@ -160,7 +181,7 @@ export default function CheckpointPage() {
           <Button variant="outline" onClick={() => window.print()}>
             Print or save as PDF
           </Button>
-          <Button variant="outline" onClick={download} disabled={!data} data-testid="button-download">
+          <Button variant="outline" onClick={download} disabled={!data} data-testid="button-checkpoint-html">
             Download (HTML)
           </Button>
         </div>

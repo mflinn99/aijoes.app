@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
+import { usePageDownloads } from "@/components/PageDownload";
+import { escapeHtml, htmlDocument, saveFile, slug, toCsv, today } from "@/lib/downloads";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -302,6 +304,54 @@ export function DocumentList({ owner, stage, shareOption = false, emptyText, def
       .catch((e) => setError(e instanceof Error ? e.message : "The documents could not be loaded."));
   }, [owner.id, owner.token]);
   useEffect(load, [load]);
+
+  const where = owner.kind === "workspace" ? "Company documents" : "This question's documents";
+  usePageDownloads(
+    files?.length
+      ? [
+          {
+            label: `${where}: every file`,
+            hint: `${files.length} file${files.length === 1 ? "" : "s"}`,
+            run: async () => {
+              for (const f of files) await filesApi.download(owner, f);
+            },
+          },
+          {
+            label: `${where}: what Sentinel said`,
+            hint: "Word",
+            run: () =>
+              saveFile(
+                `sentinel8-${slug(where)}-${today()}.doc`,
+                "application/msword",
+                htmlDocument(
+                  where,
+                  files
+                    .map(
+                      (f) =>
+                        `<h2>${escapeHtml(f.name)}</h2><p class="meta">${escapeHtml(formatSize(f.size))} · attached ${escapeHtml(new Date(f.uploadedAt).toLocaleDateString("en-GB"))} at ${escapeHtml(STAGE_LABELS[f.stage] ?? f.stage)}</p>` +
+                        f.answers.map((a) => `<h3>“${escapeHtml(a.instruction)}”</h3><p class="pre">${escapeHtml(a.response)}</p>`).join("") +
+                        (f.digest ? `<h3>What the board takes from it</h3><p class="pre">${escapeHtml(f.digest)}</p>` : ""),
+                    )
+                    .join(""),
+                ),
+              ),
+          },
+          {
+            label: `${where}: list`,
+            hint: "CSV",
+            run: () =>
+              saveFile(
+                `sentinel8-${slug(where)}-${today()}.csv`,
+                "text/csv;charset=utf-8",
+                toCsv(
+                  ["Name", "Type", "Size (bytes)", "Attached", "Stage", "Used by the board", "Shared", "Latest instruction", "Sentinel's latest response"],
+                  files.map((f) => [f.name, f.type, f.size, f.uploadedAt.slice(0, 10), STAGE_LABELS[f.stage] ?? f.stage, f.useInBoard ? "Yes" : "No", f.shared ? "Yes" : "No", f.answers.at(-1)?.instruction ?? "", f.answers.at(-1)?.response ?? ""]),
+                ),
+              ),
+          },
+        ]
+      : [],
+  );
 
   return (
     <div className="space-y-5">

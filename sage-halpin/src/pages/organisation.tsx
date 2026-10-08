@@ -1,4 +1,6 @@
 import { useEffect, useState, type ChangeEvent } from "react";
+import { usePageDownloads } from "@/components/PageDownload";
+import { downloadOrganisation } from "@/lib/exports";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -154,6 +156,11 @@ export default function OrganisationPage() {
   const [saved, setSaved] = useState(false);
   const [leaving, setLeaving] = useState<{ id: string; date: string } | null>(null);
   const { account } = useAccount();
+  usePageDownloads([
+    { label: "The board: organisation, people and agents", hint: "Word", run: () => downloadOrganisation(org, "doc") },
+    ...(org.people.length ? [{ label: "The people", hint: "CSV", run: () => downloadOrganisation(org, "people") }] : []),
+    { label: "The board as data", hint: "JSON", run: () => downloadOrganisation(org, "json") },
+  ]);
 
   function update(next: Organisation) {
     setOrg(saveOrganisation(next));

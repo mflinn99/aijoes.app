@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { usePageDownloads } from "@/components/PageDownload";
+import { htmlDocument, saveFile, section, slug, today } from "@/lib/downloads";
 import { CheckpointPill } from "@/components/CheckpointPill";
 import { AccountMenu } from "@/components/AccountProvider";
 import { motion, AnimatePresence } from "framer-motion";
@@ -112,6 +114,48 @@ export default function Analysis() {
   const [expandedPersona, setExpandedPersona] = useState<string | null>(null);
   const [runningMsg, setRunningMsg] = useState("Convening the board…");
   const [elapsed, setElapsed] = useState(0);
+
+  usePageDownloads(
+    result
+      ? [
+          {
+            label: "This scenario analysis",
+            hint: "Word",
+            run: () => {
+              const label = CHALLENGES.find((x) => x.id === result.challenge)?.label ?? result.challenge;
+              const a = result.aggregatedOutput;
+              saveFile(
+                `sentinel8-analysis-${slug(label)}-${today()}.doc`,
+                "application/msword",
+                htmlDocument(
+                  `Scenario analysis: ${label}`,
+                  [
+                    section("Verdict", `${a.decision === "DO" ? "Do it" : "Don't do it"}`, a.rationale, `Difficulty ${a.difficulty} · cost ${a.cost} · time ${a.time} · risk ${a.risk}`),
+                    section(
+                      "Calibration",
+                      `Risk ${Math.round(result.calibration.risk * 10)}/10 · ambition ${Math.round(result.calibration.ambition * 10)}/10 · time ${Math.round(result.calibration.time * 10)}/10 · cost ${Math.round(result.calibration.cost * 10)}/10`,
+                    ),
+                    ...result.personaOutputs.map((o) =>
+                      section(
+                        `${o.name} (${o.hat})`,
+                        o.executionNarrative,
+                        o.consequences.length ? `Consequences: ${o.consequences.join("; ")}` : "",
+                        `Strengths: ${o.swot.strengths.join("; ")}`,
+                        `Weaknesses: ${o.swot.weaknesses.join("; ")}`,
+                        `Opportunities: ${o.swot.opportunities.join("; ")}`,
+                        `Threats: ${o.swot.threats.join("; ")}`,
+                        (a.personaActions[o.id] ?? []).length ? `Actions: ${(a.personaActions[o.id] ?? []).join("; ")}` : "",
+                      ),
+                    ),
+                  ].join(""),
+                ),
+              );
+            },
+          },
+          { label: "This analysis as data", hint: "JSON", run: () => saveFile(`sentinel8-analysis-${today()}.json`, "application/json", JSON.stringify(result, null, 2)) },
+        ]
+      : [],
+  );
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const userCancelledRef = useRef(false);

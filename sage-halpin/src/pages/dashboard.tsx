@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { usePageDownloads } from "@/components/PageDownload";
+import { saveFile, today } from "@/lib/downloads";
 import { CheckpointPill } from "@/components/CheckpointPill";
 import { AccountMenu } from "@/components/AccountProvider";
 import { motion } from "framer-motion";
@@ -27,6 +29,10 @@ export default function Dashboard() {
   const [levers, setLevers] = useState<GrowthLever[]>(store.getLevers);
   const [risks, setRisks] = useState<Risk[]>(store.getRisks);
   const [alerts, setAlerts] = useState<Alert[]>([]);
+
+  usePageDownloads([
+    { label: "Workspace dashboard data", hint: "JSON", run: () => saveFile(`sentinel8-dashboard-${today()}.json`, "application/json", JSON.stringify({ kpis, decisions, levers, risks, alerts }, null, 2)) },
+  ]);
 
   useEffect(() => {
     setAlerts(generateAlerts(kpis));
