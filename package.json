@@ -2,7 +2,7 @@
   "name": "aigogo-metamsp",
   "version": "0.1.0",
   "private": true,
-  "description": "AIGoGo MetaMSP — Automated Land & Expand Engine",
+  "description": "AIGoGo MetaMSP \u2014 Automated Land & Expand Engine",
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
@@ -11,7 +11,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed": "tsx scripts/seed.ts",
-    "db:reset": "rm -f .data/metamsp.db && npm run seed"
+    "db:reset": "rm -f .data/metamsp.db && npm run seed",
+    "salesonic:check": "tsx scripts/salesonic-check-repl.ts",
+    "salesonic:verify": "vitest run tests/salesonic-narrative-coverage.test.ts",
+    "salesonic:prompt": "tsx scripts/salesonic-build-agent-prompt.ts"
   },
   "dependencies": {
     "better-sqlite3": "^11.5.0",
